@@ -1,0 +1,115 @@
+# Crochet PeakZ
+
+## Stack
+
+- **Language / Runtime**: TypeScript, Node.js
+- **Frontend**: Next.js (App Router), React, Tailwind CSS, Radix UI / Shadcn UI, Zustand
+- **Backend**: Express.js (TypeScript)
+- **Database**: PostgreSQL, Prisma ORM
+- **Auth**: JWT (HttpOnly cookies), OAuth 2.0 (Google, Facebook)
+- **Storage**: Cloudinary (all uploads, product media, digital assets)
+- **Email**: Resend or SendGrid
+- **Payments**: Stripe, PayPal, SSLCommerz, Cash on Delivery
+- **Package manager**: npm
+- **Deployment**: Vercel (frontend), Heroku (backend + PostgreSQL)
+
+_Stack sourced from `docs/scope/spec-reference.md` (the original project spec). These are the intended choices; `/architect stack & architecture` will validate and record the formal decision._
+
+## Build approach
+
+Tracer Bullet: prove the whole pipe works before building any part of it fully. Each feature is built end to end through every layer, real and shippable, just narrow in scope.
+
+## Commands
+
+```bash
+# Install (to be filled after scaffold)
+# npm install
+
+# Dev server (to be filled after scaffold)
+# npm run dev
+
+# Build (to be filled after scaffold)
+# npm run build
+
+# Test (to be filled after scaffold)
+# npm test
+
+# Lint
+# npm run lint
+
+# Format
+# npm run format
+```
+
+_Commands will be filled once the project is scaffolded by `/develop stack & architecture`._
+
+## Specs
+
+Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
+
+## Rules
+
+### Architecture (Clean Architecture)
+
+- Code is organized in four layers: `domain` (entities, value objects), `application` (use cases), `infrastructure` (DB, APIs, frameworks), `presentation` (UI, controllers).
+- Dependency rule: outer layers depend on inner layers, never the reverse. Domain has zero external imports.
+- Use cases are thin orchestrators. They call domain logic and infrastructure interfaces, never implement business rules themselves.
+- Infrastructure implements interfaces defined in the domain or application layer (dependency inversion).
+- No framework or ORM code (web framework, ORM, HTTP client, etc.) appears inside `domain/` or `application/`.
+- Entities contain business rules and enforce their own invariants. They are plain objects with no ORM decorators.
+- All cross boundary communication uses DTOs or plain objects. No domain entities leak into the presentation layer.
+- Tests: domain and application layers are unit tested with no mocks of infrastructure. Infrastructure is integration tested against real systems.
+
+### Type strictness
+
+- Strict TypeScript everywhere: no `any`, exhaustive types, strict null checks (`strict: true` in tsconfig).
+
+### Folder structure
+
+- By layer: `controllers/`, `services/`, `repositories/` (traditional MVC style separation).
+
+### Code standards
+
+- Document all public APIs with JSDoc/TSDoc on exported functions and types.
+- Use a consistent error handling pattern: custom error classes with a centralized error handler middleware.
+- Validate all environment variables at startup. Fail fast on missing config.
+- Named exports only. No default exports.
+- Naming: camelCase for functions and variables, PascalCase for types, interfaces, classes, and React components.
+- Accessibility baseline on all UI: WCAG 2.1 AA.
+- Conventional commit messages: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `perf:`.
+
+## Tooling
+
+_Choices recorded here. `/develop tooling` installs them._
+
+- **Linter**: ESLint (with TypeScript rules)
+- **Formatter**: Prettier
+- **Pre commit**: Husky + lint-staged (lint + format + typecheck on every commit)
+- **Testing**: Vitest (unit/integration), React Testing Library (components), Playwright (E2E)
+- **CI**: GitHub Actions (lint, typecheck, test on push)
+
+## Git
+
+- integration: on
+- branch prefix: feat/
+- commit: per-milestone
+
+## Agent skills
+
+- [scope](.agents/skills/scope/): workflow skill, turns ideas into living scope in `docs/scope/`
+- [architect](.agents/skills/architect/): workflow skill, designs features and writes specs to `docs/specs/`
+- [audit](.agents/skills/audit/): workflow skill, bootstraps project AI context (`AGENTS.md` files)
+- [develop](.agents/skills/develop/): workflow skill, builds features from specs
+- [check](.agents/skills/check/): workflow skill, verifies and reviews changes
+- [debug](.agents/skills/debug/): workflow skill, finds and fixes bugs
+- [test](.agents/skills/test/): workflow skill, writes test suites
+- [document](.agents/skills/document/): workflow skill, writes human facing prose
+- [sync](.agents/skills/sync/): workflow skill, keeps durable knowledge current
+
+_Stack specific skills (Next.js, Prisma, Stripe, etc.) not yet searched; `npx` is unavailable until Node.js is installed. After scaffold, run a skill search or install manually._
+
+## Context files
+
+<!-- Nested AGENTS.md files are listed here as they are created -->
+
+_Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._
