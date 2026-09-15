@@ -110,6 +110,8 @@ _Stack specific skills (Next.js, Prisma, Stripe, etc.) not yet searched; `npx` i
 
 ## Context files
 
-<!-- Nested AGENTS.md files are listed here as they are created -->
+- [apps/api/AGENTS.md](apps/api/AGENTS.md): Express.js backend, Clean Architecture layers, Prisma, env and error handling conventions
+- [apps/web/AGENTS.md](apps/web/AGENTS.md): Next.js 15 frontend, App Router, Tailwind CSS, fonts and layout
+- [packages/shared/AGENTS.md](packages/shared/AGENTS.md): shared types, Zod schemas, constants consumed by both api and web
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

@@ -1,0 +1,2 @@
+// Infrastructure layer: Prisma repositories, external service clients.
+// Implements interfaces from the application layer (dependency inversion).

@@ -11,7 +11,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
-| 1 | Stack & architecture | Foundation | planned |
+| 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | planned |
 | 3 | Data model | Foundation | planned |
 | 4 | Design system & UI foundation | Foundation | planned |
@@ -46,13 +46,14 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## Foundations
 
-### 1. Stack & architecture · needs a decision
+### 1. Stack & architecture
 
 Decide the full technology stack (Next.js frontend, Express.js backend, PostgreSQL, Prisma ORM, Cloudinary, deployment targets) and scaffold a runnable project so every later slice builds on real structure. The spec reference (`docs/scope/spec-reference.md`) documents the intended stack; `/architect` validates these choices and records the decision.
 
 **Done when:** the stack is recorded in a spec and the empty scaffold boots locally (frontend dev server + backend dev server + database connection) and passes build.
 
-- [ ] Decide the stack (spec): `/architect stack & architecture`
+- [x] Decide the stack (spec): [0001](../specs/0001-stack-and-architecture/index.md)
+- [x] Scaffold from the decision: `/develop stack & architecture`
 
 ### 2. Coding standards & tooling
 
