@@ -1,0 +1,2 @@
+// Application layer: use cases, interfaces.
+// Thin orchestrators that call domain logic and infrastructure interfaces.
