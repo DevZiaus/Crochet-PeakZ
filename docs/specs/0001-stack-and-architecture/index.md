@@ -1,7 +1,7 @@
 # 0001. Stack and architecture for Crochet PeakZ
 
 **Date**: 2026-09-09
-**Status**: Proposed
+**Status**: Accepted
 
 ## Summary
 
