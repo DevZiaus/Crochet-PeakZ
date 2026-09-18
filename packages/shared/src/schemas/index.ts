@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Currency } from "../types/index.js";
+import { Currency } from "../types/index";
 
 /**
  * Zod schema for validating currency codes.

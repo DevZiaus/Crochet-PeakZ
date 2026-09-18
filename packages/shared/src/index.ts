@@ -5,10 +5,10 @@
  * the frontend (apps/web) and backend (apps/api) workspaces.
  */
 
-export { Currency, type CurrencyCode } from "./types/index.js";
-export { currencySchema } from "./schemas/index.js";
+export { Currency, type CurrencyCode } from "./types/index";
+export { currencySchema } from "./schemas/index";
 export {
   CURRENCIES,
   ORDER_STATUSES,
   type OrderStatus,
-} from "./constants/index.js";
+} from "./constants/index";
