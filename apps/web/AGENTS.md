@@ -2,7 +2,7 @@
 
 ## Overview
 
-Next.js 15 (App Router, React 19) frontend for Crochet PeakZ. Serves the customer facing storefront, admin dashboard, and all UI. Styled with Tailwind CSS v4 and will use Shadcn UI components.
+Next.js 16 (App Router, React 19) frontend for Crochet PeakZ. Serves the customer facing storefront, admin dashboard, and all UI. Styled with Tailwind CSS v4 and will use Shadcn UI components.
 
 ## Stack
 

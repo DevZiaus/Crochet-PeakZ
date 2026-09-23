@@ -2,7 +2,7 @@
 
 ## Stack
 
-- **Language / Runtime**: TypeScript, Node.js
+- **Language / Runtime**: TypeScript, Node.js 22 LTS (`.nvmrc` pins it; `engines` enforces `>=22.0.0`)
 - **Frontend**: Next.js (App Router), React, Tailwind CSS, Radix UI / Shadcn UI, Zustand
 - **Backend**: Express.js (TypeScript)
 - **Database**: PostgreSQL, Prisma ORM
@@ -22,23 +22,23 @@ Tracer Bullet: prove the whole pipe works before building any part of it fully. 
 ## Commands
 
 ```bash
-# Install (to be filled after scaffold)
-# npm install
+# Install
+npm install
 
-# Dev server (to be filled after scaffold)
-# npm run dev
+# Dev server (hot reload api and web)
+npm run dev
 
-# Build (to be filled after scaffold)
-# npm run build
+# Build (all workspaces)
+npm run build
 
-# Test (to be filled after scaffold)
-# npm test
+# Typecheck
+npm run typecheck
 
 # Lint
-# npm run lint
+npm run lint
 
-# Format
-# npm run format
+# Test
+# not yet installed; run `/develop tooling` to add Vitest, RTL, Playwright
 ```
 
 _Commands will be filled once the project is scaffolded by `/develop stack & architecture`._
@@ -66,7 +66,7 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
 
 ### Folder structure
 
-- By layer: `controllers/`, `services/`, `repositories/` (traditional MVC style separation).
+- By Clean Architecture layer: `domain/`, `application/`, `infrastructure/`, `presentation/` (matches the architecture rules above).
 
 ### Code standards
 
