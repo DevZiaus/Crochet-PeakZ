@@ -12,7 +12,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | #   | Feature                            | Phase      | Status  |
 | --- | ---------------------------------- | ---------- | ------- |
 | 1   | Stack & architecture               | Foundation | done    |
-| 2   | Coding standards & tooling         | Foundation | planned |
+| 2   | Coding standards & tooling         | Foundation | done    |
 | 3   | Data model                         | Foundation | planned |
 | 4   | Design system & UI foundation      | Foundation | planned |
 | 5   | Customer auth                      | Slice 1    | planned |
@@ -61,7 +61,10 @@ Capture conventions from the real scaffolded project, then install lint, format,
 
 **Done when:** root `AGENTS.md` reflects the real stack, and lint/format/pre commit run clean.
 
-- [ ] Capture conventions + tooling choices: `/audit`
+- [x] Capture conventions + tooling choices: `/audit`
+- [x] Install lint, format, pre commit enforcement: `/develop coding standards & tooling`
+
+code in `eslint.config.mjs` · `apps/*/eslint.config.mjs` · `.prettierrc` · `.husky/pre-commit`
 
 ### 3. Data model · needs a decision
 

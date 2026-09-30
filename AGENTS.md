@@ -34,14 +34,18 @@ npm run build
 # Typecheck
 npm run typecheck
 
-# Lint
+# Lint (ESLint across all workspaces)
 npm run lint
+
+# Format (Prettier, write mode)
+npm run format
+
+# Format check (CI, check mode)
+npm run format:check
 
 # Test
 # not yet installed; run `/develop tooling` to add Vitest, RTL, Playwright
 ```
-
-_Commands will be filled once the project is scaffolded by `/develop stack & architecture`._
 
 ## Specs
 
