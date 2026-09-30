@@ -1,12 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  Currency,
-  type CurrencyCode,
-  currencySchema,
-  CURRENCIES,
-  ORDER_STATUSES,
-  type OrderStatus,
-} from "./index";
+import { Currency, currencySchema, CURRENCIES, ORDER_STATUSES } from "./index";
 
 /**
  * Tests for the @crochet-peakz/shared barrel export.

@@ -19,11 +19,11 @@ npm run typecheck --workspace=packages/shared
 
 ## Key files
 
-| File | Owns |
-|---|---|
-| `src/index.ts` | Barrel export: re-exports all public types, schemas, and constants |
-| `src/types/index.ts` | `Currency` const object and `CurrencyCode` union type (BDT, USD) |
-| `src/schemas/index.ts` | `currencySchema` (Zod enum validator for currency codes) |
+| File                     | Owns                                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| `src/index.ts`           | Barrel export: re-exports all public types, schemas, and constants                      |
+| `src/types/index.ts`     | `Currency` const object and `CurrencyCode` union type (BDT, USD)                        |
+| `src/schemas/index.ts`   | `currencySchema` (Zod enum validator for currency codes)                                |
 | `src/constants/index.ts` | `CURRENCIES` (display metadata), `ORDER_STATUSES` (order lifecycle), `OrderStatus` type |
 
 ## Conventions

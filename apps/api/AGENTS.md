@@ -6,7 +6,7 @@ Express.js backend for Crochet PeakZ, written in TypeScript. Serves a REST API f
 
 ## Stack
 
-- **Runtime**: Node.js 22, TypeScript (strict mode, extends `tsconfig.base.json`)
+- **Runtime**: Node.js 22 LTS, TypeScript (strict mode, extends `tsconfig.base.json`)
 - **Framework**: Express.js
 - **ORM**: Prisma (`prisma/schema.prisma`)
 - **Validation**: Zod (shared schemas from `@crochet-peakz/shared`)
@@ -30,13 +30,13 @@ npm run start --workspace=apps/api
 
 ## Key files
 
-| File | Owns |
-|---|---|
-| `src/index.ts` | Server entry point: env validation, Express setup, Prisma connect, route mounting |
-| `prisma/schema.prisma` | Database schema (PostgreSQL, currently a minimal `StoreSettings` model) |
-| `src/presentation/routes/health.routes.ts` | `/api/health` endpoint proving the server is alive |
-| `src/presentation/middleware/errorHandler.ts` | Centralized error handler and `AppError` class |
-| `.env` / `.env.example` | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments) |
+| File                                          | Owns                                                                              |
+| --------------------------------------------- | --------------------------------------------------------------------------------- |
+| `src/index.ts`                                | Server entry point: env validation, Express setup, Prisma connect, route mounting |
+| `prisma/schema.prisma`                        | Database schema (PostgreSQL, currently a minimal `StoreSettings` model)           |
+| `src/presentation/routes/health.routes.ts`    | `/api/health` endpoint proving the server is alive                                |
+| `src/presentation/middleware/errorHandler.ts` | Centralized error handler and `AppError` class                                    |
+| `.env` / `.env.example`                       | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)    |
 
 ## Conventions
 
@@ -44,13 +44,13 @@ npm run start --workspace=apps/api
 - **Error handling**: throw `AppError(statusCode, message)` for expected errors; the centralized `errorHandler` middleware catches all and returns consistent JSON.
 - **Env validation**: `validateEnv()` runs at startup. Add any new required variable to the `required` array in `src/index.ts`.
 - **Route mounting**: all routers mount under `/api` (e.g. `app.use("/api", healthRouter)`).
-- **Module system**: CommonJS (`"module": "CommonJS"` in tsconfig). ts-node-dev transpiles at dev time; `tsc` compiles to `dist/` for production.
+- **Module system**: CommonJS (`"module": "CommonJS"`, `"moduleResolution": "Node"` in tsconfig). ts-node-dev transpiles at dev time; `tsc` compiles to `dist/` for production.
 - **Prisma model naming**: models use PascalCase, table names use `@@map("snake_case")`, column aliases via `@map("snake_case")`.
 
 ## Gotchas
 
 - The server starts even if the database connection fails (warns instead of crashing), so the health check may return OK while DB queries fail.
-- `tsconfig.json` extends the root `tsconfig.base.json` but overrides module to CommonJS. The shared package uses Node16 module resolution, so imports from `@crochet-peakz/shared` use `.js` extensions in their source.
+- `tsconfig.json` extends the root `tsconfig.base.json` and overrides `rootDir`, `outDir`, `module` (CommonJS), and `moduleResolution` (Node). The shared package uses Node16 module resolution, so imports from `@crochet-peakz/shared` use `.js` extensions in their source.
 
 ## Related specs
 
