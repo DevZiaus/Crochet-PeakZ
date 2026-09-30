@@ -15,6 +15,9 @@ Shared TypeScript package consumed by both `apps/api` and `apps/web`. Contains t
 ```bash
 # Typecheck
 npm run typecheck --workspace=packages/shared
+
+# Test
+npm test --workspace=packages/shared
 ```
 
 ## Key files

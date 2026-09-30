@@ -70,5 +70,25 @@ describe("@crochet-peakz/shared barrel exports", () => {
       expect(currencySchema).toBeDefined();
       expect(typeof currencySchema.parse).toBe("function");
     });
+
+    it("accepts BDT as a valid currency code", () => {
+      expect(currencySchema.parse(Currency.BDT)).toBe("BDT");
+    });
+
+    it("accepts USD as a valid currency code", () => {
+      expect(currencySchema.parse(Currency.USD)).toBe("USD");
+    });
+
+    it("rejects an unsupported currency code", () => {
+      expect(() => currencySchema.parse("EUR")).toThrow();
+    });
+
+    it("rejects a non string value", () => {
+      expect(() => currencySchema.parse(42)).toThrow();
+    });
+
+    it("rejects an empty string", () => {
+      expect(() => currencySchema.parse("")).toThrow();
+    });
   });
 });

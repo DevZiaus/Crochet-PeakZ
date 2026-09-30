@@ -63,6 +63,9 @@ Capture conventions from the real scaffolded project, then install lint, format,
 
 - [x] Capture conventions + tooling choices: `/audit`
 - [x] Install lint, format, pre commit enforcement: `/develop coding standards & tooling`
+- [x] Verify lint/format/precommit run clean: `/check verify Coding standards & tooling`
+- [x] Test shared barrel exports + Zod schema validation: `/test Coding standards & tooling`
+- [x] Document it: `/document changelog Coding standards & tooling`
 
 code in `eslint.config.mjs` · `apps/*/eslint.config.mjs` · `.prettierrc` · `.husky/pre-commit`
 

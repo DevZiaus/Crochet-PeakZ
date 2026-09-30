@@ -11,15 +11,15 @@ Crochet PeakZ will be built as a decoupled monorepo with a Next.js 15 frontend a
 
 **Chosen option**: Option 1: Decoupled TypeScript monorepo (Next.js + Express.js + PostgreSQL)
 
-The project uses a decoupled architecture with a Next.js 15 (App Router, React 19) frontend and an Express.js backend, connected by a REST API, in a single npm workspaces monorepo. PostgreSQL 16 with Prisma ORM provides the persistence layer. Authentication is self hosted (JWT with HttpOnly cookies, Passport.js for Google and Facebook OAuth 2.0, bcryptjs for password hashing). Cloudinary handles all file storage. Resend provides transactional email. Payments integrate directly with each provider's SDK (Stripe, PayPal, SSLCommerz, plus Cash on Delivery logic).
+The project uses a decoupled architecture with a Next.js 16 (App Router, React 19) frontend and an Express.js backend, connected by a REST API, in a single npm workspaces monorepo. PostgreSQL 16 with Prisma ORM provides the persistence layer. Authentication is self hosted (JWT with HttpOnly cookies, Passport.js for Google and Facebook OAuth 2.0, bcryptjs for password hashing). Cloudinary handles all file storage. Resend provides transactional email. Payments integrate directly with each provider's SDK (Stripe, PayPal, SSLCommerz, plus Cash on Delivery logic).
 
 ## Proposed stack
 
 | Layer                    | Choice                                                      | Reason                                                                                                          |
 | ------------------------ | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Language                 | TypeScript (strict mode)                                    | Type safety across frontend and backend; shared validation schemas via Zod in `packages/shared`                 |
-| Node.js version          | Node.js 22 LTS                                              | Latest LTS with modern features; the project starts fresh and benefits from the newest runtime                  |
-| Frontend framework       | Next.js 15 (App Router, React 19)                           | Server Components for performance, App Router for modern patterns, Vercel optimized deployment                  |
+| Node.js version          | Node.js 24.20.0 LTS                                         | Latest LTS with modern features; the project starts fresh and benefits from the newest runtime                  |
+| Frontend framework       | Next.js 16 (App Router, React 19)                           | Server Components for performance, App Router for modern patterns, Vercel optimized deployment                  |
 | Backend framework        | Express.js (TypeScript)                                     | Mature, huge middleware ecosystem, straightforward REST APIs; well supported on Heroku                          |
 | Primary DB               | PostgreSQL 16 (Prisma ORM)                                  | Relational data with ACID guarantees; Prisma gives typed queries, migrations, and seeds; Heroku Postgres add on |
 | Auth                     | JWT (HttpOnly cookies) + Passport.js (OAuth 2.0) + bcryptjs | Full control, no vendor lock in; supports local email/password plus Google and Facebook sign in                 |
