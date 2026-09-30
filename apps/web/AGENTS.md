@@ -2,7 +2,7 @@
 
 ## Overview
 
-Next.js 15 (App Router, React 19) frontend for Crochet PeakZ. Serves the customer facing storefront, admin dashboard, and all UI. Styled with Tailwind CSS v4 and will use Shadcn UI components.
+Next.js 16 (App Router, React 19) frontend for Crochet PeakZ. Serves the customer facing storefront, admin dashboard, and all UI. Styled with Tailwind CSS v4 and will use Shadcn UI components.
 
 ## Stack
 
@@ -29,13 +29,13 @@ npm run lint --workspace=apps/web
 
 ## Key files
 
-| File | Owns |
-|---|---|
-| `src/app/layout.tsx` | Root layout: HTML shell, fonts, metadata |
-| `src/app/page.tsx` | Home page (scaffold placeholder, imports from shared to verify workspace link) |
-| `src/app/globals.css` | Global CSS, Tailwind imports |
-| `next.config.ts` | Next.js configuration (currently empty) |
-| `eslint.config.mjs` | ESLint config (Next.js preset) |
+| File                  | Owns                                                                           |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `src/app/layout.tsx`  | Root layout: HTML shell, fonts, metadata                                       |
+| `src/app/page.tsx`    | Home page (scaffold placeholder, imports from shared to verify workspace link) |
+| `src/app/globals.css` | Global CSS, Tailwind imports                                                   |
+| `next.config.ts`      | Next.js configuration (currently empty)                                        |
+| `eslint.config.mjs`   | ESLint config (Next.js preset)                                                 |
 
 ## Conventions
 

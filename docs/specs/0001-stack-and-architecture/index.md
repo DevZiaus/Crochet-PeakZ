@@ -11,36 +11,36 @@ Crochet PeakZ will be built as a decoupled monorepo with a Next.js 15 frontend a
 
 **Chosen option**: Option 1: Decoupled TypeScript monorepo (Next.js + Express.js + PostgreSQL)
 
-The project uses a decoupled architecture with a Next.js 15 (App Router, React 19) frontend and an Express.js backend, connected by a REST API, in a single npm workspaces monorepo. PostgreSQL 16 with Prisma ORM provides the persistence layer. Authentication is self hosted (JWT with HttpOnly cookies, Passport.js for Google and Facebook OAuth 2.0, bcryptjs for password hashing). Cloudinary handles all file storage. Resend provides transactional email. Payments integrate directly with each provider's SDK (Stripe, PayPal, SSLCommerz, plus Cash on Delivery logic).
+The project uses a decoupled architecture with a Next.js 16 (App Router, React 19) frontend and an Express.js backend, connected by a REST API, in a single npm workspaces monorepo. PostgreSQL 16 with Prisma ORM provides the persistence layer. Authentication is self hosted (JWT with HttpOnly cookies, Passport.js for Google and Facebook OAuth 2.0, bcryptjs for password hashing). Cloudinary handles all file storage. Resend provides transactional email. Payments integrate directly with each provider's SDK (Stripe, PayPal, SSLCommerz, plus Cash on Delivery logic).
 
 ## Proposed stack
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Language | TypeScript (strict mode) | Type safety across frontend and backend; shared validation schemas via Zod in `packages/shared` |
-| Node.js version | Node.js 22 LTS | Latest LTS with modern features; the project starts fresh and benefits from the newest runtime |
-| Frontend framework | Next.js 15 (App Router, React 19) | Server Components for performance, App Router for modern patterns, Vercel optimized deployment |
-| Backend framework | Express.js (TypeScript) | Mature, huge middleware ecosystem, straightforward REST APIs; well supported on Heroku |
-| Primary DB | PostgreSQL 16 (Prisma ORM) | Relational data with ACID guarantees; Prisma gives typed queries, migrations, and seeds; Heroku Postgres add on |
-| Auth | JWT (HttpOnly cookies) + Passport.js (OAuth 2.0) + bcryptjs | Full control, no vendor lock in; supports local email/password plus Google and Facebook sign in |
-| File storage | Cloudinary | Purpose built for images and media; on the fly transformations, signed URLs for private digital assets |
-| Email | Resend | Developer friendly API, React Email for templating, modern TypeScript SDK |
-| Payments (international) | Stripe SDK + PayPal SDK | Official SDKs, proven for USD international payments; Stripe Elements for card UI, PayPal Smart Buttons |
-| Payments (domestic) | SSLCommerz API + Cash on Delivery | SSLCommerz covers Bangladesh payment methods (bKash, Nagad, cards); COD for domestic orders |
-| State management | Zustand | Minimal, hook based, tiny bundle; handles cart, currency toggle, and UI state |
-| Styling | Tailwind CSS v4 + Shadcn UI (Radix UI) | Utility first CSS with accessible component primitives; Shadcn installs into your codebase |
-| Icons | Lucide React | Tree shakable, consistent design, well maintained |
-| Forms + validation | React Hook Form + Zod | Performant form state, shared schemas between frontend and backend in `packages/shared` |
-| i18n | next-intl | Purpose built for Next.js App Router; ICU message format, type safe translations; English + Bangla |
-| Product analytics | Google Analytics 4 | Free, widely used, sufficient for measuring signups and behavior alongside Meta Pixel |
-| Error monitoring | Sentry | Industry standard; Next.js and Express integrations, source map upload, free tier for small projects |
-| API architecture | REST (Express Router) | Traditional REST endpoints matching the spec's API design; clear URL structure, easy to document |
-| Monorepo tooling | npm workspaces | Built in, no extra tooling; `apps/web`, `apps/api`, `packages/shared` |
-| Frontend hosting | Vercel | Optimized for Next.js; edge SSR, automatic previews, zero config |
-| Backend hosting | Heroku (with Postgres add on) | Managed Node.js hosting with integrated PostgreSQL; simple deployment |
-| Backend dev server | ts-node-dev | Fast TypeScript reloading for Express development |
-| CORS | cors middleware + environment based origin whitelist | Standard approach for cross origin requests between Vercel and Heroku domains |
-| Password hashing | bcryptjs | Pure JS implementation (no native compile issues on Heroku); constant time comparison |
+| Layer                    | Choice                                                      | Reason                                                                                                          |
+| ------------------------ | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Language                 | TypeScript (strict mode)                                    | Type safety across frontend and backend; shared validation schemas via Zod in `packages/shared`                 |
+| Node.js version          | Node.js 24.20.0 LTS                                         | Latest LTS with modern features; the project starts fresh and benefits from the newest runtime                  |
+| Frontend framework       | Next.js 16 (App Router, React 19)                           | Server Components for performance, App Router for modern patterns, Vercel optimized deployment                  |
+| Backend framework        | Express.js (TypeScript)                                     | Mature, huge middleware ecosystem, straightforward REST APIs; well supported on Heroku                          |
+| Primary DB               | PostgreSQL 16 (Prisma ORM)                                  | Relational data with ACID guarantees; Prisma gives typed queries, migrations, and seeds; Heroku Postgres add on |
+| Auth                     | JWT (HttpOnly cookies) + Passport.js (OAuth 2.0) + bcryptjs | Full control, no vendor lock in; supports local email/password plus Google and Facebook sign in                 |
+| File storage             | Cloudinary                                                  | Purpose built for images and media; on the fly transformations, signed URLs for private digital assets          |
+| Email                    | Resend                                                      | Developer friendly API, React Email for templating, modern TypeScript SDK                                       |
+| Payments (international) | Stripe SDK + PayPal SDK                                     | Official SDKs, proven for USD international payments; Stripe Elements for card UI, PayPal Smart Buttons         |
+| Payments (domestic)      | SSLCommerz API + Cash on Delivery                           | SSLCommerz covers Bangladesh payment methods (bKash, Nagad, cards); COD for domestic orders                     |
+| State management         | Zustand                                                     | Minimal, hook based, tiny bundle; handles cart, currency toggle, and UI state                                   |
+| Styling                  | Tailwind CSS v4 + Shadcn UI (Radix UI)                      | Utility first CSS with accessible component primitives; Shadcn installs into your codebase                      |
+| Icons                    | Lucide React                                                | Tree shakable, consistent design, well maintained                                                               |
+| Forms + validation       | React Hook Form + Zod                                       | Performant form state, shared schemas between frontend and backend in `packages/shared`                         |
+| i18n                     | next-intl                                                   | Purpose built for Next.js App Router; ICU message format, type safe translations; English + Bangla              |
+| Product analytics        | Google Analytics 4                                          | Free, widely used, sufficient for measuring signups and behavior alongside Meta Pixel                           |
+| Error monitoring         | Sentry                                                      | Industry standard; Next.js and Express integrations, source map upload, free tier for small projects            |
+| API architecture         | REST (Express Router)                                       | Traditional REST endpoints matching the spec's API design; clear URL structure, easy to document                |
+| Monorepo tooling         | npm workspaces                                              | Built in, no extra tooling; `apps/web`, `apps/api`, `packages/shared`                                           |
+| Frontend hosting         | Vercel                                                      | Optimized for Next.js; edge SSR, automatic previews, zero config                                                |
+| Backend hosting          | Heroku (with Postgres add on)                               | Managed Node.js hosting with integrated PostgreSQL; simple deployment                                           |
+| Backend dev server       | ts-node-dev                                                 | Fast TypeScript reloading for Express development                                                               |
+| CORS                     | cors middleware + environment based origin whitelist        | Standard approach for cross origin requests between Vercel and Heroku domains                                   |
+| Password hashing         | bcryptjs                                                    | Pure JS implementation (no native compile issues on Heroku); constant time comparison                           |
 
 ### Workspace structure
 
@@ -133,6 +133,7 @@ NEXT_PUBLIC_SENTRY_DSN=...
 ## Consequences
 
 **Positive**:
+
 - One repo with shared types eliminates frontend/backend type drift, a common source of bugs in decoupled architectures.
 - Vercel and Heroku are both zero ops for a solo developer: push to deploy, managed SSL, automatic scaling.
 - Every tool chosen is proven at scale with large communities and documentation; nothing experimental.
@@ -140,6 +141,7 @@ NEXT_PUBLIC_SENTRY_DSN=...
 - Prisma ORM gives type safe database access and handles migrations, reducing the chance of schema drift.
 
 **Negative / tradeoffs**:
+
 - Two deployment targets (Vercel + Heroku) mean two sets of env vars, two CI targets, and two monitoring dashboards.
 - Heroku's Eco/Basic dynos sleep after inactivity, causing cold start delays for the first API request; the Standard plan avoids this but costs more.
 - npm workspaces is simpler than pnpm or Turborepo but lacks build caching and strict dependency resolution; if builds slow down later, Turborepo can be added.
@@ -147,6 +149,7 @@ NEXT_PUBLIC_SENTRY_DSN=...
 - Cloudinary's free tier has upload and transformation limits that a high traffic store may outgrow.
 
 **Neutral**:
+
 - Google Analytics 4 is free but heavier and has privacy concerns; a privacy friendly alternative (PostHog, Plausible) can replace it later without architectural changes.
 - The monorepo adds slight complexity for initial setup (workspace config, shared package linking) but pays off quickly in shared types and single PR workflow.
 

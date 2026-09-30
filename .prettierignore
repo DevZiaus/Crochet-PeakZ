@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Generated files
+*.tsbuildinfo
+package-lock.json
+next-env.d.ts
+
+# Prisma generated client
+apps/api/node_modules/.prisma/
+
+# Coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/

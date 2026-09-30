@@ -9,40 +9,40 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| # | Feature | Phase | Status |
-|---|---------|-------|--------|
-| 1 | Stack & architecture | Foundation | done |
-| 2 | Coding standards & tooling | Foundation | planned |
-| 3 | Data model | Foundation | planned |
-| 4 | Design system & UI foundation | Foundation | planned |
-| 5 | Customer auth | Slice 1 | planned |
-| 6 | Product catalog storefront | Slice 1 | planned |
-| 7 | Currency switcher | Slice 1 | planned |
-| 8 | Shopping cart | Slice 1 | planned |
-| 9 | Checkout & Stripe payment | Slice 1 | planned |
-| 10 | Order confirmation & tracking | Slice 1 | planned |
-| 11 | PayPal integration | Slice 2 | planned |
-| 12 | SSLCommerz & COD | Slice 2 | planned |
-| 13 | Shipping engine | Slice 2 | planned |
-| 14 | Digital product catalog & delivery | Slice 3 | planned |
-| 15 | Custom commission request flow | Slice 4 | planned |
-| 16 | Admin commission review & quoting | Slice 4 | planned |
-| 17 | Admin dashboard & analytics | Slice 5 | planned |
-| 18 | Product management (admin) | Slice 5 | planned |
-| 19 | Order management (admin) | Slice 5 | planned |
-| 20 | Payment gateway & store settings | Slice 5 | planned |
-| 21 | Coupon & discount system | Slice 5 | planned |
-| 22 | Customer dashboard & order history | Slice 6 | planned |
-| 23 | Address book management | Slice 6 | planned |
-| 24 | Reviews & ratings | Slice 6 | planned |
-| 25 | Blog CMS | Slice 7 | planned |
-| 26 | Meta Pixel & analytics tracking | Slice 7 | planned |
-| 27 | Transactional email system | Slice 7 | planned |
-| 28 | SEO | Slice 8 | planned |
-| 29 | Cookie consent & legal pages | Slice 8 | planned |
-| 30 | Accessibility | Slice 8 | planned |
-| 31 | Error monitoring | Slice 8 | planned |
-| 32 | Internationalization | Slice 8 | planned |
+| #   | Feature                            | Phase      | Status  |
+| --- | ---------------------------------- | ---------- | ------- |
+| 1   | Stack & architecture               | Foundation | done    |
+| 2   | Coding standards & tooling         | Foundation | done    |
+| 3   | Data model                         | Foundation | planned |
+| 4   | Design system & UI foundation      | Foundation | planned |
+| 5   | Customer auth                      | Slice 1    | planned |
+| 6   | Product catalog storefront         | Slice 1    | planned |
+| 7   | Currency switcher                  | Slice 1    | planned |
+| 8   | Shopping cart                      | Slice 1    | planned |
+| 9   | Checkout & Stripe payment          | Slice 1    | planned |
+| 10  | Order confirmation & tracking      | Slice 1    | planned |
+| 11  | PayPal integration                 | Slice 2    | planned |
+| 12  | SSLCommerz & COD                   | Slice 2    | planned |
+| 13  | Shipping engine                    | Slice 2    | planned |
+| 14  | Digital product catalog & delivery | Slice 3    | planned |
+| 15  | Custom commission request flow     | Slice 4    | planned |
+| 16  | Admin commission review & quoting  | Slice 4    | planned |
+| 17  | Admin dashboard & analytics        | Slice 5    | planned |
+| 18  | Product management (admin)         | Slice 5    | planned |
+| 19  | Order management (admin)           | Slice 5    | planned |
+| 20  | Payment gateway & store settings   | Slice 5    | planned |
+| 21  | Coupon & discount system           | Slice 5    | planned |
+| 22  | Customer dashboard & order history | Slice 6    | planned |
+| 23  | Address book management            | Slice 6    | planned |
+| 24  | Reviews & ratings                  | Slice 6    | planned |
+| 25  | Blog CMS                           | Slice 7    | planned |
+| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned |
+| 27  | Transactional email system         | Slice 7    | planned |
+| 28  | SEO                                | Slice 8    | planned |
+| 29  | Cookie consent & legal pages       | Slice 8    | planned |
+| 30  | Accessibility                      | Slice 8    | planned |
+| 31  | Error monitoring                   | Slice 8    | planned |
+| 32  | Internationalization               | Slice 8    | planned |
 
 ## Foundations
 
@@ -61,7 +61,13 @@ Capture conventions from the real scaffolded project, then install lint, format,
 
 **Done when:** root `AGENTS.md` reflects the real stack, and lint/format/pre commit run clean.
 
-- [ ] Capture conventions + tooling choices: `/audit`
+- [x] Capture conventions + tooling choices: `/audit`
+- [x] Install lint, format, pre commit enforcement: `/develop coding standards & tooling`
+- [x] Verify lint/format/precommit run clean: `/check verify Coding standards & tooling`
+- [x] Test shared barrel exports + Zod schema validation: `/test Coding standards & tooling`
+- [x] Document it: `/document changelog Coding standards & tooling`
+
+code in `eslint.config.mjs` · `apps/*/eslint.config.mjs` · `.prettierrc` · `.husky/pre-commit`
 
 ### 3. Data model · needs a decision
 
@@ -354,13 +360,13 @@ Out of scope for the current build pass, kept so the plan stays honest.
 
 **Feature lifecycle**: the scope updates as a feature moves; each row is what it shows and who sets it:
 
-| State | Set by | The feature shows |
-|---|---|---|
-| `planned` · needs a decision | `/scope` | one box: `Design it (spec): /architect <feature>` |
-| `in-progress` (designed) | **`/architect` at spec capture** | `Design it` ticked; spec linked; `Build it: /develop <feature>` + **2 to 5 milestones**; the tier's closing boxes (`Verify it` Alpha+, `Test it` Beta+, `Review it` + `Document it` GA); any surfaced follow up enrolled |
-| `in-progress` (building) | `/develop` | milestone sub boxes tick one by one; code pointer filled |
-| `in-progress` (verified) | `/check verify` | `Build it` + milestones ticked; `Verify it` ticked |
-| `done` | **you, when you decide it is** (any skill sets it when you say so); `/sync` reconciles | boxes you ran ticked, skipped ones marked skipped; the tier's last stage (`Prototype` → after `/develop`; `Alpha` → after `/check verify`; `Beta`/`GA` → after `/test`) is the suggested point to call it done; `/sync` captures conventions |
+| State                        | Set by                                                                                 | The feature shows                                                                                                                                                                                                                            |
+| ---------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `planned` · needs a decision | `/scope`                                                                               | one box: `Design it (spec): /architect <feature>`                                                                                                                                                                                            |
+| `in-progress` (designed)     | **`/architect` at spec capture**                                                       | `Design it` ticked; spec linked; `Build it: /develop <feature>` + **2 to 5 milestones**; the tier's closing boxes (`Verify it` Alpha+, `Test it` Beta+, `Review it` + `Document it` GA); any surfaced follow up enrolled                     |
+| `in-progress` (building)     | `/develop`                                                                             | milestone sub boxes tick one by one; code pointer filled                                                                                                                                                                                     |
+| `in-progress` (verified)     | `/check verify`                                                                        | `Build it` + milestones ticked; `Verify it` ticked                                                                                                                                                                                           |
+| `done`                       | **you, when you decide it is** (any skill sets it when you say so); `/sync` reconciles | boxes you ran ticked, skipped ones marked skipped; the tier's last stage (`Prototype` → after `/develop`; `Alpha` → after `/check verify`; `Beta`/`GA` → after `/test`) is the suggested point to call it done; `/sync` captures conventions |
 
 - **Next step** = the first unticked box (always a command or a tracked milestone).
 - **needs a decision** = run `/architect` first; otherwise straight to `/develop` (or `/audit` for standards & tooling). The tag drops once the spec is captured.

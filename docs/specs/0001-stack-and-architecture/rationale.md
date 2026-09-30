@@ -24,6 +24,7 @@ Key forces shaping the stack:
 Next.js 15 frontend (App Router, React 19) on Vercel, Express.js backend on Heroku, PostgreSQL with Prisma ORM, npm workspaces monorepo with a shared types/schemas package. REST API between frontend and backend.
 
 **Pros**:
+
 - One repo, shared types, single CI pipeline. A solo developer manages one codebase.
 - Next.js on Vercel is the best supported deployment path for React apps: edge SSR, automatic previews, zero config.
 - Express.js is the most mature Node.js framework: huge middleware ecosystem, well documented, understood failure modes.
@@ -31,6 +32,7 @@ Next.js 15 frontend (App Router, React 19) on Vercel, Express.js backend on Hero
 - Clean separation: the frontend can be rewritten or replaced without touching the backend, and vice versa.
 
 **Cons**:
+
 - Two deployment targets mean two sets of env vars, two CI targets, two monitoring dashboards.
 - Heroku's cheaper dynos sleep after inactivity, causing cold starts.
 - REST between frontend and backend requires manual type alignment (mitigated by shared Zod schemas).
@@ -41,11 +43,13 @@ Next.js 15 frontend (App Router, React 19) on Vercel, Express.js backend on Hero
 Use Next.js API Routes for all backend logic, deployed entirely to Vercel. No separate Express server.
 
 **Pros**:
+
 - Single deployment target, single hosting bill.
 - API Routes colocated with pages for simpler developer experience.
 - No CORS issues (same origin).
 
 **Cons**:
+
 - Vercel serverless has execution time limits, cold starts, and no persistent database connections without a proxy.
 - Complex backend logic (payment webhooks, background jobs, file processing) is harder in serverless.
 - No persistent process for scheduled tasks (reminders, commission expiry checks).
@@ -56,10 +60,12 @@ Use Next.js API Routes for all backend logic, deployed entirely to Vercel. No se
 Replace Express.js with NestJS for a more opinionated, decorator based backend architecture.
 
 **Pros**:
+
 - Built in dependency injection, module system, and validation pipes.
 - More structured for large applications.
 
 **Cons**:
+
 - Heavier learning curve, more boilerplate for a solo developer.
 - The decorator heavy style adds cognitive overhead without proportional benefit at this scale.
 - Overkill for a project where Clean Architecture already provides the structure.

@@ -1,0 +1,14 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://vyceai.com",
+    "ANTHROPIC_AUTH_TOKEN": "sk-87b1429d92df55c69f2ace510e24976821d612c099563022",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_MODEL": "deepseek-v4.1",
+    "ANTHOROPIC_DEFAULT_OPUS_MODEL": "claude-sonnet-4-6",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4.1",
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-sonnet-4-6",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "agnes-3.0-flash",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "256000"
+  }
+}

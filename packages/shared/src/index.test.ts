@@ -1,12 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  Currency,
-  type CurrencyCode,
-  currencySchema,
-  CURRENCIES,
-  ORDER_STATUSES,
-  type OrderStatus,
-} from "./index";
+import { Currency, currencySchema, CURRENCIES, ORDER_STATUSES } from "./index";
 
 /**
  * Tests for the @crochet-peakz/shared barrel export.
@@ -76,6 +69,26 @@ describe("@crochet-peakz/shared barrel exports", () => {
     it("is re-exported from the barrel", () => {
       expect(currencySchema).toBeDefined();
       expect(typeof currencySchema.parse).toBe("function");
+    });
+
+    it("accepts BDT as a valid currency code", () => {
+      expect(currencySchema.parse(Currency.BDT)).toBe("BDT");
+    });
+
+    it("accepts USD as a valid currency code", () => {
+      expect(currencySchema.parse(Currency.USD)).toBe("USD");
+    });
+
+    it("rejects an unsupported currency code", () => {
+      expect(() => currencySchema.parse("EUR")).toThrow();
+    });
+
+    it("rejects a non string value", () => {
+      expect(() => currencySchema.parse(42)).toThrow();
+    });
+
+    it("rejects an empty string", () => {
+      expect(() => currencySchema.parse("")).toThrow();
     });
   });
 });
