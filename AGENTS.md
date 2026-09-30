@@ -2,7 +2,7 @@
 
 ## Stack
 
-- **Language / Runtime**: TypeScript, Node.js 22 LTS (`.nvmrc` pins it; `engines` enforces `>=22.0.0`)
+- **Language / Runtime**: TypeScript, Node.js 24.20.0 (`.nvmrc` pins it; `engines` enforces `>=24.20.0`)
 - **Frontend**: Next.js (App Router), React, Tailwind CSS, Radix UI / Shadcn UI, Zustand
 - **Backend**: Express.js (TypeScript)
 - **Database**: PostgreSQL, Prisma ORM
