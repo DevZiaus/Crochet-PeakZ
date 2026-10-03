@@ -5,10 +5,30 @@
  * the frontend (apps/web) and backend (apps/api) workspaces.
  */
 
-export { Currency, type CurrencyCode } from "./types/index";
-export { currencySchema } from "./schemas/index";
+// Each enum name below exports both the const object and its
+// same-named union type; the type modifier is only needed for
+// types whose name differs from a value (CurrencyCode).
 export {
-  CURRENCIES,
-  ORDER_STATUSES,
-  type OrderStatus,
-} from "./constants/index";
+  Currency,
+  type CurrencyCode,
+  UserRole,
+  ProductType,
+  OrderStatus,
+  PaymentStatus,
+  PaymentGateway,
+  DiscountType,
+  AddressType,
+  CommissionStatus,
+} from "./types/index.js";
+export {
+  currencySchema,
+  userRoleSchema,
+  productTypeSchema,
+  orderStatusSchema,
+  paymentStatusSchema,
+  paymentGatewaySchema,
+  discountTypeSchema,
+  addressTypeSchema,
+  commissionStatusSchema,
+} from "./schemas/index.js";
+export { CURRENCIES, ORDER_STATUSES } from "./constants/index.js";

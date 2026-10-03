@@ -13,7 +13,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | --- | ---------------------------------- | ---------- | ------- |
 | 1   | Stack & architecture               | Foundation | done    |
 | 2   | Coding standards & tooling         | Foundation | done    |
-| 3   | Data model                         | Foundation | planned |
+| 3   | Data model                         | Foundation | done    |
 | 4   | Design system & UI foundation      | Foundation | planned |
 | 5   | Customer auth                      | Slice 1    | planned |
 | 6   | Product catalog storefront         | Slice 1    | planned |
@@ -69,13 +69,23 @@ Capture conventions from the real scaffolded project, then install lint, format,
 
 code in `eslint.config.mjs` · `apps/*/eslint.config.mjs` · `.prettierrc` · `.husky/pre-commit`
 
-### 3. Data model · needs a decision
+### 3. Data model
 
-Core entities every feature builds on: users, products (four types), variants, categories, orders, payments, commissions, digital assets, coupons, blog posts, store settings, addresses. The spec reference has a detailed PostgreSQL schema; `/architect` validates and refines it as a Prisma schema.
+```
+[Design it (spec): /architect data model](/specs/0002-data-model/) · code in apps/api/prisma/schema.prisma, apps/api/prisma/seed.ts, packages/shared/src/types/index.ts, packages/shared/src/schemas/index.ts
+```
+
+Core entities every feature builds on: users, products (five types), variants, categories, orders, payments, commissions, digital assets, coupons, blog posts, store settings, addresses. The spec reference has a detailed PostgreSQL schema; `/architect` validates and refines it as a Prisma schema.
 
 **Done when:** entities and relationships support all later slices (catalog, payments, commissions, digital delivery, admin) without breaking migrations; seed data is loadable.
 
-- [ ] Design it (spec): `/architect data model`
+- [x] Design it (spec): `/architect data model`
+- [x] Build it: `/develop data model`
+      Spec 0002 · code in `apps/api/prisma/schema.prisma`, `apps/api/prisma/seed.ts`, `packages/shared/src/types/index.ts`, `packages/shared/src/schemas/index.ts`
+- [x] Verify it: `/check verify data model`
+- [x] Test it: `/test data model`
+- [x] Review it (fresh model): `/check review data model`
+- [x] Document it: `/document data model`
 
 ### 4. Design system & UI foundation · needs a decision
 

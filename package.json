@@ -12,6 +12,7 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
@@ -25,7 +26,8 @@
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
     "typescript": "^5.7.0",
-    "typescript-eslint": "^8.71.0"
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
   },
   "engines": {
     "node": ">=24.20.0"

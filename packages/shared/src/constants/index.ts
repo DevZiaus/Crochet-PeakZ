@@ -8,8 +8,9 @@ export const CURRENCIES = {
 } as const;
 
 /**
- * Order status progression.
- * Orders move through these stages from placement to completion.
+ * Order status progression for iteration.
+ * Note: OrderStatus enum is defined in types/index.ts for consistency
+ * with other Prisma enums.
  */
 export const ORDER_STATUSES = [
   "PENDING_PAYMENT",
@@ -22,6 +23,3 @@ export const ORDER_STATUSES = [
   "CANCELLED",
   "REFUNDED",
 ] as const;
-
-/** Union type of valid order statuses. */
-export type OrderStatus = (typeof ORDER_STATUSES)[number];

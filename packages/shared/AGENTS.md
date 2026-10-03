@@ -22,12 +22,12 @@ npm test --workspace=packages/shared
 
 ## Key files
 
-| File                     | Owns                                                                                    |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| `src/index.ts`           | Barrel export: re-exports all public types, schemas, and constants                      |
-| `src/types/index.ts`     | `Currency` const object and `CurrencyCode` union type (BDT, USD)                        |
-| `src/schemas/index.ts`   | `currencySchema` (Zod enum validator for currency codes)                                |
-| `src/constants/index.ts` | `CURRENCIES` (display metadata), `ORDER_STATUSES` (order lifecycle), `OrderStatus` type |
+| File                     | Owns                                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `src/index.ts`           | Barrel export: re-exports all public types, schemas, and constants                             |
+| `src/types/index.ts`     | Domain types and enums mirroring the Prisma data model (Currency, UserRole, ProductType, etc.) |
+| `src/schemas/index.ts`   | Zod validation schemas for enums and domain entities                                           |
+| `src/constants/index.ts` | Shared constants (`CURRENCIES`, `ORDER_STATUSES`, `PRODUCT_TYPES`) and display metadata        |
 
 ## Conventions
 
@@ -35,5 +35,9 @@ npm test --workspace=packages/shared
 - **No build step.** Both workspaces resolve source TypeScript at dev time. The `"main"` and `"types"` fields point at `./src/index.ts`.
 - **Import paths use `.js` extensions** in source (e.g. `from "../types/index.js"`), matching Node16 module resolution from `tsconfig.base.json`.
 - **Add new exports to the barrel.** Any new type, schema, or constant must be re-exported from `src/index.ts` to be available to consumers.
+
+## Related specs
+
+- [0002 Data model](../../docs/specs/0002-data-model/index.md)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

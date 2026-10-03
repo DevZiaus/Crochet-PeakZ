@@ -1,23 +1,459 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-/// Minimal model to prove the database connection works.
-/// The full data model will be designed in a separate spec.
+/// A store account: customers and admins. Local email and password or OAuth.
+model User {
+  id                     String             @id @default(uuid(7))
+  name                   String             @db.VarChar(255)
+  email                  String             @unique @db.VarChar(255)
+  passwordHash           String?            @map("password_hash") @db.VarChar(255)
+  phone                  String?            @db.VarChar(50)
+  role                   UserRole           @default(CUSTOMER)
+  authProvider           String             @default("local") @map("auth_provider") @db.VarChar(50)
+  providerId             String?            @map("provider_id") @db.VarChar(255)
+  avatarUrl              String?            @map("avatar_url")
+  emailVerified          Boolean            @default(false) @map("email_verified")
+  emailVerificationToken String?            @map("email_verification_token") @db.VarChar(255)
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+  addresses              Address[]
+  blogPosts              BlogPost[]
+  commissions            CustomCommission[]
+  digitalDownloads       DigitalDownload[]
+  orders                 Order[]
+  refreshTokens          RefreshToken[]
+  reviews                Review[]
+
+  @@map("users")
+}
+
+/// A saved address book entry owned by a user.
+model Address {
+  id            String      @id @default(uuid(7))
+  userId        String      @map("user_id")
+  fullName      String      @map("full_name") @db.VarChar(255)
+  phoneNumber   String      @map("phone_number") @db.VarChar(50)
+  streetAddress String      @map("street_address")
+  city          String      @db.VarChar(100)
+  stateDivision String?     @map("state_division") @db.VarChar(100)
+  postalCode    String      @map("postal_code") @db.VarChar(30)
+  country       String      @db.VarChar(100)
+  addressType   AddressType @default(SHIPPING) @map("address_type")
+  label         String?     @db.VarChar(50)
+  isDefault     Boolean     @default(false) @map("is_default")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+/// A hashed refresh token issued to a user session. Stores only the hash.
+model RefreshToken {
+  id         String   @id @default(uuid(7))
+  userId     String   @map("user_id")
+  tokenHash  String   @unique @map("token_hash") @db.VarChar(255)
+  expiresAt  DateTime @map("expires_at")
+  deviceInfo String?  @map("device_info") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// A product category. Supports one level of nesting via parentId.
+model Category {
+  id          String     @id @default(uuid(7))
+  parentId    String?    @map("parent_id")
+  name        String     @db.VarChar(100)
+  slug        String     @unique @db.VarChar(120)
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+/// A crochet product, physical or digital. Soft deleted via deletedAt.
+model Product {
+  id              String             @id @default(uuid(7))
+  categoryId      String?            @map("category_id")
+  title           String             @db.VarChar(255)
+  slug            String             @unique @db.VarChar(280)
+  description     String
+  productType     ProductType        @default(STANDARD) @map("product_type")
+  priceBdt        Decimal            @map("price_bdt") @db.Decimal(12, 2)
+  priceUsd        Decimal            @map("price_usd") @db.Decimal(12, 2)
+  isActive        Boolean            @default(true) @map("is_active")
+  isFeatured      Boolean            @default(false) @map("is_featured")
+  leadTimeDays    Int                @default(0) @map("lead_time_days")
+  metaTitle       String?            @map("meta_title") @db.VarChar(255)
+  metaDescription String?            @map("meta_description")
+  tags            String[]           @default([])
+  deletedAt       DateTime?          @map("deleted_at")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  commissions     CustomCommission[]
+  digitalAssets   DigitalAsset[]
+  orderItems      OrderItem[]
+  images          ProductImage[]
+  variants        ProductVariant[]
+  category        Category?          @relation(fields: [categoryId], references: [id])
+  reviews         Review[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+/// A product photo. imageUrl is a Cloudinary public ID.
+model ProductImage {
+  id           String  @id @default(uuid(7))
+  productId    String  @map("product_id")
+  imageUrl     String  @map("image_url")
+  altText      String? @map("alt_text") @db.VarChar(255)
+  isPrimary    Boolean @default(false) @map("is_primary")
+  displayOrder Int     @default(0) @map("display_order")
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+/// A purchasable variant of a product: color, size, or yarn, with stock.
+model ProductVariant {
+  id                 String      @id @default(uuid(7))
+  productId          String      @map("product_id")
+  sku                String?     @unique @db.VarChar(100)
+  colorName          String?     @map("color_name") @db.VarChar(50)
+  colorHex           String?     @map("color_hex") @db.VarChar(10)
+  sizeLabel          String?     @map("size_label") @db.VarChar(50)
+  yarnType           String?     @map("yarn_type") @db.VarChar(100)
+  stockQuantity      Int         @default(0) @map("stock_quantity")
+  additionalPriceBdt Decimal     @default(0.00) @map("additional_price_bdt") @db.Decimal(12, 2)
+  additionalPriceUsd Decimal     @default(0.00) @map("additional_price_usd") @db.Decimal(12, 2)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+  orderItems         OrderItem[]
+  product            Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+/// The deliverable file of a digital product. fileKey is a Cloudinary private URI.
+model DigitalAsset {
+  id            String            @id @default(uuid(7))
+  productId     String            @map("product_id")
+  fileName      String            @map("file_name") @db.VarChar(255)
+  fileKey       String            @map("file_key")
+  fileSizeBytes BigInt            @map("file_size_bytes")
+  fileType      String            @default("application/pdf") @map("file_type") @db.VarChar(50)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  product       Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  downloads     DigitalDownload[]
+
+  @@index([productId])
+  @@map("digital_assets")
+}
+
+/// A custom commission request with an admin quoting workflow.
+model CustomCommission {
+  id             String            @id @default(uuid(7))
+  userId         String?           @map("user_id")
+  productId      String?           @map("product_id")
+  specifications String
+  measurements   Json?
+  status         CommissionStatus  @default(PENDING_REVIEW)
+  quotedPriceBdt Decimal?          @map("quoted_price_bdt") @db.Decimal(12, 2)
+  quotedPriceUsd Decimal?          @map("quoted_price_usd") @db.Decimal(12, 2)
+  adminNotes     String?           @map("admin_notes")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  images         CommissionImage[]
+  product        Product?          @relation(fields: [productId], references: [id])
+  user           User?             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([productId])
+  @@map("custom_commissions")
+}
+
+/// A reference image attached to a commission request.
+model CommissionImage {
+  id           String           @id @default(uuid(7))
+  commissionId String           @map("commission_id")
+  imageUrl     String           @map("image_url")
+  displayOrder Int              @default(0) @map("display_order")
+  commission   CustomCommission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+
+  @@index([commissionId])
+  @@map("commission_images")
+}
+
+/// A discount coupon, percentage or fixed amount.
+model Coupon {
+  id            String        @id @default(uuid(7))
+  code          String        @unique @db.VarChar(50)
+  discountType  DiscountType  @map("discount_type")
+  discountValue Decimal       @map("discount_value") @db.Decimal(10, 2)
+  currency      CurrencyCode?
+  minOrderValue Decimal       @default(0.00) @map("min_order_value") @db.Decimal(12, 2)
+  maxUses       Int?          @map("max_uses")
+  usedCount     Int           @default(0) @map("used_count")
+  expiresAt     DateTime?     @map("expires_at")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  orders        Order[]
+
+  @@map("coupons")
+}
+
+/// A customer order. Addresses are JSONB snapshots taken at purchase time.
+model Order {
+  id               String            @id @default(uuid(7))
+  orderNumber      String            @unique @map("order_number") @db.VarChar(50)
+  userId           String            @map("user_id")
+  couponId         String?           @map("coupon_id")
+  currency         CurrencyCode
+  subtotalAmount   Decimal           @map("subtotal_amount") @db.Decimal(12, 2)
+  shippingAmount   Decimal           @map("shipping_amount") @db.Decimal(12, 2)
+  discountAmount   Decimal           @default(0.00) @map("discount_amount") @db.Decimal(12, 2)
+  totalAmount      Decimal           @map("total_amount") @db.Decimal(12, 2)
+  orderStatus      OrderStatus       @default(PENDING_PAYMENT) @map("order_status")
+  paymentStatus    PaymentStatus     @default(UNPAID) @map("payment_status")
+  paymentGateway   PaymentGateway    @map("payment_gateway")
+  transactionId    String?           @map("transaction_id") @db.VarChar(255)
+  shippingAddress  Json?             @map("shipping_address")
+  billingAddress   Json?             @map("billing_address")
+  digitalOnly      Boolean           @default(false) @map("digital_only")
+  trackingNumber   String?           @map("tracking_number") @db.VarChar(100)
+  courierName      String?           @map("courier_name") @db.VarChar(100)
+  notes            String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  digitalDownloads DigitalDownload[]
+  items            OrderItem[]
+  coupon           Coupon?           @relation(fields: [couponId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+  reviews          Review[]
+
+  @@index([userId])
+  @@index([couponId])
+  @@map("orders")
+}
+
+/// A line item in an order: product and price snapshotted at purchase time.
+model OrderItem {
+  id                 String          @id @default(uuid(7))
+  orderId            String          @map("order_id")
+  productId          String          @map("product_id")
+  variantId          String?         @map("variant_id")
+  productTitle       String          @map("product_title") @db.VarChar(255)
+  variantDescription String?         @map("variant_description") @db.VarChar(255)
+  unitPrice          Decimal         @map("unit_price") @db.Decimal(12, 2)
+  quantity           Int
+  totalPrice         Decimal         @map("total_price") @db.Decimal(12, 2)
+  isDigital          Boolean         @default(false) @map("is_digital")
+  order              Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product            Product         @relation(fields: [productId], references: [id])
+  variant            ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+/// A purchase grant for a digital asset with bounded download counts.
+model DigitalDownload {
+  id            String       @id @default(uuid(7))
+  orderId       String       @map("order_id")
+  assetId       String       @map("asset_id")
+  userId        String       @map("user_id")
+  downloadCount Int          @default(0) @map("download_count")
+  maxDownloads  Int          @default(10) @map("max_downloads")
+  expiresAt     DateTime?    @map("expires_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  asset         DigitalAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([assetId])
+  @@index([userId])
+  @@map("digital_downloads")
+}
+
+/// A customer product review. One review per user per product.
+model Review {
+  id         String   @id @default(uuid(7))
+  userId     String   @map("user_id")
+  productId  String   @map("product_id")
+  orderId    String?  @map("order_id")
+  rating     Int
+  text       String?
+  isVerified Boolean  @default(false) @map("is_verified")
+  isApproved Boolean  @default(false) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  order      Order?   @relation(fields: [orderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@index([orderId])
+  @@map("reviews")
+}
+
+/// A blog article authored by an admin.
+model BlogPost {
+  id              String    @id @default(uuid(7))
+  authorId        String?   @map("author_id")
+  title           String    @db.VarChar(255)
+  slug            String    @unique @db.VarChar(280)
+  content         String
+  featuredImage   String?   @map("featured_image")
+  metaTitle       String?   @map("meta_title") @db.VarChar(255)
+  metaDescription String?   @map("meta_description")
+  isPublished     Boolean   @default(false) @map("is_published")
+  publishedAt     DateTime? @map("published_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  author          User?     @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+  @@map("blog_posts")
+}
+
+/// A key value store setting. value is typed JSONB.
 model StoreSettings {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  value     String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid(7))
+  key         String   @unique @db.VarChar(100)
+  value       Json
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("store_settings")
+}
+
+/// A shipping zone: country list plus dual currency base and per item rates.
+model ShippingZone {
+  id             String   @id @default(uuid(7))
+  name           String   @db.VarChar(100)
+  countries      String[]
+  baseRateBdt    Decimal  @default(0.00) @map("base_rate_bdt") @db.Decimal(12, 2)
+  baseRateUsd    Decimal  @default(0.00) @map("base_rate_usd") @db.Decimal(12, 2)
+  perItemRateBdt Decimal  @default(0.00) @map("per_item_rate_bdt") @db.Decimal(12, 2)
+  perItemRateUsd Decimal  @default(0.00) @map("per_item_rate_usd") @db.Decimal(12, 2)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("shipping_zones")
+}
+
+/// Account roles. CUSTOMER is the default on registration.
+enum UserRole {
+  CUSTOMER
+  ADMIN
+
+  @@map("user_role")
+}
+
+/// The five product kinds the store sells.
+enum ProductType {
+  STANDARD
+  ONE_OF_A_KIND
+  PRE_ORDER
+  CUSTOM
+  DIGITAL
+
+  @@map("product_type")
+}
+
+/// Order lifecycle. HANDCRAFTING is optional for made to order items.
+enum OrderStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  PROCESSING
+  HANDCRAFTING
+  READY_TO_SHIP
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+
+  @@map("order_status")
+}
+
+/// Payment state of an order.
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+  REFUNDED
+
+  @@map("payment_status")
+}
+
+/// Supported payment gateways.
+enum PaymentGateway {
+  STRIPE
+  PAYPAL
+  SSLCOMMERZ
+  CASH_ON_DELIVERY
+
+  @@map("payment_gateway")
+}
+
+/// Currencies the store prices products in.
+enum CurrencyCode {
+  BDT
+  USD
+
+  @@map("currency_code")
+}
+
+/// How a coupon discount is computed.
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+
+  @@map("discount_type")
+}
+
+/// Purpose of a saved address.
+enum AddressType {
+  SHIPPING
+  BILLING
+
+  @@map("address_type")
+}
+
+/// Custom commission workflow states.
+enum CommissionStatus {
+  PENDING_REVIEW
+  QUOTED
+  ACCEPTED
+  IN_PRODUCTION
+  COMPLETED
+  CANCELLED
+
+  @@map("commission_status")
 }

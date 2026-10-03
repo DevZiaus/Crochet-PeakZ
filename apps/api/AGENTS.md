@@ -33,7 +33,8 @@ npm run start --workspace=apps/api
 | File                                          | Owns                                                                              |
 | --------------------------------------------- | --------------------------------------------------------------------------------- |
 | `src/index.ts`                                | Server entry point: env validation, Express setup, Prisma connect, route mounting |
-| `prisma/schema.prisma`                        | Database schema (PostgreSQL, currently a minimal `StoreSettings` model)           |
+| `prisma/schema.prisma`                        | Database schema (PostgreSQL, 18 models and 9 enums for complete store model)      |
+| `prisma/seed.ts`                              | Seed script for realistic local data (users, categories, products, settings)      |
 | `src/presentation/routes/health.routes.ts`    | `/api/health` endpoint proving the server is alive                                |
 | `src/presentation/middleware/errorHandler.ts` | Centralized error handler and `AppError` class                                    |
 | `.env` / `.env.example`                       | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)    |
@@ -55,5 +56,6 @@ npm run start --workspace=apps/api
 ## Related specs
 
 - [0001 Stack and architecture](../../docs/specs/0001-stack-and-architecture/index.md)
+- [0002 Data model](../../docs/specs/0002-data-model/index.md)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

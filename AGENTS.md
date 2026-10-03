@@ -44,7 +44,7 @@ npm run format
 npm run format:check
 
 # Test
-# not yet installed; run `/develop tooling` to add Vitest, RTL, Playwright
+npm run test
 ```
 
 ## Specs
