@@ -43,3 +43,7 @@ yarn-error.log*
 
 # Test coverage
 coverage/
+
+#misc
+.claude/settings.local.json
+.claude/*.local.json
