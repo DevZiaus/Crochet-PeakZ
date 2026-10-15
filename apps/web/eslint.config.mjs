@@ -69,11 +69,18 @@ const eslintConfig = defineConfig([
       "**/not-found.tsx",
       "**/template.tsx",
       "**/default.tsx",
-      "next.config.ts",
-      "next.config.mjs",
+      "**/next.config.ts",
+      "**/next.config.mjs",
     ],
     rules: {
       "no-restricted-syntax": "off",
+    },
+  },
+  {
+    /* Shadcn UI primitives are generated code: relax explicit-return-type */
+    files: ["**/src/components/ui/**/*.tsx"],
+    rules: {
+      "@typescript-eslint/explicit-function-return-type": "off",
     },
   },
   // Override default ignores of eslint-config-next.

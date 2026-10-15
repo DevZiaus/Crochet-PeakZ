@@ -33,8 +33,20 @@
     "node": ">=24.20.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,mts,js,mjs}": [
-      "eslint --fix",
+    "apps/web/**/*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config apps/web/eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "apps/api/**/*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config apps/api/eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "packages/**/*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "./*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config eslint.config.mjs --fix",
       "prettier --write"
     ],
     "*.{json,md,css,html,yml,yaml}": [

@@ -19,7 +19,7 @@ export {
   DiscountType,
   AddressType,
   CommissionStatus,
-} from "./types/index.js";
+} from "./types";
 export {
   currencySchema,
   userRoleSchema,
@@ -30,5 +30,5 @@ export {
   discountTypeSchema,
   addressTypeSchema,
   commissionStatusSchema,
-} from "./schemas/index.js";
-export { CURRENCIES, ORDER_STATUSES } from "./constants/index.js";
+} from "./schemas";
+export { CURRENCIES, ORDER_STATUSES } from "./constants";
