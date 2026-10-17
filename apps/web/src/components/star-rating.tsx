@@ -46,7 +46,7 @@ function StarRating({
     <div
       className={cn("flex items-center gap-0.5", className)}
       role="img"
-      aria-label={`${String(clampedRating)} out of ${String(maxStars)} stars`}
+      aria-label={`${String(clampedRating)} out of ${String(safeMax)} stars`}
     >
       {/* Filled stars */}
       {Array.from({ length: fullStars }).map((_, i) => (

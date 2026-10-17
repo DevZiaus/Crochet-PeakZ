@@ -3,11 +3,25 @@
 import { useState, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, User, Sun, Moon, Menu, X, Search } from "lucide-react";
+import {
+  ShoppingBag,
+  User,
+  Sun,
+  Moon,
+  Menu,
+  XIcon,
+  Search,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/container";
+import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+} from "@/components/ui/dialog";
 
 interface NavLink {
   /** The visible label. */
@@ -76,8 +90,10 @@ function ThemeToggle() {
 }
 
 /**
- * Mobile navigation drawer. Slides in from the right on small screens.
- * Includes nav links, theme toggle, and close button.
+ * Mobile navigation drawer built on the Radix Dialog primitive.
+ * Slides in from the right on small screens. Includes nav links,
+ * theme toggle, and close button. Radix handles focus trap, Escape,
+ * and focus restoration automatically.
  */
 function MobileNavDrawer({
   open,
@@ -87,76 +103,73 @@ function MobileNavDrawer({
   onClose: () => void;
 }) {
   const pathname = usePathname();
-
   return (
-    <>
-      {/* Backdrop */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-overlay backdrop-blur-sm lg:hidden"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Drawer panel */}
-      <div
-        className={cn(
-          "fixed inset-y-0 right-0 z-50 w-full max-w-xs bg-card shadow-lg transition-transform duration-300 ease-in-out motion-reduce:transition-none lg:hidden",
-          open ? "translate-x-0" : "translate-x-full",
-        )}
-        inert={!open}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobile navigation"
-      >
-        <div className="flex h-16 items-center justify-between border-b border-border px-6">
-          <span className="font-heading text-lg font-bold text-foreground">
-            Menu
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            aria-label="Close menu"
-            className="min-h-[44px] min-w-[44px]"
-          >
-            <X className="size-5" />
-          </Button>
-        </div>
-
-        <nav className="flex flex-col gap-1 p-4" aria-label="Mobile navigation">
-          {navLinks.map((link) => {
-            const isActive =
-              pathname === link.href || pathname.startsWith(link.href + "/");
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center rounded-lg px-4 py-3 text-base font-medium transition-colors duration-200 motion-reduce:transition-none",
-                  "min-h-[44px]",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="border-t border-border p-4">
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <span className="text-sm text-muted-foreground">Theme</span>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
+      <DialogPortal>
+        <DialogOverlay className="lg:hidden" />
+        <DialogContent
+          className={cn(
+            "fixed inset-y-0 right-0 z-50 w-full max-w-xs border-none bg-card p-0 shadow-lg outline-none lg:hidden",
+          )}
+          aria-label="Mobile navigation"
+          showCloseButton={false}
+        >
+          <div className="flex h-16 items-center justify-between border-b border-border px-6">
+            <span className="font-heading text-lg font-bold text-foreground">
+              Menu
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              aria-label="Close menu"
+              className="min-h-[44px] min-w-[44px]"
+            >
+              <XIcon className="size-5" />
+            </Button>
           </div>
-        </div>
-      </div>
-    </>
+
+          <nav
+            className="flex flex-col gap-1 p-4"
+            aria-label="Mobile navigation"
+          >
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href || pathname.startsWith(link.href + "/");
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center rounded-lg px-4 py-3 text-base font-medium transition-colors duration-200 motion-reduce:transition-none",
+                    "min-h-[44px]",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="border-t border-border p-4">
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <span className="text-sm text-muted-foreground">Theme</span>
+            </div>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 
@@ -188,7 +201,7 @@ function Header() {
             {/* Logo / Wordmark */}
             <Link
               href="/"
-              className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
+              className="flex min-h-11 items-center gap-2 transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
               aria-label="Crochet PeakZ home"
             >
               <span className="font-heading text-xl font-bold text-primary">
