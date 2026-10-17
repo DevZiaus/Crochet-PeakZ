@@ -23,7 +23,8 @@ describe("StarRating", () => {
     const filled = container.querySelectorAll(".fill-accent.text-accent");
     expect(filled.length).toBe(5);
     const ariaLabel = screen.getByRole("img");
-    expect(ariaLabel).toHaveAttribute("aria-label", "4.8 out of 5 stars");
+    // ARIA label reflects the rounded visual value (4.8 rounds to 5.0)
+    expect(ariaLabel).toHaveAttribute("aria-label", "5 out of 5 stars");
   });
 
   it("renders a half star for 4.7 rating (rounds to 4.5)", () => {
@@ -81,8 +82,8 @@ describe("StarRating", () => {
 
   it("shows numeric value when showValue is true", () => {
     render(<StarRating rating={4.25} showValue={true} />);
-    // The showValue span shows the clamped rating formatted to 1 decimal
-    const valueSpan = screen.getByText("4.3");
+    // 4.25 rounds to 4.5; the displayed value matches the rounded stars
+    const valueSpan = screen.getByText("4.5");
     expect(valueSpan).toBeInTheDocument();
   });
 

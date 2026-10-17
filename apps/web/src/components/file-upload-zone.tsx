@@ -158,7 +158,15 @@ function FileUploadZone({
         onDrop={handleDrop}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !disabled) {
+          if (e.key === "Enter" && !disabled) {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        onKeyUp={(e) => {
+          // Space fires on keyup to match native button semantics,
+          // allowing cancellation by releasing the key outside the element.
+          if (e.key === " " && !disabled) {
             e.preventDefault();
             inputRef.current?.click();
           }
