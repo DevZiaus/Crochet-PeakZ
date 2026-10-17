@@ -108,7 +108,12 @@ function ProductCard({
               {badgeConfig.label}
             </Badge>
           )}
-          {compareAtBdt !== undefined && compareAtBdt > priceBdt && (
+          {(() => {
+            const compareAt =
+              activeCurrency === "BDT" ? compareAtBdt : compareAtUsd;
+            const price = activeCurrency === "BDT" ? priceBdt : priceUsd;
+            return compareAt !== undefined && compareAt > price;
+          })() && (
             <Badge className="bg-highlight text-highlight-foreground text-xs">
               Sale
             </Badge>

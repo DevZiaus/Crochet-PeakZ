@@ -32,11 +32,15 @@ function StarRating({
   showValue = false,
   className,
 }: StarRatingProps) {
-  const clampedRating = Math.max(1, Math.min(rating, maxStars));
-  const fullStars = Math.floor(clampedRating);
-  const hasHalfStar =
-    clampedRating - fullStars >= 0.25 && clampedRating - fullStars < 0.75;
-  const emptyStars = maxStars - fullStars - (hasHalfStar ? 1 : 0);
+  const safeRating = Number.isFinite(rating) ? rating : 0;
+  const safeMax = Number.isInteger(maxStars) && maxStars > 0 ? maxStars : 5;
+  const clampedRating = Math.max(0, Math.min(safeRating, safeMax));
+  // Round to the nearest half star before deriving counts so the visual
+  // representation never contradicts the ARIA label (e.g. 4.8 => 5 full stars).
+  const rounded = Math.round(clampedRating * 2) / 2;
+  const fullStars = Math.floor(rounded);
+  const hasHalfStar = rounded - fullStars >= 0.25;
+  const emptyStars = safeMax - fullStars - (hasHalfStar ? 1 : 0);
 
   return (
     <div
