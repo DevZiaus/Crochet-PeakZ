@@ -33,7 +33,7 @@ function Breadcrumbs({ items, className, showHome = true }: BreadcrumbsProps) {
             <li>
               <Link
                 href="/"
-                className="flex items-center rounded p-1 transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
+                className="inline-flex size-11 items-center justify-center rounded transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
                 aria-label="Home"
               >
                 <Home className="size-4" aria-hidden="true" />
@@ -61,7 +61,7 @@ function Breadcrumbs({ items, className, showHome = true }: BreadcrumbsProps) {
                 ) : (
                   <Link
                     href={item.href}
-                    className="rounded p-1 transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded px-2 transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
                   >
                     {item.label}
                   </Link>

@@ -47,6 +47,8 @@ All colors are CSS custom properties defined in `:root` (light) and `[data-theme
 | `--foreground`           | `#1f2a2a`                  | `#edf3f1`             | Primary text                                                                    |
 | `--card`                 | `#ffffff`                  | `#152424`             | Card, header, popover backgrounds                                               |
 | `--card-foreground`      | `#1f2a2a`                  | `#edf3f1`             | Text inside cards                                                               |
+| `--popover`              | `#ffffff`                  | `#152424`             | Popover, dropdown, select and toast surfaces                                    |
+| `--popover-foreground`   | `#1f2a2a`                  | `#edf3f1`             | Text on popover surfaces                                                        |
 | `--secondary`            | `#e7efee`                  | `#1d3131`             | Secondary button backgrounds, alternating rows                                  |
 | `--secondary-foreground` | `#0f3b3b`                  | `#d4ebe7`             | Text on secondary                                                               |
 | `--muted`                | `#efebe3`                  | `#1b2b2b`             | Disabled backgrounds, skeleton base                                             |
@@ -88,11 +90,15 @@ Rules of thumb:
 
 ### Elevation (shadows)
 
-| Token            | Value                        | Usage                     |
-| ---------------- | ---------------------------- | ------------------------- |
-| `--elevation-sm` | `0 1px 2px` with low opacity | Cards at rest, inputs     |
-| `--elevation-md` | `0 4px 12px`                 | Cards on hover, dropdowns |
-| `--elevation-lg` | `0 12px 28px`                | Modals, drawers           |
+Values are full CSS shadows. Shadows are token pairs: a light theme value on a warm ink base and a darker value for dark surfaces.
+
+| Token            | Light theme                        | Dark theme                      | Usage                     |
+| ---------------- | ---------------------------------- | ------------------------------- | ------------------------- |
+| `--elevation-sm` | `0 1px 2px rgb(31 42 42 / 0.06)`   | `0 1px 2px rgb(0 0 0 / 0.4)`    | Cards at rest, inputs     |
+| `--elevation-md` | `0 4px 12px rgb(31 42 42 / 0.08)`  | `0 4px 12px rgb(0 0 0 / 0.45)`  | Cards on hover, dropdowns |
+| `--elevation-lg` | `0 12px 28px rgb(31 42 42 / 0.12)` | `0 12px 28px rgb(0 0 0 / 0.55)` | Modals, drawers           |
+
+Reach them through the Tailwind utilities `shadow-sm`, `shadow-md` and `shadow-lg`, which map to `--shadow-sm`, `--shadow-md` and `--shadow-lg` in `@theme inline`.
 
 ### Radius
 
@@ -160,6 +166,26 @@ Key conventions:
 - **Collapsible sidebar**: 256px expanded, 64px collapsed, with icon + label navigation
 - **Mobile**: sidebar becomes an overlay drawer
 
+### Responsive behavior
+
+Tailwind's default breakpoints, used as they are. No custom screens are defined.
+
+| Breakpoint | Min width | Storefront                                                                                   | Admin                                                   |
+| ---------- | --------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| (base)     | 0         | One column grid, hamburger nav with the mobile drawer, `px-4` container padding              | Sidebar hidden, top bar with the drawer button          |
+| `sm`       | 640px     | Two column product grid, `px-6` container padding                                            | Two column stat grid                                    |
+| `md`       | 768px     | Two column form grids, row aligned footer bottom bar                                         | —                                                       |
+| `lg`       | 1024px    | Three column product grid, full desktop nav replaces the hamburger, `px-8` container padding | Sidebar visible and collapsible (256px, 64px collapsed) |
+| `xl`       | 1280px    | Four column product grid                                                                     | Four column stat grid                                   |
+| `2xl`      | 1536px    | Container holds its 1280px max width                                                         | —                                                       |
+
+Rules:
+
+- No horizontal scrolling at any width from 320px up. The mobile drawer and the admin overlay sit off canvas without widening the document.
+- The storefront `Container` is capped at 1280px and centred, so gutters grow evenly above 1280px.
+- Product grids fill the row at each step: 1, 2, 3 and 4 columns at base, `sm`, `lg` and `xl`.
+- Check a change at 320, 375, 640, 768, 1024, 1280, 1440 and 1600px.
+
 ---
 
 ## Component library
@@ -176,7 +202,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 | `Select`           | —                                                                                                                          | Radix based, scrollable                                                                                                                                                                                                                                  |
 | `Checkbox`         | —                                                                                                                          | Radix based, animated check                                                                                                                                                                                                                              |
 | `Switch`           | —                                                                                                                          | Radix based, toggle                                                                                                                                                                                                                                      |
-| `Badge`            | variant: default, secondary, destructive, outline                                                                          | For product types, status                                                                                                                                                                                                                                |
+| `Badge`            | variant: default, secondary, destructive, outline, ghost, link                                                             | For product types, status, and quiet inline labels                                                                                                                                                                                                       |
 | `Card`             | Sub components: CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter                                | Main content container                                                                                                                                                                                                                                   |
 | `Dialog`           | Sub components: DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose      | Modal dialogs                                                                                                                                                                                                                                            |
 | `DropdownMenu`     | Full Radix menu with sub menus, checkboxes, radio groups                                                                   | Used for action menus                                                                                                                                                                                                                                    |
@@ -194,7 +220,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 | `MobileNavDrawer` | `open: boolean`, `onClose: () => void`                                                                                               | Slide out mobile menu (used inside Header)                                  |
 | `ThemeToggle`     | —                                                                                                                                    | Sun/moon toggle (used inside Header)                                        |
 | `AdminLayout`     | `children: ReactNode`                                                                                                                | Full width admin shell with collapsible sidebar                             |
-| `AdminSidebar`    | `collapsed: boolean`, `onToggle: () => void`                                                                                         | Collapsible icon + label nav                                                |
+| `AdminSidebar`    | `collapsed: boolean`, `onToggle: () => void`, `toggleLabel?: string`                                                                 | Collapsible icon + label nav                                                |
 | `Container`       | `children`, `as?: "div" \| "section" \| "main" \| "article"`, `className?`                                                           | 1280px max width centered wrapper                                           |
 | `Section`         | `children`, `id?`, `className?`                                                                                                      | Vertical section with `py-12/16`                                            |
 | `PageHeader`      | `title: string`, `description?: string`, `children?`                                                                                 | h1 page title with action slot                                              |
@@ -212,11 +238,17 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 
 ## Accessibility rules
 
-1. **Focus ring**: 2px solid `--ring` color with 2px offset, applied globally via `:focus-visible` in `globals.css`. Inputs replace the outline with a 2px ring of the same color.
+1. **Focus ring**: every focusable element shows a 2px ring in `--ring`, in both themes. Two shapes, one colour, never removed and never tinted:
+   - Links, product cards and the file drop zone use the global `:focus-visible` rule in `globals.css`: `outline: 2px solid var(--ring)` with `outline-offset: 2px`.
+   - The Shadcn primitives (Button, Input, Textarea, Select, Checkbox, Switch, Badge) drop the outline with `outline-none` and draw the same 2px ring as a box shadow flush to the control edge (`focus-visible:ring-2 focus-visible:ring-ring`). That is Shadcn's own convention, and it keeps the ring from being clipped by `overflow-hidden` ancestors such as cards and popovers.
+   - Every variant keeps the token ring. Do not soften it: a 20% alpha ring measures about 1.15:1 against the page background, far below the 3:1 a focus indicator needs.
 2. **Contrast**: Each foreground token meets WCAG 2.1 AA (4.5:1 normal text, 3:1 large text and non text elements) against the surface it is documented for, in both themes. Text safe tokens: `--foreground`, `--muted-foreground`, `--primary`, `--highlight`, and every `*-foreground` token on its matching fill. Two exceptions:
    - `--accent` fails as text on light backgrounds (about 3.4:1, below 4.5:1). It is safe only as a non text fill with `--accent-foreground` text, or as text in dark theme.
-   - `--surface` and `--border` are decorative only (about 1.1:1 and 1.4:1 light, 1.1:1 and 1.55:1 dark). They fail the 3:1 rule for non text elements, so never use them alone to show an interactive boundary or state. Use `--input` for control boundaries.
-3. **Touch targets**: All interactive elements (buttons, links, inputs) have a minimum of 44px in at least one dimension.
+   - `--surface` and `--border` are decorative only (about 1.1:1 and 1.36:1 light, 1.1:1 and 1.55:1 dark). They fail the 3:1 rule for non text elements, so never use them alone to show an interactive boundary or state. Use `--input` for control boundaries.
+3. **Touch targets**: 44px in both dimensions for anything interactive, reached with padding so the visual size stays. How each kind gets there:
+   - Links and list rows (breadcrumbs, footer columns, header and drawer nav items) carry `min-h-11`, and the whole row is the target.
+   - Icon only and social controls are `size-11`.
+   - `Button` and the Shadcn controls reach 44px on touch devices only (`pointer-coarse:min-h-11 pointer-coarse:min-w-11`), so a mouse keeps the compact 36px (`h-9`) control height the visual language calls for while a coarse pointer gets the full target.
 4. **Motion**: `prefers-reduced-motion: reduce` disables all animations and transitions via the global CSS guard in `globals.css`.
 5. **ARIA**: Nav regions use `aria-label`, breadcrumbs use `aria-current="page"`, error messages use `role="alert"`, star ratings use `role="img"` with descriptive `aria-label`, quantity steppers use `aria-live="polite"`.
 6. **Semantic HTML**: `<nav>`, `<main>`, `<header>`, `<footer>`, `<section>`, `<article>` used appropriately. Heading hierarchy (single h1 per page via PageHeader).

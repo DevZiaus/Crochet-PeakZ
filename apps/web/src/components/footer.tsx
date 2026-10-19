@@ -98,7 +98,7 @@ function Footer() {
             <div className="col-span-2 sm:col-span-4 lg:col-span-1">
               <Link
                 href="/"
-                className="inline-block transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
+                className="inline-flex min-h-11 items-center transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
                 aria-label="Crochet PeakZ home"
               >
                 <span className="font-heading text-xl font-bold text-primary">
@@ -116,7 +116,7 @@ function Footer() {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
+                    className="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
                     aria-label={social.label}
                   >
                     <social.icon className="size-5" aria-hidden="true" />
@@ -130,12 +130,12 @@ function Footer() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
                 Shop
               </h3>
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 space-y-1">
                 {footerLinks.shop.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
+                      className="flex min-h-11 items-center text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
                     >
                       {link.label}
                     </Link>
@@ -148,12 +148,12 @@ function Footer() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
                 Company
               </h3>
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 space-y-1">
                 {footerLinks.company.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
+                      className="flex min-h-11 items-center text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
                     >
                       {link.label}
                     </Link>
@@ -166,12 +166,12 @@ function Footer() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
                 Help
               </h3>
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 space-y-1">
                 {footerLinks.help.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
+                      className="flex min-h-11 items-center text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
                     >
                       {link.label}
                     </Link>
@@ -188,12 +188,12 @@ function Footer() {
           <p className="text-xs text-muted-foreground">
             &copy; {currentYear} Crochet PeakZ. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
             {footerLinks.legal.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
               >
                 {link.label}
               </Link>

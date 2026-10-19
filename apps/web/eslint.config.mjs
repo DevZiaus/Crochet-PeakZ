@@ -83,6 +83,20 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/explicit-function-return-type": "off",
     },
   },
+  {
+    /* Test environment types */
+    files: ["**/src/test-env.d.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
+  // Test files are handled by vitest, not eslint
+  globalIgnores([
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/vitest.config.ts",
+    "**/src/test/**/*.ts",
+  ]),
   // Override default ignores of eslint-config-next.
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);

@@ -241,13 +241,13 @@ function FileUploadZone({
               </div>
               <Button
                 variant="ghost"
-                size="icon-xs"
+                size="icon-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeFile(index);
                 }}
                 aria-label={`Remove ${item.file.name}`}
-                className="shrink-0"
+                className="shrink-0 min-h-[44px] min-w-[44px] rounded-lg"
               >
                 <X className="size-3.5" aria-hidden="true" />
               </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState, useCallback } from "react";
+import { type ReactNode, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -45,13 +45,19 @@ interface AdminSidebarProps {
   collapsed: boolean;
   /** Toggle callback for collapse state. */
   onToggle: () => void;
+  /**
+   * Accessible name for the toggle button. Defaults to expand or collapse
+   * wording; the mobile overlay passes a close label, because there the button
+   * dismisses the drawer instead of collapsing the sidebar.
+   */
+  toggleLabel?: string;
 }
 
 /**
  * Collapsible admin sidebar with icon + label navigation items.
  * Highlights the active route. Supports collapsed (icon only) and expanded modes.
  */
-function AdminSidebar({ collapsed, onToggle }: AdminSidebarProps) {
+function AdminSidebar({ collapsed, onToggle, toggleLabel }: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -72,7 +78,9 @@ function AdminSidebar({ collapsed, onToggle }: AdminSidebarProps) {
           variant="ghost"
           size="icon-sm"
           onClick={onToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            toggleLabel ?? (collapsed ? "Expand sidebar" : "Collapse sidebar")
+          }
           className={cn(collapsed && "mx-auto")}
         >
           {collapsed ? (
@@ -139,6 +147,20 @@ function AdminLayout({ children }: AdminLayoutProps) {
     setMobileOpen((prev) => !prev);
   }, []);
 
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        toggleMobile();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [mobileOpen, toggleMobile]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
@@ -155,7 +177,11 @@ function AdminLayout({ children }: AdminLayoutProps) {
             aria-hidden="true"
           />
           <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
-            <AdminSidebar collapsed={false} onToggle={toggleMobile} />
+            <AdminSidebar
+              collapsed={false}
+              onToggle={toggleMobile}
+              toggleLabel="Close admin navigation"
+            />
           </div>
         </>
       )}
