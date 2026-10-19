@@ -188,9 +188,21 @@ orchestrator supports both.
 
 - Any PostgreSQL 18 server works: Compose, a VPS, Supabase, Neon, RDS, or
   Heroku Postgres.
-- `DATABASE_URL` is the only database variable. Prisma migrations use it too.
-  If a provider offers a pooled URL and a direct URL, use the direct/session
-  URL because the API is a long-lived process.
+- `DATABASE_URL` is the only database variable. Prisma migrations and the
+  runtime read it. If a provider offers a pooled URL and a direct URL, use the
+  direct/session URL because the API is a long-lived process.
+- Prisma 7 reads the CLI datasource URL, schema path, migration path, and seed
+  command from `apps/api/prisma.config.ts`.
+- Prisma Client is generated with the `prisma-client` provider into
+  `apps/api/src/generated/prisma` (gitignored). `dev`, `build`, `typecheck`,
+  `lint`, and `db:seed` generate it automatically; run
+  `npm run db:generate --workspace=@crochet-peakz/api` after changing the schema.
+- At runtime the API connects through `@prisma/adapter-pg` (the `pg` driver).
+  Connection and idle timeouts are tuned to the Prisma 6 defaults. TLS follows
+  the `sslmode`/`sslcert` parameters in `DATABASE_URL`; when a provider uses a
+  private CA, set `NODE_EXTRA_CA_CERTS` instead of disabling validation.
+- The API image copies `prisma.config.ts`, so `RUN_MIGRATIONS=true` applies
+  migrations against the same `DATABASE_URL` the server uses.
 - Dev migrations: `npm run db:migrate --workspace=@crochet-peakz/api`
 - Production migrations: `npm run db:deploy --workspace=@crochet-peakz/api`
 - Seed data is for local development only. Start the Compose database and run
@@ -213,12 +225,14 @@ For future authentication:
 
 ## Troubleshooting
 
-| Symptom                                   | Likely cause                                                                              |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
-| API container exits immediately           | `DATABASE_URL` missing or migrations failed                                               |
-| `/api/health` works, `/ready` returns 503 | Database not reachable; check `DATABASE_URL` and network access                           |
-| Browser calls the wrong API host          | `NEXT_PUBLIC_API_URL` was changed without rebuilding the web image                        |
-| CORS error                                | Origin missing from `CORS_ORIGIN`, or a wildcard was configured                           |
-| Cookies not set behind a proxy            | `TRUST_PROXY` not set, or proxy does not send `X-Forwarded-Proto`                         |
-| `npm start` runs old code                 | Rebuild first: `npm run build`; API output is `apps/api/dist/index.js`                    |
-| Prisma engine error on a non-Docker host  | Install OpenSSL and run `npm run db:generate --workspace=@crochet-peakz/api` on that host |
+| Symptom                                   | Likely cause                                                                                    |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| API container exits immediately           | `DATABASE_URL` missing or migrations failed                                                     |
+| `/api/health` works, `/ready` returns 503 | Database not reachable; check `DATABASE_URL` and network access                                 |
+| Browser calls the wrong API host          | `NEXT_PUBLIC_API_URL` was changed without rebuilding the web image                              |
+| CORS error                                | Origin missing from `CORS_ORIGIN`, or a wildcard was configured                                 |
+| Cookies not set behind a proxy            | `TRUST_PROXY` not set, or proxy does not send `X-Forwarded-Proto`                               |
+| `npm start` runs old code                 | Rebuild first: `npm run build`; API output is `apps/api/dist/index.js`                          |
+| Prisma engine error on a non-Docker host  | Install OpenSSL and run `npm run db:generate --workspace=@crochet-peakz/api` on that host       |
+| `Cannot find module .../generated/prisma` | Run `npm run db:generate --workspace=@crochet-peakz/api`; the folder is gitignored              |
+| Prisma TLS/certificate error after v7     | `pg` validates certificates; add `sslmode`/`sslcert` to `DATABASE_URL` or `NODE_EXTRA_CA_CERTS` |

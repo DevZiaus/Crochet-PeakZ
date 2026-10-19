@@ -92,7 +92,7 @@ function installShutdownHandlers(server: Server, database: Database): void {
  */
 async function main(): Promise<void> {
   const env = loadEnv();
-  const database = createDatabase();
+  const database = createDatabase(env.databaseUrl);
 
   try {
     // Verify database connection, but keep serving liveness checks if the

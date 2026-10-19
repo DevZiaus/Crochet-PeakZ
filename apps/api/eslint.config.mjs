@@ -24,7 +24,7 @@ export default tseslint.config(
   },
   {
     /* Config files are not in tsconfig, disable type-checked rules and allow default exports */
-    files: ["*.config.mjs", "*.config.ts"],
+    files: ["**/*.config.mjs", "**/*.config.ts"],
     ...tseslint.configs.disableTypeChecked,
     rules: {
       ...tseslint.configs.disableTypeChecked.rules,
@@ -32,6 +32,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist/**"],
+    ignores: ["**/dist/**", "**/src/generated/**"],
   },
 );

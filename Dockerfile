@@ -37,6 +37,7 @@ COPY --from=build-api --chown=node:node /app/node_modules ./node_modules
 COPY --from=build-api --chown=node:node /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build-api --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=build-api --chown=node:node /app/apps/api/prisma ./apps/api/prisma
+COPY --from=build-api --chown=node:node /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY --from=build-api --chown=node:node /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=build-api --chown=node:node /app/packages/shared/dist ./packages/shared/dist
 COPY --chown=node:node deploy/api-entrypoint.sh /usr/local/bin/api-entrypoint
