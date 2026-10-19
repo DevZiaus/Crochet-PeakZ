@@ -14,27 +14,27 @@ Key forces shaping the stack:
 2. **Real payments**: Stripe and PayPal (USD), SSLCommerz (BDT), and Cash on Delivery require secure, correct integrations. No room for "good enough" on money flows.
 3. **Dual audience**: Bangladesh (BDT, SSLCommerz, COD, domestic shipping) and international (USD, Stripe, PayPal, tiered shipping). The codebase must handle both cleanly.
 4. **Digital delivery**: crochet patterns need cryptographically signed, expiring download URLs with download limits. Cloud storage with signed URL support is mandatory.
-5. **Heroku constraint**: Heroku has an ephemeral filesystem, so all user uploads and digital assets must reside in cloud storage (Cloudinary).
+5. **Stateless constraint**: containers and PaaS dynos have ephemeral filesystems, so all user uploads and digital assets must reside in cloud storage (Cloudinary).
 6. **TypeScript preference**: the developer works in TypeScript; the entire stack should be TypeScript for maximum type sharing.
 
 ## Options considered
 
 ### Option 1: Decoupled TypeScript monorepo (Next.js + Express.js + PostgreSQL) [chosen]
 
-Next.js 15 frontend (App Router, React 19) on Vercel, Express.js backend on Heroku, PostgreSQL with Prisma ORM, npm workspaces monorepo with a shared types/schemas package. REST API between frontend and backend.
+Next.js 16 frontend (App Router, React 19) with standalone output, Express.js backend as a plain Node process, PostgreSQL with Prisma ORM, npm workspaces monorepo with a shared types/schemas package, and a Docker image for either side. REST API between frontend and backend.
 
 **Pros**:
 
 - One repo, shared types, single CI pipeline. A solo developer manages one codebase.
-- Next.js on Vercel is the best supported deployment path for React apps: edge SSR, automatic previews, zero config.
+- The web and API run on any Node.js or Docker host; Vercel and Heroku are optional managed targets, not requirements.
 - Express.js is the most mature Node.js framework: huge middleware ecosystem, well documented, understood failure modes.
 - PostgreSQL + Prisma gives relational integrity (products, orders, inventory need ACID) with typed queries.
 - Clean separation: the frontend can be rewritten or replaced without touching the backend, and vice versa.
 
 **Cons**:
 
-- Two deployment targets mean two sets of env vars, two CI targets, two monitoring dashboards.
-- Heroku's cheaper dynos sleep after inactivity, causing cold starts.
+- Two deployables mean two sets of env vars, two processes, and two monitoring dashboards.
+- Self-hosting transfers TLS, backups, and patching to the operator.
 - REST between frontend and backend requires manual type alignment (mitigated by shared Zod schemas).
 - Express.js is less performant per request than Fastify or Hono, though for this scale it is irrelevant.
 
@@ -74,6 +74,8 @@ Replace Express.js with NestJS for a more opinionated, decorator based backend a
 
 Option 1 aligns with the original spec's intended stack and the project's constraints. A solo developer building a production e-commerce store needs proven, well documented tools with large communities. Next.js + Express.js + PostgreSQL is the most common and well supported stack in the TypeScript ecosystem. Every choice has extensive documentation, active communities, and understood failure modes.
 
+Portability is deliberate. The runtime contract (Node.js, environment variables, PostgreSQL, Docker) is defined in spec [0004](../0004-platform-agnostic-deployment/index.md) so the store can start on a VPS and move to a managed platform, or the reverse, without a rewrite. Vercel and Heroku remain documented options with their own setup notes, but no code path depends on either.
+
 The decoupled architecture (separate frontend and backend) adds slight complexity over a full stack Next.js approach (Option 2), but it removes the serverless constraints that would complicate payment webhooks, background processing, and persistent database connections. A production store handling real payments needs a persistent backend process, not serverless functions with cold starts and execution limits.
 
 Express.js over NestJS (Option 3) is the right call for a solo developer. NestJS's structure adds value on a team, but for one person already using Clean Architecture, the decorator heavy patterns and module system are overhead without proportional benefit.
@@ -82,4 +84,4 @@ The npm workspaces monorepo keeps the repository simple while enabling shared ty
 
 PostgreSQL with Prisma ORM provides the relational integrity this domain requires (products with variants and inventory, orders with items and status transitions, users with multiple addresses) with type safe queries that catch schema drift at compile time.
 
-Cloudinary is the only practical file storage choice given Heroku's ephemeral filesystem and the need for image transformations (product thumbnails, responsive images) and signed URLs (digital pattern delivery).
+Cloudinary is the only practical file storage choice given that containers and managed hosts have ephemeral filesystems and the need for image transformations (product thumbnails, responsive images) and signed URLs (digital pattern delivery).

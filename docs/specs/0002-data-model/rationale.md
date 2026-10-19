@@ -64,7 +64,7 @@ Option 3 (hybrid) was considered but rejected because the boundary between "core
 
 Key design decisions and their reasoning:
 
-**UUID v7 over `cuid()` or `autoincrement()`**: UUID v7 encodes a timestamp prefix, giving chronological sort without a sequence. This removes the need for coordinating sequences across distributed systems (relevant for Heroku's managed PostgreSQL). The existing `StoreSettings` model used `cuid()`, which will be replaced.
+**UUID v7 over `cuid()` or `autoincrement()`**: UUID v7 encodes a timestamp prefix, giving chronological sort without a sequence. This removes the need for coordinating sequences across distributed systems (relevant for any managed PostgreSQL and multi-instance deployment). The existing `StoreSettings` model used `cuid()`, which will be replaced.
 
 **Dual currency columns over a junction table or runtime conversion**: storing `priceBdt` and `priceUsd` side by side on products and variants is denormalized, but the store owner manually sets prices in both currencies (they are not derived from an exchange rate). A junction table would add query complexity for the most common operation (displaying a product) without benefit, since the relationship is always exactly 1:1 with two known currencies.
 

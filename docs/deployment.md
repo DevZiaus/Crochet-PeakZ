@@ -1,0 +1,224 @@
+# Deployment
+
+Crochet PeakZ is a decoupled app: a Next.js web server, an Express API, and
+PostgreSQL. Nothing in the runtime depends on Vercel, Heroku, or any other
+platform. Vercel and Heroku remain supported options, but Docker Compose is the
+reference self-hosted deployment.
+
+```
+Browser ──► reverse proxy (optional) ──► web (Next.js, :3000)
+                   │
+                   └──► /api/* ────────► api (Express, :4000) ──► PostgreSQL
+```
+
+## Portability contract
+
+These are the rules the code follows so a host only has to provide Node.js and
+environment variables:
+
+- The API reads `PORT` and `HOST` and listens on `0.0.0.0` by default.
+- The web server is built with `output: "standalone"`. The Docker image copies
+  the standalone server plus `.next/static` and `public`, so it runs without
+  `next start` or the full monorepo.
+- All shared code is compiled to JavaScript before the API starts. Production
+  does not rely on transpiling TypeScript from a workspace at runtime.
+- No filesystem persistence is assumed. Uploads go to Cloudinary.
+- No provider SDK is used for hosting. TLS, proxying, and process supervision
+  are deployment concerns.
+- Every secret and URL comes from an environment variable.
+- Health endpoints exist for container and load balancer probes.
+
+## Quick start with Docker Compose
+
+```bash
+cp .env.docker.example .env
+# edit POSTGRES_PASSWORD and any future application secrets
+
+docker compose up -d --build
+```
+
+That starts:
+
+| Service | Default URL           | Notes                                 |
+| ------- | --------------------- | ------------------------------------- |
+| web     | http://localhost:3000 | Next.js standalone server             |
+| api     | http://localhost:4000 | Express API, `/api/health`            |
+| db      | internal `db:5432`    | PostgreSQL 18, persisted in `db-data` |
+
+Migrations run on API start because `RUN_MIGRATIONS=true` in the example env.
+For several API replicas, set it to `false` and run migrations once per release:
+
+```bash
+docker compose run --rm api npm run db:deploy --workspace=@crochet-peakz/api
+```
+
+Check the running services:
+
+```bash
+curl http://localhost:4000/api/health
+curl http://localhost:4000/api/health/ready
+curl http://localhost:3000/health
+```
+
+Stop the stack with `docker compose down`. Add `-v` only when you intentionally
+want to delete the database volume.
+
+## One origin with a reverse proxy
+
+Using one origin avoids CORS and keeps auth cookies first-party. Rebuild the web
+image when `NEXT_PUBLIC_API_URL` changes because Next.js inlines it at build
+time.
+
+```bash
+# .env
+NEXT_PUBLIC_API_URL=/api
+CORS_ORIGIN=https://shop.example.com
+TRUST_PROXY=1
+DOMAIN=shop.example.com
+
+docker compose --profile proxy up -d --build
+```
+
+The optional Caddy service in `docker-compose.yml` terminates TLS, sends
+`/api/*` to the API, and everything else to the web server. `deploy/Caddyfile`
+is the configuration. For Nginx, start from `deploy/nginx.conf.example`.
+
+If the web and API are on different origins, set `NEXT_PUBLIC_API_URL` to the
+absolute API URL and list the web origin in `CORS_ORIGIN`:
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.example.com/api
+CORS_ORIGIN=https://shop.example.com,https://preview.example.com
+```
+
+Wildcards are rejected because the API enables credentialed CORS.
+
+## Managed platforms
+
+### Vercel (frontend)
+
+- Root Directory: repository root (not `apps/web`).
+- Install Command: `npm ci`
+- Build Command: `npm run build:shared && npm run build --workspace=@crochet-peakz/web`
+- Output Directory: `apps/web/.next`
+- Node.js: 24.x
+- Environment: `NEXT_PUBLIC_API_URL=https://api.example.com/api`
+- Vercel builds from the repository root, so the shared workspace package is available.
+
+### Heroku (backend)
+
+The Node.js buildpack path works without Docker:
+
+- `heroku-postbuild` builds the shared package and the API.
+- `Procfile` declares the release migration and the web process.
+- Config vars: `DATABASE_URL`, `CORS_ORIGIN`, `NODE_ENV=production`,
+  `TRUST_PROXY=1` (Heroku terminates TLS at its router), plus future secrets.
+
+Docker hosts can use the `api` target instead:
+
+```bash
+docker build --target api -t crochet-api .
+```
+
+Heroku Container Registry builds the final stage of a Dockerfile rather than a
+selected target, so use the Node.js buildpack above or build and push the `api`
+target from CI.
+
+Any host that can run a Docker image or a Node process works the same way:
+Render, Fly.io, Railway, a VPS, or Kubernetes. Point the platform at the `api`
+or `web` target and provide the environment variables below.
+
+### Bare-metal Node.js
+
+```bash
+npm ci
+npm run build
+DATABASE_URL=postgresql://... npm run db:deploy --workspace=@crochet-peakz/api
+npm run start:api   # or run both under systemd/PM2
+npm run start:web
+```
+
+`npm run start:web` runs `next start` from a full checkout. If you deploy only
+the standalone artifact, copy `apps/web/.next/static` and `apps/web/public` into
+`apps/web/.next/standalone/apps/web/` (as the Dockerfile does), then run
+`node apps/web/.next/standalone/apps/web/server.js`.
+
+Run the web and API as separate processes behind Nginx, Caddy, or another
+reverse proxy. The proxy should send `/api/*` to port 4000 and everything else
+to port 3000.
+
+## Environment variables
+
+### Runtime
+
+| Variable         | Required | Default                 | Purpose                                         |
+| ---------------- | -------- | ----------------------- | ----------------------------------------------- |
+| `DATABASE_URL`   | yes      | —                       | PostgreSQL connection string used by Prisma     |
+| `PORT`           | no       | `4000` (API), `3000`    | HTTP listen port                                |
+| `HOST`           | no       | `0.0.0.0`               | Interface to bind                               |
+| `NODE_ENV`       | no       | `development`           | `development`, `test`, or `production`          |
+| `CORS_ORIGIN`    | no       | `http://localhost:3000` | Comma separated allowed origins; no `*`         |
+| `TRUST_PROXY`    | no       | `false`                 | Express `trust proxy`; use `1` behind one proxy |
+| `RUN_MIGRATIONS` | no       | `false`                 | Docker entrypoint runs `prisma migrate deploy`  |
+
+Future feature secrets (JWT, OAuth, Cloudinary, payment gateways, email) are
+documented in `.env.example` and `apps/api/.env.example`.
+
+### Build time (web)
+
+| Variable              | Purpose                                                          |
+| --------------------- | ---------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL` | Browser-facing API base URL, e.g. `/api` or `https://api.../api` |
+
+`NEXT_PUBLIC_*` values are baked into the client bundle. Changing one requires a
+new web build; it is not a runtime setting.
+
+## Health checks
+
+| Endpoint                | Meaning                                      |
+| ----------------------- | -------------------------------------------- |
+| `GET /api/health`       | API process is alive (used by Docker/Heroku) |
+| `GET /api/health/ready` | API can reach PostgreSQL (503 until it can)  |
+| `GET /health`           | Next.js web server is alive                  |
+
+Use `/api/health` for liveness and `/api/health/ready` for readiness when your
+orchestrator supports both.
+
+## Database and migrations
+
+- Any PostgreSQL 18 server works: Compose, a VPS, Supabase, Neon, RDS, or
+  Heroku Postgres.
+- `DATABASE_URL` is the only database variable. Prisma migrations use it too.
+  If a provider offers a pooled URL and a direct URL, use the direct/session
+  URL because the API is a long-lived process.
+- Dev migrations: `npm run db:migrate --workspace=@crochet-peakz/api`
+- Production migrations: `npm run db:deploy --workspace=@crochet-peakz/api`
+- Seed data is for local development only. Start the Compose database and run
+  `npm run db:seed --workspace=@crochet-peakz/api` from a checkout with dev
+  dependencies installed.
+
+Always take a database backup before a production migration.
+
+## Reverse proxy and cookies
+
+When TLS terminates at a proxy, set `TRUST_PROXY=1` so Express reads
+`X-Forwarded-Proto` and `X-Forwarded-For`. Otherwise secure-cookie and rate
+limit decisions can be wrong.
+
+For future authentication:
+
+- Same origin (recommended): cookies are first-party, `SameSite=Lax` works.
+- Separate origins: cookies need `SameSite=None; Secure`, and both origins need
+  HTTPS. The API's `CORS_ORIGIN` must list the exact web origin.
+
+## Troubleshooting
+
+| Symptom                                   | Likely cause                                                                              |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| API container exits immediately           | `DATABASE_URL` missing or migrations failed                                               |
+| `/api/health` works, `/ready` returns 503 | Database not reachable; check `DATABASE_URL` and network access                           |
+| Browser calls the wrong API host          | `NEXT_PUBLIC_API_URL` was changed without rebuilding the web image                        |
+| CORS error                                | Origin missing from `CORS_ORIGIN`, or a wildcard was configured                           |
+| Cookies not set behind a proxy            | `TRUST_PROXY` not set, or proxy does not send `X-Forwarded-Proto`                         |
+| `npm start` runs old code                 | Rebuild first: `npm run build`; API output is `apps/api/dist/index.js`                    |
+| Prisma engine error on a non-Docker host  | Install OpenSSL and run `npm run db:generate --workspace=@crochet-peakz/api` on that host |

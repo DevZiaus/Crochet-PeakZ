@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CURRENCIES, ORDER_STATUSES } from "./index";
+import { CURRENCIES, ORDER_STATUSES } from "./index.js";
 
 describe("Constants", () => {
   it("CURRENCIES contains BDT and USD", () => {

@@ -1,0 +1,85 @@
+name: crochet-peakz
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-crochet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crochet}
+      POSTGRES_DB: ${POSTGRES_DB:-crochet_peakz}
+    volumes:
+      # PostgreSQL 18 keeps PGDATA below /var/lib/postgresql. Mounting the
+      # parent directory also covers older image layouts.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-crochet}:${POSTGRES_PASSWORD:-crochet}@db:5432/${POSTGRES_DB:-crochet_peakz}?schema=public
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+    ports:
+      - "${API_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        # Inlined by Next.js at build time. Use /api when the optional Caddy
+        # profile exposes web and API on one origin.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Optional reverse proxy with automatic HTTPS. Start it with:
+  #   docker compose --profile proxy up -d
+  # Set DOMAIN to a public hostname and NEXT_PUBLIC_API_URL=/api.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["proxy"]
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

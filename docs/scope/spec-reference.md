@@ -23,7 +23,7 @@ The system bridges domestic (Bangladesh) and international audiences by implemen
 - **Styling:** Tailwind CSS, Lucide React (icons), Radix UI / Shadcn UI (accessible UI primitives)
 - **State Management:** Zustand or Redux Toolkit (client-side cart, currency state, filters)
 - **Form Handling & Validation:** React Hook Form + Zod
-- **Deployment & Hosting:** Vercel (Edge-optimized SSR/SSG/ISR)
+- **Deployment & Hosting:** Platform agnostic (any Node.js or Docker host); Vercel remains a supported managed option
 
 ### 2.2 Backend Architecture
 
@@ -31,9 +31,9 @@ The system bridges domestic (Bangladesh) and international audiences by implemen
 - **Database:** PostgreSQL (Relational Database)
 - **ORM / Query Builder:** Prisma ORM (strongly typed data models, migrations, and seeds)
 - **Authentication:** JWT (JSON Web Tokens) with HttpOnly secure cookies + OAuth 2.0 (Google, Facebook via Passport.js or NextAuth/Auth.js)
-- **Object Storage:** Cloudinary (Mandatory: Heroku has an ephemeral filesystem; all user uploads, product media, and digital patterns must reside in cloud storage with signed URL access)
+- **Object Storage:** Cloudinary (Mandatory: containers and managed hosts have ephemeral filesystems; all user uploads, product media, and digital patterns must reside in cloud storage with signed URL access)
 - **Email Service:** Resend or SendGrid API (Order confirmations, pattern delivery, status updates)
-- **Deployment & Hosting:** Heroku (Containerized or Node buildpack, Eco/Basic dynos with Postgres add-on)
+- **Deployment & Hosting:** Platform agnostic (any Node.js or Docker host); Heroku remains a supported managed option
 
 ---
 
