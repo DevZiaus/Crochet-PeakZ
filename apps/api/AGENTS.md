@@ -45,6 +45,7 @@ npm run db:studio --workspace=@crochet-peakz/api
 | `src/config/env.ts`                           | Environment parsing and validation (`HOST`, `PORT`, `CORS_ORIGIN`, `TRUST_PROXY`) |
 | `src/infrastructure/database/prisma.ts`       | Prisma client factory, health check, disconnect helper                            |
 | `prisma/schema.prisma`                        | Database schema (PostgreSQL, single `DATABASE_URL`)                               |
+| `prisma.config.ts`                            | Prisma CLI config: schema path, migrations path, and seed command                 |
 | `prisma/seed.ts`                              | Seed script for realistic local data (users, categories, products, settings)      |
 | `src/presentation/routes/health.routes.ts`    | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)           |
 | `src/presentation/middleware/errorHandler.ts` | Centralized error handler and `AppError` class                                    |

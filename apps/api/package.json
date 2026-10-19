@@ -19,9 +19,6 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@crochet-peakz/shared": "*",
     "@prisma/client": "^6.2.0",
