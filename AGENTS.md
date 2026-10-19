@@ -11,7 +11,7 @@
 - **Email**: Resend or SendGrid
 - **Payments**: Stripe, PayPal, SSLCommerz, Cash on Delivery
 - **Package manager**: npm
-- **Deployment**: Vercel (frontend), Heroku (backend + PostgreSQL)
+- **Deployment**: Platform agnostic (any Node.js or Docker host; self-hosted via Docker Compose). Vercel (frontend) and Heroku (backend) are supported managed options. See `docs/deployment.md`.
 
 _Stack sourced from `docs/scope/spec-reference.md` (the original project spec). These are the intended choices; `/architect stack & architecture` will validate and record the formal decision._
 
@@ -30,6 +30,9 @@ npm run dev
 
 # Build (all workspaces)
 npm run build
+
+# Docker (self-hosted web + api + postgres)
+docker compose up -d --build
 
 # Typecheck
 npm run typecheck
@@ -50,6 +53,8 @@ npm run test
 ## Specs
 
 Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
+
+Deployment guide: `docs/deployment.md` (Docker Compose, one-origin proxy, Vercel, Heroku, bare Node).
 
 ## Rules
 
@@ -81,6 +86,15 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
 - Naming: camelCase for functions and variables, PascalCase for types, interfaces, classes, and React components.
 - Accessibility baseline on all UI: WCAG 2.1 AA.
 - Conventional commit messages: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `perf:`.
+
+### Deployment portability
+
+- The app runs on any Node.js or Docker host, including self-hosted. No hosting-specific APIs, filesystem persistence, or platform SDKs in application code.
+- All runtime configuration comes from environment variables, validated at startup. Document new variables in the `.env*.example` files and `docs/deployment.md`.
+- The API binds to `HOST`/`PORT` and exposes `/api/health` (liveness) and `/api/health/ready` (database readiness). The web server exposes `/health`.
+- Containers run as non-root and stay stateless; uploads go to Cloudinary.
+- `NEXT_PUBLIC_*` values are inlined at build time; changing one requires rebuilding the web app.
+- Shared workspace code must compile to JavaScript before the API runs in production.
 
 ## Tooling
 
@@ -115,7 +129,8 @@ _Stack specific skills (Next.js, Prisma, Stripe, etc.) not yet searched; `npx` i
 ## Context files
 
 - [apps/api/AGENTS.md](apps/api/AGENTS.md): Express.js backend, Clean Architecture layers, Prisma, env and error handling conventions
-- [apps/web/AGENTS.md](apps/web/AGENTS.md): Next.js 15 frontend, App Router, Tailwind CSS, fonts and layout
+- [apps/web/AGENTS.md](apps/web/AGENTS.md): Next.js 16 frontend, App Router, Tailwind CSS, fonts and layout
 - [packages/shared/AGENTS.md](packages/shared/AGENTS.md): shared types, Zod schemas, constants consumed by both api and web
+- [docs/deployment.md](docs/deployment.md): platform-agnostic deployment guide (Docker, Compose, reverse proxy, managed hosts)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

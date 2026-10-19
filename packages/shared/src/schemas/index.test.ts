@@ -9,7 +9,7 @@ import {
   discountTypeSchema,
   addressTypeSchema,
   commissionStatusSchema,
-} from "./index";
+} from "./index.js";
 import {
   Currency,
   UserRole,
@@ -20,7 +20,7 @@ import {
   DiscountType,
   AddressType,
   CommissionStatus,
-} from "../types/index";
+} from "../types/index.js";
 
 describe("Zod Schemas", () => {
   it("currencySchema validates valid currencies (AC-11)", () => {

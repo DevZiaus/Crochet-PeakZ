@@ -8,26 +8,30 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently --names api,web --prefix-colors blue,magenta \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "dev": "npm run build:shared && concurrently --names shared,api,web --prefix-colors cyan,blue,magenta \"npm run dev --workspace=@crochet-peakz/shared\" \"npm run dev --workspace=@crochet-peakz/api\" \"npm run dev --workspace=@crochet-peakz/web\"",
+    "build": "npm run build:shared && npm run build --workspace=@crochet-peakz/api && npm run build --workspace=@crochet-peakz/web",
+    "build:shared": "npm run build --workspace=@crochet-peakz/shared",
+    "heroku-postbuild": "npm run build:shared && npm run build --workspace=@crochet-peakz/api",
+    "start:api": "npm run start --workspace=@crochet-peakz/api",
+    "start:web": "npm run start --workspace=@crochet-peakz/web",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
+    "lint": "npm run build:shared && npm run lint --workspaces --if-present",
+    "test": "npm run build:shared && npm run test --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "concurrently": "^9.1.2",
+    "concurrently": "^10.0.6",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "typescript": "^5.7.0",
-    "typescript-eslint": "^8.71.0",
-    "vitest": "^5.0.3"
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
   },
   "engines": {
     "node": ">=24.20.0"

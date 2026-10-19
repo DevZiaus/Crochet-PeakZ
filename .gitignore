@@ -10,12 +10,14 @@ out/
 .env
 .env.local
 .env.*.local
+.env.docker
 apps/api/.env
 apps/web/.env.local
 
 # Prisma
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
+apps/api/src/generated/
 
 # IDE & Assistant
 .vscode/

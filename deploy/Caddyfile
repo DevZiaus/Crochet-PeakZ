@@ -1,0 +1,18 @@
+# Optional same-origin reverse proxy for the Docker Compose stack.
+#
+#   DOMAIN=shop.example.com docker compose --profile proxy up -d --build
+#
+# Build the web image with NEXT_PUBLIC_API_URL=/api so the browser calls the
+# API through this proxy. Caddy obtains a TLS certificate automatically when
+# DOMAIN is a public hostname; localhost is served over plain HTTP.
+{$DOMAIN:localhost} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

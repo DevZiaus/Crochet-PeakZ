@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Crochet PeakZ web
 
-## Getting Started
+Next.js 16 frontend for Crochet PeakZ. See the [root README](../../README.md) and [deployment guide](../../docs/deployment.md) for the full picture.
 
-First, run the development server:
+## Development
+
+Run the whole monorepo from the repository root:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Or run only the web app (from `apps/web`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If `packages/shared/dist` does not exist yet, run `npm run build:shared` from
+the repository root first. The app is available at http://localhost:3000. It
+expects the API at the URL in `NEXT_PUBLIC_API_URL`, which defaults to
+`http://localhost:4000/api`.
 
-## Learn More
+## Build and run
 
-To learn more about Next.js, take a look at the following resources:
+From the repository root:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm run start:web
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The build emits a standalone server in `.next/standalone`, which the root
+`Dockerfile` copies into the `web` image. `npm run start:web` runs `next start`
+from a full checkout. For a standalone-only artifact, copy `.next/static` and
+`public` into the standalone folder and run
+`node apps/web/.next/standalone/apps/web/server.js`, as the `Dockerfile` does.
+The container listens on `PORT` (default 3000) and `HOSTNAME` (default
+`0.0.0.0`).
 
-## Deploy on Vercel
+`NEXT_PUBLIC_*` values are inlined at build time. Set `NEXT_PUBLIC_API_URL`
+before building; use `/api` when a reverse proxy serves web and API on one
+origin.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Health check
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`GET /health` returns JSON while the Next.js server is running, for Docker and
+load balancer probes.
+
+## Deployment
+
+- Self-hosted or Docker host: see [docs/deployment.md](../../docs/deployment.md).
+- Vercel: repository root as Root Directory, build command
+  `npm run build:shared && npm run build --workspace=@crochet-peakz/web`,
+  output `apps/web/.next`, and `NEXT_PUBLIC_API_URL` set in the project
+  environment.

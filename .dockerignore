@@ -1,0 +1,44 @@
+# Dependencies and local installs
+node_modules
+**/node_modules
+
+# Build output (rewritten inside the image)
+dist
+**/dist
+.next
+**/.next
+build
+**/build
+coverage
+**/coverage
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Prisma generated client (recreated by prisma generate)
+apps/api/src/generated
+
+# Local environment files and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# VCS, editors, and agent state
+.git
+.gitignore
+.github
+.claude
+.vscode
+.idea
+*.local.json
+.claude/*.local.json
+
+# Logs and OS noise
+*.log
+.DS_Store
+Thumbs.db
+
+# Docs are not needed to build or run the images
+docs
