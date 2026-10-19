@@ -23,22 +23,34 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "concurrently": "^9.1.2",
+    "concurrently": "^10.0.6",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "typescript": "^5.7.0",
-    "typescript-eslint": "^8.71.0",
-    "vitest": "^5.0.3"
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
   },
   "engines": {
     "node": ">=24.20.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,mts,js,mjs}": [
-      "eslint --fix",
+    "apps/web/**/*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config apps/web/eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "apps/api/**/*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config apps/api/eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "packages/**/*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "./*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config eslint.config.mjs --fix",
       "prettier --write"
     ],
     "*.{json,md,css,html,yml,yaml}": [
