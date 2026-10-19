@@ -10,7 +10,7 @@ import {
 import { createHealthRouter } from "./presentation/routes/health.routes.js";
 import { errorHandler } from "./presentation/middleware/errorHandler.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 /**
  * Creates and configures the Express application.
