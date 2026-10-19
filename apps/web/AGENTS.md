@@ -4,10 +4,12 @@
 
 Next.js 16 (App Router, React 19) frontend for Crochet PeakZ. Serves the customer facing storefront, admin dashboard, and all UI. Styled with Tailwind CSS v4 and will use Shadcn UI components.
 
+The web app builds with `output: "standalone"` so it runs on any Node.js host or container. Vercel remains a supported managed option. See `docs/deployment.md`.
+
 ## Stack
 
 - **Framework**: Next.js 16.3 (App Router), React 19
-- **Styling**: Tailwind CSS v4 (PostCSS plugin), Geist + Geist Mono fonts
+- **Styling**: Tailwind CSS v4 (PostCSS plugin), DM Sans + Playfair Display fonts
 - **Validation**: Zod (shared schemas from `@crochet-peakz/shared`)
 - **Path alias**: `@/*` maps to `./src/*`
 
@@ -15,38 +17,49 @@ Next.js 16 (App Router, React 19) frontend for Crochet PeakZ. Serves the custome
 
 ```bash
 # Dev server (port 3000)
-npm run dev --workspace=apps/web
+npm run dev --workspace=@crochet-peakz/web
 
-# Build
-npm run build --workspace=apps/web
+# Build (builds shared first, emits .next/standalone server)
+npm run build:shared && npm run build --workspace=@crochet-peakz/web
+
+# Start (production, from a full checkout; Docker uses the standalone server)
+npm run start --workspace=@crochet-peakz/web
 
 # Typecheck
-npm run typecheck --workspace=apps/web
+npm run typecheck --workspace=@crochet-peakz/web
 
 # Lint
-npm run lint --workspace=apps/web
+npm run lint --workspace=@crochet-peakz/web
+
+# Test
+npm run test --workspace=@crochet-peakz/web
 ```
 
 ## Key files
 
-| File                  | Owns                                                                           |
-| --------------------- | ------------------------------------------------------------------------------ |
-| `src/app/layout.tsx`  | Root layout: HTML shell, fonts, metadata                                       |
-| `src/app/page.tsx`    | Home page (scaffold placeholder, imports from shared to verify workspace link) |
-| `src/app/globals.css` | Global CSS, Tailwind imports                                                   |
-| `next.config.ts`      | Next.js configuration (currently empty)                                        |
-| `eslint.config.mjs`   | ESLint config (Next.js preset)                                                 |
+| File                                | Owns                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| `src/app/layout.tsx`                | Root layout: HTML shell, fonts, metadata                                       |
+| `src/app/page.tsx`                  | Home page (scaffold placeholder, imports from shared to verify workspace link) |
+| `src/app/health/route.ts`           | `/health` liveness probe for containers and reverse proxies                    |
+| `src/app/globals.css`               | Global CSS, Tailwind imports                                                   |
+| `next.config.ts`                    | Standalone output, monorepo tracing root, image allowlist                      |
+| `eslint.config.mjs`                 | ESLint config (Next.js preset)                                                 |
+| `.env.local` / `.env.local.example` | Build-time `NEXT_PUBLIC_*` variables                                           |
 
 ## Conventions
 
 - **App Router**: all pages live under `src/app/` using file system routing. Layouts, pages, loading, and error boundaries follow Next.js conventions.
-- **No default exports** (project rule), except where Next.js requires them: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, and `next.config.ts` must use default exports.
+- **No default exports** (project rule), except where Next.js requires them: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts` handlers use named exports, and `next.config.ts` must use a default export.
 - **TypeScript**: standalone tsconfig (does not extend `tsconfig.base.json`), uses bundler module resolution, `strict: true`, `noUncheckedIndexedAccess: true`.
-- **Shared package**: import types, schemas, and constants from `@crochet-peakz/shared`. The workspace link resolves at dev time with no build step.
+- **Shared package**: import types, schemas, and constants from `@crochet-peakz/shared`. It resolves to compiled JavaScript in `packages/shared/dist`; root scripts build it first.
+- **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart.
+- **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
 
 ## Related specs
 
 - [0001 Stack and architecture](../../docs/specs/0001-stack-and-architecture/index.md)
+- [0004 Platform-agnostic deployment](../../docs/specs/0004-platform-agnostic-deployment/index.md)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._
 

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { Currency, currencySchema, CURRENCIES, ORDER_STATUSES } from "./index";
+import {
+  Currency,
+  currencySchema,
+  CURRENCIES,
+  ORDER_STATUSES,
+} from "./index.js";
 
 /**
  * Tests for the @crochet-peakz/shared barrel export.

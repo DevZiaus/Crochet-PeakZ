@@ -9,7 +9,7 @@ import {
   DiscountType,
   AddressType,
   CommissionStatus,
-} from "../types/index";
+} from "../types/index.js";
 
 /**
  * Zod schema for validating currency codes.

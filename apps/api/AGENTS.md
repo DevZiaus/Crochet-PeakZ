@@ -4,6 +4,8 @@
 
 Express.js backend for Crochet PeakZ, written in TypeScript. Serves a REST API for the Next.js frontend. Uses Prisma ORM with PostgreSQL for persistence and follows Clean Architecture with four layers.
 
+The API is deployment agnostic: it reads `HOST` and `PORT` from the environment, exposes liveness/readiness health endpoints, and shuts down gracefully on SIGTERM/SIGINT. See `docs/deployment.md`.
+
 ## Stack
 
 - **Runtime**: Node.js 24.20.0, TypeScript (strict mode, extends `tsconfig.base.json`)
@@ -16,46 +18,65 @@ Express.js backend for Crochet PeakZ, written in TypeScript. Serves a REST API f
 
 ```bash
 # Dev server (hot reload)
-npm run dev --workspace=apps/api
+npm run dev --workspace=@crochet-peakz/api
 
-# Build
-npm run build --workspace=apps/api
+# Build (builds shared first; prisma generate + compile to dist/index.js)
+npm run build:shared && npm run build --workspace=@crochet-peakz/api
 
-# Typecheck
-npm run typecheck --workspace=apps/api
+# Typecheck (builds shared first; includes prisma/seed.ts)
+npm run build:shared && npm run typecheck --workspace=@crochet-peakz/api
 
-# Start (production)
-npm run start --workspace=apps/api
+# Start (production, runs dist/index.js)
+npm run start --workspace=@crochet-peakz/api
+
+# Database
+npm run db:migrate --workspace=@crochet-peakz/api   # dev migrations
+npm run db:deploy --workspace=@crochet-peakz/api    # production migrations
+npm run db:seed --workspace=@crochet-peakz/api      # local seed data
+npm run db:status --workspace=@crochet-peakz/api
+npm run db:studio --workspace=@crochet-peakz/api
 ```
 
 ## Key files
 
 | File                                          | Owns                                                                              |
 | --------------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/index.ts`                                | Server entry point: env validation, Express setup, Prisma connect, route mounting |
-| `prisma/schema.prisma`                        | Database schema (PostgreSQL, 18 models and 9 enums for complete store model)      |
+| `src/index.ts`                                | Composition root: env + database setup, Express app, listen, graceful shutdown    |
+| `src/config/env.ts`                           | Environment parsing and validation (`HOST`, `PORT`, `CORS_ORIGIN`, `TRUST_PROXY`) |
+| `src/infrastructure/database/prisma.ts`       | Prisma client factory, health check, disconnect helper                            |
+| `prisma/schema.prisma`                        | Database schema (PostgreSQL, single `DATABASE_URL`)                               |
+| `prisma.config.ts`                            | Prisma CLI config: schema path, migrations path, and seed command                 |
 | `prisma/seed.ts`                              | Seed script for realistic local data (users, categories, products, settings)      |
-| `src/presentation/routes/health.routes.ts`    | `/api/health` endpoint proving the server is alive                                |
+| `src/presentation/routes/health.routes.ts`    | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)           |
 | `src/presentation/middleware/errorHandler.ts` | Centralized error handler and `AppError` class                                    |
+| `tsconfig.json`                               | Typecheck config: `src` + `prisma`, no emit                                       |
+| `tsconfig.build.json`                         | Build config: emits `src` to `dist/` only                                         |
 | `.env` / `.env.example`                       | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)    |
 
 ## Conventions
 
 - **Clean Architecture layers**: `domain/` → `application/` → `infrastructure/` → `presentation/`. Dependencies flow inward. Domain has zero external imports.
 - **Error handling**: throw `AppError(statusCode, message)` for expected errors; the centralized `errorHandler` middleware catches all and returns consistent JSON.
-- **Env validation**: `validateEnv()` runs at startup. Add any new required variable to the `required` array in `src/index.ts`.
-- **Route mounting**: all routers mount under `/api` (e.g. `app.use("/api", healthRouter)`).
-- **Module system**: ESNext (`"module": "ESNext"`, `"moduleResolution": "Bundler"` in tsconfig). `"type": "module"` in package.json. `tsx` transpiles at dev time; `tsc` compiles to `dist/` for production.
+- **Env validation**: `loadEnv()` in `src/config/env.ts` runs at startup and throws on invalid values. Add new variables there and document them in `.env.example` and `docs/deployment.md`.
+- **Route mounting**: all routers mount under `/api` (e.g. `app.use("/api", createHealthRouter(...))`).
+- **Health probes**: keep `/api/health` dependency-free (liveness) and back `/api/health/ready` with a real dependency check.
+- **Module system**: ESM (`"type": "module"`, `module: ESNext`, `moduleResolution: Bundler`). `tsx` runs TypeScript in dev; `tsc -p tsconfig.build.json` emits `dist/index.js` for production.
 - **Prisma model naming**: models use PascalCase, table names use `@@map("snake_case")`, column aliases via `@map("snake_case")`.
+- **Deployment**: containers run the `api` target from the root `Dockerfile`. `RUN_MIGRATIONS=true` applies `prisma migrate deploy` before start (single instance only).
 
 ## Gotchas
 
-- The server starts even if the database connection fails (warns instead of crashing), so the health check may return OK while DB queries fail.
-- `tsconfig.json` extends the root `tsconfig.base.json` and overrides `rootDir`, `outDir`, `target` (ES2024), `module` (ESNext), and `moduleResolution` (Bundler). The shared package uses Node16 module resolution, so imports from `@crochet-peakz/shared` use `.js` extensions in their source.
+- The server starts even if the database connection fails, so `/api/health` can return OK while database queries fail. Use `/api/health/ready` to gate traffic.
+- `npm start` requires a prior build. Without `dist/index.js`, the process exits immediately.
+- The build emits only `src/`; `prisma/seed.ts` is typechecked but not compiled. Use `tsx` for seeding locally.
+- `@crochet-peakz/shared` resolves to compiled JavaScript in `packages/shared/dist`. Build it first (`npm run build:shared` at the repo root) or run commands through the root scripts, which do it automatically.
+- `CORS_ORIGIN` accepts a comma separated list and rejects `*` because credentials are enabled.
+- Behind a reverse proxy or a PaaS router, set `TRUST_PROXY=1` so Express reads `X-Forwarded-Proto` and `X-Forwarded-For`.
 
 ## Related specs
 
 - [0001 Stack and architecture](../../docs/specs/0001-stack-and-architecture/index.md)
 - [0002 Data model](../../docs/specs/0002-data-model/index.md)
+- [0004 Platform-agnostic deployment](../../docs/specs/0004-platform-agnostic-deployment/index.md)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

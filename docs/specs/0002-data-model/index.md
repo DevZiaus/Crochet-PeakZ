@@ -450,10 +450,10 @@ Build approach: Tracer Bullet. The data model is a foundation, not a user facing
 
 1. [x] Write the full `schema.prisma` with all 18 models, 9 enums, `@@map`/`@map` directives, UUID v7 defaults, and all relationship annotations (replaces the existing minimal `StoreSettings` model), satisfies **AC-1**, **AC-2**, **AC-3**, **AC-4**, **AC-5**, **AC-6**, **AC-7**, **AC-8**, **AC-12**
 2. [x] Run `npx prisma migrate dev --name init-data-model` to generate and apply the migration on a local PostgreSQL database, verifying it applies cleanly, satisfies **AC-10**
-3. [x] Write the seed script (`apps/api/prisma/seed.ts`) with realistic test data (2 users, 3 categories, 5 products with variants/images, 1 coupon, 1 shipping zone, 3 store settings), configure the seed command in `apps/api/package.json`, and run `npx prisma db seed`, satisfies **AC-9**, **AC-10**
+3. [x] Write the seed script (`apps/api/prisma/seed.ts`) with realistic test data (2 users, 3 categories, 5 products with variants/images, 1 coupon, 1 shipping zone, 3 store settings), configure the seed command in `apps/api/prisma.config.ts`, and run `npx prisma db seed`, satisfies **AC-9**, **AC-10**
 4. [x] Update `packages/shared/src/types/` and `packages/shared/src/constants/` to export Zod schemas and TypeScript types for all 9 enums, keeping them in sync with the Prisma schema, satisfies **AC-11**
-5. [x] Migrate Prisma config to `prisma.config.ts` (Prisma 7 deprecation fix)
-6. [x] Add `@prisma/config` dev dependency for Prisma 7 config format
+5. [x] Migrate Prisma CLI config to `apps/api/prisma.config.ts` (Prisma 7 deprecation fix)
+6. [x] Use the `prisma/config` entry point for `defineConfig`; no separate `@prisma/config` dependency is needed
 
 ## Consequences
 
