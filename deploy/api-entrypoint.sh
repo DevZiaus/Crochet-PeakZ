@@ -12,7 +12,7 @@ set -eu
 if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
   echo "[entrypoint] Applying database migrations"
   /app/node_modules/.bin/prisma migrate deploy \
-    --schema /app/apps/api/prisma/schema.prisma
+    --config /app/apps/api/prisma.config.ts
 fi
 
 exec "$@"

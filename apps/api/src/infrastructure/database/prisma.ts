@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../../generated/prisma/client.js";
 
 /**
  * Database handle owned by the composition root.
@@ -17,15 +18,23 @@ export interface Database {
 }
 
 /**
- * Creates the Prisma client and its lifecycle helpers.
+ * Creates the Prisma client, its driver adapter, and lifecycle helpers.
  *
- * Must be called after `dotenv` has populated `process.env` so Prisma can
- * read `DATABASE_URL`.
+ * Prisma 7 requires a driver adapter. `pg` pool defaults differ from the
+ * Prisma 6 query engine, so the timeouts are tuned to match the previous
+ * behaviour: 5s to acquire a connection and 300s before idle connections
+ * are released.
  *
+ * @param databaseUrl Validated PostgreSQL connection string.
  * @returns Database handle with health check and disconnect helpers.
  */
-export function createDatabase(): Database {
-  const client = new PrismaClient();
+export function createDatabase(databaseUrl: string): Database {
+  const adapter = new PrismaPg({
+    connectionString: databaseUrl,
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 300_000,
+  });
+  const client = new PrismaClient({ adapter });
 
   return {
     client,

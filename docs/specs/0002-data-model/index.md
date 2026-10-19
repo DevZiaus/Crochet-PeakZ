@@ -454,6 +454,7 @@ Build approach: Tracer Bullet. The data model is a foundation, not a user facing
 4. [x] Update `packages/shared/src/types/` and `packages/shared/src/constants/` to export Zod schemas and TypeScript types for all 9 enums, keeping them in sync with the Prisma schema, satisfies **AC-11**
 5. [x] Migrate Prisma CLI config to `apps/api/prisma.config.ts` (Prisma 7 deprecation fix)
 6. [x] Use the `prisma/config` entry point for `defineConfig`; no separate `@prisma/config` dependency is needed
+7. [x] Upgrade Prisma CLI and client to 7.10.1: `prisma-client` generator outputs to `src/generated/prisma`, runtime uses `@prisma/adapter-pg`, and the datasource URL moves to `prisma.config.ts` (Prisma 7 requires a driver adapter and no longer reads `datasource.url`)
 
 ## Consequences
 

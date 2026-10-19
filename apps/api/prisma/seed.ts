@@ -8,15 +8,32 @@
  * Satisfies AC-9 and AC-10 from spec 0002.
  */
 
-import {
-  PrismaClient,
-  UserRole,
-  ProductType,
-  DiscountType,
-} from "@prisma/client";
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcryptjs";
+import {
+  DiscountType,
+  PrismaClient,
+  ProductType,
+  UserRole,
+} from "../src/generated/prisma/client.js";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_URL is required to seed the database. " +
+      "Copy apps/api/.env.example to apps/api/.env first.",
+  );
+}
+
+const adapter = new PrismaPg({
+  connectionString: databaseUrl,
+  connectionTimeoutMillis: 5_000,
+  idleTimeoutMillis: 300_000,
+});
+
+const prisma = new PrismaClient({ adapter });
 
 /**
  * Hash a dev seed password with bcrypt. Uses the same format the auth
