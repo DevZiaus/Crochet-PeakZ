@@ -1,4 +1,3 @@
-/// <reference types="@testing-library/jest-dom" />
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { StarRating } from "./star-rating";
@@ -15,7 +14,7 @@ describe("StarRating", () => {
     expect(ariaLabel).toHaveAttribute("aria-label", "4 out of 5 stars");
   });
 
-  it("rounds 4.8 to 5 full stars (no half star)", () => {
+  it("rounds 4.8 to 5 full stars while announcing the true value", () => {
     const { container } = render(<StarRating rating={4.8} />);
     const stars = container.querySelectorAll("svg");
     // 5 full stars, no half star, no empty stars
@@ -23,8 +22,8 @@ describe("StarRating", () => {
     const filled = container.querySelectorAll(".fill-accent.text-accent");
     expect(filled.length).toBe(5);
     const ariaLabel = screen.getByRole("img");
-    // ARIA label reflects the rounded visual value (4.8 rounds to 5.0)
-    expect(ariaLabel).toHaveAttribute("aria-label", "5 out of 5 stars");
+    // The graphic rounds; the accessible name keeps the real average.
+    expect(ariaLabel).toHaveAttribute("aria-label", "4.8 out of 5 stars");
   });
 
   it("renders a half star for 4.7 rating (rounds to 4.5)", () => {
@@ -80,18 +79,27 @@ describe("StarRating", () => {
     expect(filled.length).toBe(3);
   });
 
-  it("shows numeric value when showValue is true", () => {
+  it("shows the true rating when showValue is true", () => {
     render(<StarRating rating={4.25} showValue={true} />);
-    // 4.25 rounds to 4.5; the displayed value matches the rounded stars
-    const valueSpan = screen.getByText("4.5");
+    // 4.25 rounds to 4.5 graphically, but the readout keeps the real value.
+    const valueSpan = screen.getByText("4.25");
     expect(valueSpan).toBeInTheDocument();
+  });
+
+  it("keeps a near perfect rating honest at the 4.75 threshold", () => {
+    render(<StarRating rating={4.75} showValue={true} />);
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "aria-label",
+      "4.75 out of 5 stars",
+    );
+    expect(screen.getByText("4.75")).toBeInTheDocument();
   });
 
   it("applies size classes correctly", () => {
     const { container } = render(<StarRating rating={3} size="lg" />);
     const stars = container.querySelectorAll("svg");
     stars.forEach((star) => {
-      expect(star.className).toContain("size-5");
+      expect(star.getAttribute("class")).toContain("size-5");
     });
   });
 });
