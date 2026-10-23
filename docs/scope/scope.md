@@ -14,7 +14,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 1   | Stack & architecture               | Foundation | done    |
 | 2   | Coding standards & tooling         | Foundation | done    |
 | 3   | Data model                         | Foundation | done    |
-| 4   | Design system & UI foundation      | Foundation | planned |
+| 4   | Design system & UI foundation      | Foundation | done    |
 | 5   | Customer auth                      | Slice 1    | planned |
 | 6   | Product catalog storefront         | Slice 1    | planned |
 | 7   | Currency switcher                  | Slice 1    | planned |
@@ -87,13 +87,24 @@ Core entities every feature builds on: users, products (five types), variants, c
 - [x] Review it (fresh model): `/check review data model`
 - [x] Document it: `/document data model`
 
-### 4. Design system & UI foundation · needs a decision
+### 4. Design system & UI foundation
 
 Visual language, layout primitives, and base components (with Tailwind CSS, Radix UI / Shadcn UI) so the storefront and admin panel feel cohesive, accessible, and premium.
 
 **Done when:** `design.md` covers typography, color palette, spacing, responsive breakpoints, and base components; components handle focus, keyboard navigation, and are WCAG 2.1 AA compliant.
 
-- [ ] Design it (spec): `/architect design system & UI foundation`
+- [x] Design it (spec): [0003](../specs/0003-design-system/index.md)
+- [x] Build it: `/develop design system & UI foundation`
+  - Spec 0003 · code in `apps/web/src/app/globals.css`, `apps/web/src/components/`, `apps/web/src/components/ui/`, `apps/web/design.md`
+  - [x] Deps, fonts, tokens, and dark mode (AC-1 through AC-5, AC-7)
+  - [x] Shadcn primitives and accessibility foundations (AC-6, AC-7, AC-9, AC-13)
+  - [x] Layout, navigation, commerce, and form components (AC-8, AC-10, AC-11)
+  - [x] design.md reference doc (AC-12)
+- [x] Verify it: `/check verify design system & UI foundation`
+- [x] Test it: `/test design system & UI foundation`
+- [x] Review it (fresh model): `/check review design system & UI foundation`
+- [x] Document it: `/document design system & UI foundation`
+- [ ] Remove the temporary `/design-system` showcase routes before the storefront ships (tracked from the 2026-10-24 review; `noindex` in the meantime)
 
 ## Slice 1: Core product loop
 

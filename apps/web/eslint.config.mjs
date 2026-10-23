@@ -69,11 +69,50 @@ const eslintConfig = defineConfig([
       "**/not-found.tsx",
       "**/template.tsx",
       "**/default.tsx",
-      "next.config.ts",
-      "next.config.mjs",
+      "**/next.config.ts",
+      "**/next.config.mjs",
+      "**/vitest.config.ts",
     ],
     rules: {
       "no-restricted-syntax": "off",
+    },
+  },
+  {
+    /* Shadcn UI primitives are generated code: relax explicit-return-type */
+    files: ["**/src/components/ui/**/*.tsx"],
+    rules: {
+      "@typescript-eslint/explicit-function-return-type": "off",
+    },
+  },
+  {
+    /* Test environment types */
+    files: ["**/src/test-env.d.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
+  {
+    /* Test files: lint with the test project, the only tsconfig that
+       includes them (the production project excludes them). */
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/src/test/**/*.ts",
+      "**/vitest.config.ts",
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: "./tsconfig.test.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      /* Test doubles and matcher assertions do not need production strictness */
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
+      /* Fixtures use plain <img>; there is no Next image optimisation in tests */
+      "@next/next/no-img-element": "off",
     },
   },
   // Override default ignores of eslint-config-next.

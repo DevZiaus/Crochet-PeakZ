@@ -40,7 +40,7 @@ export const rootConfig = tseslint.config(
       ],
       "@typescript-eslint/no-import-type-side-effects": "error",
 
-      /* ── Naming convention (camelCase vars/fns, PascalCase types/classes/interfaces) ── */
+      /* ── Naming convention (camelCase vars/fns, PascalCase types/classes/interfaces/components) ── */
       "@typescript-eslint/naming-convention": [
         "error",
         {
@@ -52,6 +52,10 @@ export const rootConfig = tseslint.config(
           selector: "variable",
           format: ["camelCase", "UPPER_CASE", "PascalCase"],
           leadingUnderscore: "allow",
+        },
+        {
+          selector: "function",
+          format: ["camelCase", "PascalCase"],
         },
         {
           selector: "parameter",
