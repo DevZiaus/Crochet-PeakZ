@@ -21,10 +21,17 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
+/** Generic copy shown in production; raw error text is development only. */
+const FALLBACK_MESSAGE = "An unexpected error occurred. Please try again.";
+
 /**
  * Catches JavaScript errors in its child component tree and displays
  * a branded fallback UI with an icon, heading, description, and retry button.
  * Uses the design token palette for consistency with the rest of the app.
+ *
+ * Errors are always logged to `console.error` (with the component stack)
+ * before the optional `onError` hook runs, so a crashed tree leaves a trace
+ * even when no handler is supplied. Production users see generic copy.
  */
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
@@ -37,6 +44,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error(error, errorInfo.componentStack);
     this.props.onError?.(error, errorInfo);
   }
 
@@ -69,8 +77,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
               Something went wrong
             </h2>
             <p className="max-w-sm text-sm text-muted-foreground">
-              {this.state.error?.message ||
-                "An unexpected error occurred. Please try again."}
+              {process.env.NODE_ENV === "production"
+                ? FALLBACK_MESSAGE
+                : (this.state.error?.message ?? FALLBACK_MESSAGE)}
             </p>
           </div>
           <Button

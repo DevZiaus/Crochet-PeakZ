@@ -74,6 +74,9 @@ import { ProductCard } from "@/components/product-card";
 import { FormField } from "@/components/form-field";
 import { FileUploadZone } from "@/components/file-upload-zone";
 
+// Temporary showcase fixtures. The SVG data URIs hardcode light theme token
+// hex values (secondary, primary, accent) so they render without a request;
+// they intentionally do not follow the dark theme. Remove with this route.
 const placeholderImage =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -338,7 +341,11 @@ export default function DesignSystemShowcase() {
               htmlFor="showcase-currency"
             >
               <Select>
-                <SelectTrigger id="showcase-currency" className="w-full">
+                <SelectTrigger
+                  id="showcase-currency"
+                  aria-describedby="showcase-currency-description"
+                  className="w-full"
+                >
                   <SelectValue placeholder="Choose a currency" />
                 </SelectTrigger>
                 <SelectContent>
@@ -428,14 +435,14 @@ export default function DesignSystemShowcase() {
               productType="STANDARD"
             />
             <ProductCard
-              slug="custom-tote"
-              title="Custom Tote"
+              slug="pre-order-tote"
+              title="Pre-order Tote"
               imageUrl={placeholderImage}
               priceBdt={3200}
               priceUsd={32}
               averageRating={3}
               reviewCount={4}
-              productType="MADE_TO_ORDER"
+              productType="PRE_ORDER"
               inStock={false}
             />
             <ProductCard

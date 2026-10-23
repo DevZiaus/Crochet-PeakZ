@@ -49,7 +49,7 @@ function QuantityStepper({
         variant="ghost"
         size="icon-sm"
         onClick={() => {
-          onChange(Math.max(min, value - 1));
+          onChange(Math.min(max, Math.max(min, value - 1)));
         }}
         disabled={disabled || !canDecrement}
         aria-label="Decrease quantity"
@@ -70,7 +70,7 @@ function QuantityStepper({
         variant="ghost"
         size="icon-sm"
         onClick={() => {
-          onChange(Math.min(max, value + 1));
+          onChange(Math.min(max, Math.max(min, value + 1)));
         }}
         disabled={disabled || !canIncrement}
         aria-label="Increase quantity"

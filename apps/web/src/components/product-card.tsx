@@ -1,12 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { CurrencyCode, ProductType } from "@crochet-peakz/shared";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { PriceDisplay, type CurrencyCode } from "@/components/price-display";
+import { PriceDisplay } from "@/components/price-display";
 import { StarRating } from "@/components/star-rating";
-
-type ProductType =
-  "STANDARD" | "MADE_TO_ORDER" | "ONE_OF_A_KIND" | "CUSTOM" | "DIGITAL";
 
 interface ProductCardProps {
   /** Product slug or ID for the detail link. */
@@ -47,9 +45,11 @@ const productTypeBadge: Record<
   }
 > = {
   STANDARD: { label: "Standard", variant: "secondary" },
-  MADE_TO_ORDER: { label: "Made to Order", variant: "outline" },
   ONE_OF_A_KIND: { label: "One of a Kind", variant: "default" },
-  CUSTOM: { label: "Custom", variant: "outline" },
+  // These badges sit over product photos, so they need an opaque token fill.
+  // The transparent `outline` variant cannot guarantee contrast on an image.
+  PRE_ORDER: { label: "Pre-order", variant: "secondary" },
+  CUSTOM: { label: "Custom", variant: "secondary" },
   DIGITAL: { label: "Digital", variant: "secondary" },
 };
 
@@ -75,6 +75,9 @@ function ProductCard({
   className,
 }: ProductCardProps) {
   const badgeConfig = productType ? productTypeBadge[productType] : undefined;
+  const price = activeCurrency === "BDT" ? priceBdt : priceUsd;
+  const compareAt = activeCurrency === "BDT" ? compareAtBdt : compareAtUsd;
+  const hasSale = compareAt !== undefined && compareAt > price;
 
   return (
     <Link
@@ -108,12 +111,7 @@ function ProductCard({
               {badgeConfig.label}
             </Badge>
           )}
-          {(() => {
-            const compareAt =
-              activeCurrency === "BDT" ? compareAtBdt : compareAtUsd;
-            const price = activeCurrency === "BDT" ? priceBdt : priceUsd;
-            return compareAt !== undefined && compareAt > price;
-          })() && (
+          {hasSale && (
             <Badge className="bg-highlight text-highlight-foreground text-xs">
               Sale
             </Badge>
@@ -156,4 +154,4 @@ function ProductCard({
 }
 
 export { ProductCard, productTypeBadge };
-export type { ProductCardProps, ProductType };
+export type { ProductCardProps };

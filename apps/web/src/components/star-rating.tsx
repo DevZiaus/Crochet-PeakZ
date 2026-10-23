@@ -21,9 +21,22 @@ const sizeMap = {
 } as const;
 
 /**
+ * Formats a rating for the numeric readout and the accessible name.
+ * Keeps up to two decimal places and trims trailing zeros, so the true
+ * average survives: 4.8 stays "4.8", 4.25 stays "4.25", 4 becomes "4".
+ */
+function formatRating(value: number): string {
+  return Number(value.toFixed(2)).toString();
+}
+
+/**
  * Star rating display component. Renders filled, half, and empty stars
  * based on the rating value. Supports 1 to 5 with 0.5 increments.
  * Purely presentational (not interactive).
+ *
+ * The graphic rounds to the nearest half star, but the accessible name and
+ * the optional numeric readout always carry the true rating. Never let the
+ * label claim a value the data does not have.
  */
 function StarRating({
   rating,
@@ -35,8 +48,8 @@ function StarRating({
   const safeRating = Number.isFinite(rating) ? rating : 0;
   const safeMax = Number.isInteger(maxStars) && maxStars > 0 ? maxStars : 5;
   const clampedRating = Math.max(0, Math.min(safeRating, safeMax));
-  // Round to the nearest half star before deriving counts so the visual
-  // representation never contradicts the ARIA label (e.g. 4.8 => 5 full stars).
+  // Round to the nearest half star before deriving counts so the graphic is
+  // readable. The true rating still drives the label and numeric readout.
   const rounded = Math.round(clampedRating * 2) / 2;
   const fullStars = Math.floor(rounded);
   const hasHalfStar = rounded - fullStars >= 0.25;
@@ -46,7 +59,7 @@ function StarRating({
     <div
       className={cn("flex items-center gap-0.5", className)}
       role="img"
-      aria-label={`${String(rounded)} out of ${String(safeMax)} stars`}
+      aria-label={`${formatRating(clampedRating)} out of ${String(safeMax)} stars`}
     >
       {/* Filled stars */}
       {Array.from({ length: fullStars }).map((_, i) => (
@@ -81,7 +94,7 @@ function StarRating({
 
       {showValue && (
         <span className="ml-1 text-sm font-medium text-muted-foreground">
-          {rounded.toFixed(1)}
+          {formatRating(clampedRating)}
         </span>
       )}
     </div>

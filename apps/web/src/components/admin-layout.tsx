@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState, useCallback, useEffect } from "react";
+import { type ReactNode, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -18,7 +18,12 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  useCloseOnDesktop,
+  type CloseReason,
+} from "@/hooks/use-close-on-desktop";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface AdminNavItem {
   /** The visible label. */
@@ -51,13 +56,24 @@ interface AdminSidebarProps {
    * dismisses the drawer instead of collapsing the sidebar.
    */
   toggleLabel?: string;
+  /**
+   * Called when a navigation item is chosen. The mobile drawer passes its close
+   * handler so choosing a link dismisses the drawer; the desktop sidebar passes
+   * nothing, because there is no drawer to close.
+   */
+  onNavigate?: () => void;
 }
 
 /**
  * Collapsible admin sidebar with icon + label navigation items.
  * Highlights the active route. Supports collapsed (icon only) and expanded modes.
  */
-function AdminSidebar({ collapsed, onToggle, toggleLabel }: AdminSidebarProps) {
+function AdminSidebar({
+  collapsed,
+  onToggle,
+  toggleLabel,
+  onNavigate,
+}: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -105,6 +121,7 @@ function AdminSidebar({ collapsed, onToggle, toggleLabel }: AdminSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none",
                 "min-h-[44px]",
@@ -114,6 +131,7 @@ function AdminSidebar({ collapsed, onToggle, toggleLabel }: AdminSidebarProps) {
                 collapsed && "justify-center px-2",
               )}
               aria-current={isActive ? "page" : undefined}
+              aria-label={collapsed ? item.label : undefined}
             >
               <item.icon className="size-5 shrink-0" aria-hidden="true" />
               {!collapsed && <span>{item.label}</span>}
@@ -138,6 +156,9 @@ interface AdminLayoutProps {
 function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [closeReason, setCloseReason] = useState<CloseReason>("interaction");
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => !prev);
@@ -147,50 +168,68 @@ function AdminLayout({ children }: AdminLayoutProps) {
     setMobileOpen((prev) => !prev);
   }, []);
 
-  // Close mobile drawer on Escape key
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        toggleMobile();
-      }
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [mobileOpen, toggleMobile]);
+  const closeMobile = useCallback(() => {
+    setCloseReason("interaction");
+    setMobileOpen(false);
+  }, []);
+
+  const closeMobileAtBreakpoint = useCallback(() => {
+    setCloseReason("breakpoint");
+    setMobileOpen(false);
+  }, []);
+
+  useCloseOnDesktop(mobileOpen, closeMobileAtBreakpoint);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex">
         <AdminSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
       </div>
 
-      {/* Mobile sidebar overlay */}
-      {mobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-overlay lg:hidden"
-            onClick={toggleMobile}
-            aria-hidden="true"
+      {/* Mobile sidebar drawer. Radix Dialog supplies the focus trap,
+          `aria-modal`, Escape handling, and background inerting; focus is
+          restored to the hamburger explicitly because it opens the dialog from
+          outside a Radix trigger. */}
+      <Dialog
+        open={mobileOpen}
+        onOpenChange={(open) => {
+          if (!open) closeMobile();
+        }}
+      >
+        <DialogContent
+          overlayClassName="lg:hidden"
+          className="fixed top-0 bottom-0 left-0 right-auto z-50 w-64 max-w-xs translate-x-0 translate-y-0 border-none bg-card p-0 shadow-lg outline-none sm:max-w-xs lg:hidden"
+          aria-label="Admin navigation"
+          aria-modal="true"
+          showCloseButton={false}
+          onCloseAutoFocus={(event) => {
+            const target =
+              closeReason === "breakpoint"
+                ? mainRef.current
+                : menuButtonRef.current;
+
+            if (target) {
+              event.preventDefault();
+              target.focus();
+            }
+          }}
+        >
+          <AdminSidebar
+            collapsed={false}
+            onToggle={closeMobile}
+            toggleLabel="Close admin navigation"
+            onNavigate={closeMobile}
           />
-          <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
-            <AdminSidebar
-              collapsed={false}
-              onToggle={toggleMobile}
-              toggleLabel="Close admin navigation"
-            />
-          </div>
-        </>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile header bar */}
         <div className="flex h-16 items-center gap-4 border-b border-border px-4 lg:hidden">
           <Button
+            ref={menuButtonRef}
             variant="ghost"
             size="icon-sm"
             onClick={toggleMobile}
@@ -203,7 +242,13 @@ function AdminLayout({ children }: AdminLayoutProps) {
           </span>
         </div>
 
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main
+          ref={mainRef}
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto p-6 outline-none"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

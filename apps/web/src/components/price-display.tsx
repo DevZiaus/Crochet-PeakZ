@@ -1,6 +1,5 @@
+import type { CurrencyCode } from "@crochet-peakz/shared";
 import { cn } from "@/lib/utils";
-
-type CurrencyCode = "BDT" | "USD";
 
 interface PriceDisplayProps {
   /** Price in BDT. */
@@ -74,21 +73,18 @@ function PriceDisplay({
           "font-semibold",
           hasDiscount ? "text-highlight" : "text-foreground",
         )}
-        aria-label={`Price: ${formatPrice(price, activeCurrency)}`}
       >
         {formatPrice(price, activeCurrency)}
       </span>
       {hasDiscount && (
-        <span
-          className="text-muted-foreground line-through"
-          aria-label={`Original price: ${formatPrice(compareAt, activeCurrency)}`}
-        >
+        <del className="text-muted-foreground line-through">
+          <span className="sr-only">Original price: </span>
           {formatPrice(compareAt, activeCurrency)}
-        </span>
+        </del>
       )}
     </div>
   );
 }
 
 export { PriceDisplay, formatPrice, currencyConfig };
-export type { PriceDisplayProps, CurrencyCode };
+export type { PriceDisplayProps };

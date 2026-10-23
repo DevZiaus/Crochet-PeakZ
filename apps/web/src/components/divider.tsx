@@ -27,9 +27,7 @@ function Divider({ className, label }: DividerProps) {
     );
   }
 
-  return (
-    <hr className={cn("border-t border-border", className)} role="separator" />
-  );
+  return <hr className={cn("border-t border-border", className)} />;
 }
 
 export { Divider };

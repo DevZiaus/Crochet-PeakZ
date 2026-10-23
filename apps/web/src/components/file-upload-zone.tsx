@@ -36,14 +36,33 @@ interface SelectedFile {
 }
 
 /**
- * Formats a byte count into a human readable string.
+ * Formats a byte count into a human readable string. Sizes of 1 TB and above
+ * clamp to the largest supported unit so the label never falls back to bytes.
  */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i] ?? "B"}`;
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), 3);
+  const value = bytes / Math.pow(1024, exponent);
+  const formatted = value.toFixed(exponent === 0 ? 0 : 1);
+
+  switch (exponent) {
+    case 0:
+      return `${formatted} B`;
+    case 1:
+      return `${formatted} KB`;
+    case 2:
+      return `${formatted} MB`;
+    default:
+      return `${formatted} GB`;
+  }
+}
+
+/**
+ * Stable identity for duplicate detection when the same file is picked or
+ * dropped more than once in a session.
+ */
+function fileKey(file: File): string {
+  return `${file.name}:${String(file.size)}:${String(file.lastModified)}`;
 }
 
 /**
@@ -63,6 +82,7 @@ function FileUploadZone({
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const spaceHeld = useRef(false);
 
   const validateFile = useCallback(
     (file: File): string | undefined => {
@@ -95,11 +115,31 @@ function FileUploadZone({
 
   const processFiles = useCallback(
     (files: FileList | File[]) => {
-      const processed: SelectedFile[] = Array.from(files).map((file) => ({
+      const incoming = Array.from(files);
+      // The native picker enforces `multiple={false}`, but drag and drop does
+      // not, so a single file zone must drop the extra files itself. Keep the
+      // first file so the drop behaves like a single file choice.
+      const limited = multiple ? incoming : incoming.slice(0, 1);
+      const processed: SelectedFile[] = limited.map((file) => ({
         file,
         error: validateFile(file),
       }));
-      commitSelection(multiple ? [...selectedFiles, ...processed] : processed);
+
+      if (!multiple) {
+        commitSelection(processed);
+        return;
+      }
+
+      // Re-selecting or re-dropping a file must not append a duplicate row.
+      const seen = new Set(selectedFiles.map((item) => fileKey(item.file)));
+      const additions = processed.filter((item) => {
+        const key = fileKey(item.file);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      commitSelection([...selectedFiles, ...additions]);
     },
     [commitSelection, multiple, selectedFiles, validateFile],
   );
@@ -158,22 +198,32 @@ function FileUploadZone({
         onDrop={handleDrop}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !disabled) {
+          if (disabled) return;
+          if (e.key === "Enter") {
             e.preventDefault();
             inputRef.current?.click();
+          } else if (e.key === " ") {
+            // Prevent the page from scrolling while Space is held; activation
+            // happens on keyup to match native button semantics.
+            e.preventDefault();
+            spaceHeld.current = true;
           }
         }}
         onKeyUp={(e) => {
-          // Space fires on keyup to match native button semantics,
-          // allowing cancellation by releasing the key outside the element.
-          if (e.key === " " && !disabled) {
+          if (disabled) return;
+          if (e.key === " " && spaceHeld.current) {
             e.preventDefault();
+            spaceHeld.current = false;
             inputRef.current?.click();
           }
+        }}
+        onBlur={() => {
+          spaceHeld.current = false;
         }}
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-label={label}
+        aria-disabled={disabled || undefined}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors duration-200 motion-reduce:transition-none",
           isDragOver

@@ -8,7 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
         // The base focus ring (2px, `--ring`) applies to every variant. The
         // upstream destructive override (`ring-destructive/20`) replaced it
         // with a 20% alpha ring, which measured about 1.15:1 against the page
@@ -24,9 +24,10 @@ const buttonVariants = cva(
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent dark:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
-      // Compact sizes below default (h-6, h-8) may set a smaller height,
-      // but the base min-h-11 / min-w-11 guarantees a 44px touch target
-      // per AC-9. Icon-only variants use size-* which respects the base min.
+      // Compact sizes below default (h-6, h-8) keep their smaller visual
+      // height. On coarse pointers the base `pointer-coarse:min-h-11` /
+      // `pointer-coarse:min-w-11` enforces the 44px touch target per AC-9;
+      // icon-only variants use size-* which respects the base minimum.
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
         xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",

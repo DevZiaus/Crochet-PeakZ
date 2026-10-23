@@ -63,10 +63,10 @@ const recentOrders = [
 
 /**
  * Temporary fixture route for the admin shell (spec 0003, AC-11). AdminLayout is
- * `h-screen`, so it needs a route of its own to be driven at desktop, collapsed
- * and mobile widths. The real admin dashboard is a later feature; the content
- * below only stands in so the shell renders with something inside it.
- * Remove this route before the admin panel ships.
+ * full viewport height (`h-dvh`), so it needs a route of its own to be driven at
+ * desktop, collapsed and mobile widths. The real admin dashboard is a later
+ * feature; the content below only stands in so the shell renders with something
+ * inside it. Remove this route before the admin panel ships.
  */
 export default function AdminLayoutFixture() {
   return (

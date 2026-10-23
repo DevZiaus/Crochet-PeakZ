@@ -83,12 +83,16 @@ const socialLinks = [
 ];
 
 /**
+ * Copyright year, resolved once per server process instead of on every render.
+ * A long lived server picks up a new year on its next restart or deploy.
+ */
+const copyrightYear = new Date().getFullYear();
+
+/**
  * Storefront footer with four link columns, social icons, and copyright.
  * Uses design tokens throughout. Responsive grid layout.
  */
 function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
     <footer className="border-t border-border bg-card" role="contentinfo">
       <Container>
@@ -186,7 +190,7 @@ function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            &copy; {currentYear} Crochet PeakZ. All rights reserved.
+            &copy; {copyrightYear} Crochet PeakZ. All rights reserved.
           </p>
           <div className="flex items-center gap-1">
             {footerLinks.legal.map((link) => (
