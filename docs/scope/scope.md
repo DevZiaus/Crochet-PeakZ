@@ -95,11 +95,16 @@ Visual language, layout primitives, and base components (with Tailwind CSS, Radi
 
 - [x] Design it (spec): [0003](../specs/0003-design-system/index.md)
 - [x] Build it: `/develop design system & UI foundation`
-      Spec 0003 · code in `apps/web/src/app/globals.css`, `apps/web/src/components/`, `apps/web/src/components/ui/`, `apps/web/design.md` - [x] Deps, fonts, tokens, and dark mode (AC-1 through AC-5, AC-7) - [x] Shadcn primitives and accessibility foundations (AC-6, AC-7, AC-9, AC-13) - [x] Layout, navigation, commerce, and form components (AC-8, AC-10, AC-11) - [x] design.md reference doc (AC-12)
+  - Spec 0003 · code in `apps/web/src/app/globals.css`, `apps/web/src/components/`, `apps/web/src/components/ui/`, `apps/web/design.md`
+  - [x] Deps, fonts, tokens, and dark mode (AC-1 through AC-5, AC-7)
+  - [x] Shadcn primitives and accessibility foundations (AC-6, AC-7, AC-9, AC-13)
+  - [x] Layout, navigation, commerce, and form components (AC-8, AC-10, AC-11)
+  - [x] design.md reference doc (AC-12)
 - [x] Verify it: `/check verify design system & UI foundation`
 - [x] Test it: `/test design system & UI foundation`
 - [x] Review it (fresh model): `/check review design system & UI foundation`
-- [ ] Document it: `/document design system & UI foundation`
+- [x] Document it: `/document design system & UI foundation`
+- [ ] Remove the temporary `/design-system` showcase routes before the storefront ships (tracked from the 2026-10-24 review; `noindex` in the meantime)
 
 ## Slice 1: Core product loop
 

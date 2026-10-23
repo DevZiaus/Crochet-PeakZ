@@ -71,6 +71,7 @@ const eslintConfig = defineConfig([
       "**/default.tsx",
       "**/next.config.ts",
       "**/next.config.mjs",
+      "**/vitest.config.ts",
     ],
     rules: {
       "no-restricted-syntax": "off",
@@ -90,13 +91,30 @@ const eslintConfig = defineConfig([
       "no-restricted-syntax": "off",
     },
   },
-  // Test files are handled by vitest, not eslint
-  globalIgnores([
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/vitest.config.ts",
-    "**/src/test/**/*.ts",
-  ]),
+  {
+    /* Test files: lint with the test project, the only tsconfig that
+       includes them (the production project excludes them). */
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/src/test/**/*.ts",
+      "**/vitest.config.ts",
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: "./tsconfig.test.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      /* Test doubles and matcher assertions do not need production strictness */
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
+      /* Fixtures use plain <img>; there is no Next image optimisation in tests */
+      "@next/next/no-img-element": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);

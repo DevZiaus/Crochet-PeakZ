@@ -53,6 +53,7 @@ npm run test --workspace=@crochet-peakz/web
 - **No default exports** (project rule), except where Next.js requires them: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts` handlers use named exports, and `next.config.ts` must use a default export.
 - **TypeScript**: standalone tsconfig (does not extend `tsconfig.base.json`), uses bundler module resolution, `strict: true`, `noUncheckedIndexedAccess: true`.
 - **Shared package**: import types, schemas, and constants from `@crochet-peakz/shared`. It resolves to compiled JavaScript in `packages/shared/dist`; root scripts build it first.
+- **Radix imports**: import primitives from the umbrella `radix-ui` package (`import { Dialog } from "radix-ui"`), never from individual `@radix-ui/react-*` packages. The umbrella is the only Radix runtime dependency.
 - **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
 
@@ -65,7 +66,7 @@ _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a 
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

@@ -229,7 +229,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 | `PriceDisplay`    | `priceBdt: number`, `priceUsd: number`, `activeCurrency?: "BDT" \| "USD"`, `compareAtBdt?`, `compareAtUsd?`, `size?`                 | Currency aware price with sale strikethrough                                |
 | `QuantityStepper` | `value: number`, `onChange: (v: number) => void`, `min?`, `max?`, `disabled?`                                                        | Increment/decrement quantity                                                |
 | `StarRating`      | `rating: number` (1 to `maxStars`), `maxStars?` (default 5), `size?: "sm" \| "md" \| "lg"`, `showValue?`                             | Display only star rating, 1 to 5 with half stars                            |
-| `FormField`       | `label: string`, `description?`, `error?`, `required?`, `htmlFor?`, `children`                                                       | Label + error + description wrapper                                         |
+| `FormField`       | `label: string`, `description?`, `error?`, `required?`, `htmlFor: string`, `children`                                                | Label, description, and error wrapper with ARIA wiring                      |
 | `FileUploadZone`  | `onFiles: (files: File[]) => void`, `accept?`, `maxSize?`, `multiple?`, `label?`, `description?`, `disabled?`                        | Drag and drop file upload with validation                                   |
 | `EmptyState`      | `heading: string`, `description?`, `icon?`, `action?: {label, onClick}`, `children?`                                                 | Centered empty data placeholder                                             |
 | `ErrorBoundary`   | `fallback?`, `onError?`, `children`, `className?`                                                                                    | React error boundary with retry                                             |
@@ -250,7 +250,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
    - Icon only and social controls are `size-11`.
    - `Button` and the Shadcn controls reach 44px on touch devices only (`pointer-coarse:min-h-11 pointer-coarse:min-w-11`), so a mouse keeps the compact 36px (`h-9`) control height the visual language calls for while a coarse pointer gets the full target.
 4. **Motion**: `prefers-reduced-motion: reduce` disables all animations and transitions via the global CSS guard in `globals.css`.
-5. **ARIA**: Nav regions use `aria-label`, breadcrumbs use `aria-current="page"`, error messages use `role="alert"`, star ratings use `role="img"` with descriptive `aria-label`, quantity steppers use `aria-live="polite"`.
+5. **ARIA**: Nav regions use `aria-label`, breadcrumbs use `aria-current="page"`, error messages use `role="alert"`, star ratings use `role="img"` with a descriptive `aria-label` that carries the true rating (the star graphic rounds to the nearest half; the label and numeric readout never do), quantity steppers use `aria-live="polite"`. `FormField` requires `htmlFor`, links its description and error through `aria-describedby`, and sets `aria-invalid` while an error is shown.
 6. **Semantic HTML**: `<nav>`, `<main>`, `<header>`, `<footer>`, `<section>`, `<article>` used appropriately. Heading hierarchy (single h1 per page via PageHeader).
 
 ---
