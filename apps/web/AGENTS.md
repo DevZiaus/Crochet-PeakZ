@@ -2,7 +2,7 @@
 
 ## Overview
 
-Next.js 16 (App Router, React 19) frontend for Crochet PeakZ. Serves the customer facing storefront, admin dashboard, and all UI. Styled with Tailwind CSS v4 and will use Shadcn UI components.
+Next.js 16 (App Router, React 19) frontend for Crochet PeakZ. Serves the customer facing storefront, admin dashboard, and all UI. Styled with Tailwind CSS v4 and Shadcn UI components, themed by the design system in `design.md`.
 
 The web app builds with `output: "standalone"` so it runs on any Node.js host or container. Vercel remains a supported managed option. See `docs/deployment.md`.
 
@@ -42,7 +42,10 @@ npm run test --workspace=@crochet-peakz/web
 | `src/app/layout.tsx`                | Root layout: HTML shell, fonts, metadata                                       |
 | `src/app/page.tsx`                  | Home page (scaffold placeholder, imports from shared to verify workspace link) |
 | `src/app/health/route.ts`           | `/health` liveness probe for containers and reverse proxies                    |
-| `src/app/globals.css`               | Global CSS, Tailwind imports                                                   |
+| `src/app/globals.css`               | Design tokens (light + `[data-theme="dark"]`), Tailwind imports                |
+| `design.md`                         | Design system reference: tokens, type scale, component APIs, a11y rules        |
+| `src/components/ui/`                | Shadcn UI primitives (Button, Input, Dialog, and the rest)                     |
+| `src/components/`                   | Composed components built on the primitives                                    |
 | `next.config.ts`                    | Standalone output, monorepo tracing root, image allowlist                      |
 | `eslint.config.mjs`                 | ESLint config (Next.js preset)                                                 |
 | `.env.local` / `.env.local.example` | Build-time `NEXT_PUBLIC_*` variables                                           |
@@ -51,8 +54,9 @@ npm run test --workspace=@crochet-peakz/web
 
 - **App Router**: all pages live under `src/app/` using file system routing. Layouts, pages, loading, and error boundaries follow Next.js conventions.
 - **No default exports** (project rule), except where Next.js requires them: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts` handlers use named exports, and `next.config.ts` must use a default export.
-- **TypeScript**: standalone tsconfig (does not extend `tsconfig.base.json`), uses bundler module resolution, `strict: true`, `noUncheckedIndexedAccess: true`.
+- **TypeScript**: standalone tsconfig (does not extend `tsconfig.base.json`), uses bundler module resolution, `strict: true`, `noUncheckedIndexedAccess: true`. Tests typecheck through a separate `tsconfig.test.json`; `npm run typecheck` runs both.
 - **Shared package**: import types, schemas, and constants from `@crochet-peakz/shared`. It resolves to compiled JavaScript in `packages/shared/dist`; root scripts build it first.
+- **Design system**: build all UI to `design.md` (tokens, type scale, component APIs, accessibility rules); token values live in CSS (`src/app/globals.css`). Primitives live in `src/components/ui/`, composed components in `src/components/`; a composed component imports from `ui/`, never the reverse. Every color resolves to a token, never a raw hex or Tailwind default.
 - **Radix imports**: import primitives from the umbrella `radix-ui` package (`import { Dialog } from "radix-ui"`), never from individual `@radix-ui/react-*` packages. The umbrella is the only Radix runtime dependency.
 - **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
@@ -60,6 +64,7 @@ npm run test --workspace=@crochet-peakz/web
 ## Related specs
 
 - [0001 Stack and architecture](../../docs/specs/0001-stack-and-architecture/index.md)
+- [0003 Design system and UI foundation](../../docs/specs/0003-design-system/index.md)
 - [0004 Platform-agnostic deployment](../../docs/specs/0004-platform-agnostic-deployment/index.md)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

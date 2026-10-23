@@ -124,12 +124,12 @@ _Choices recorded here. `/develop tooling` installs them._
 - [document](.agents/skills/document/): workflow skill, writes human facing prose
 - [sync](.agents/skills/sync/): workflow skill, keeps durable knowledge current
 
-_Stack specific skills (Next.js, Prisma, Stripe, etc.) not yet searched; `npx` is unavailable until Node.js is installed. After scaffold, run a skill search or install manually._
+Declined: Vitest · React Testing Library · Radix UI · Sonner (offered 2026-10-24, no Agent Skill installed) · MCP servers: none found
 
 ## Context files
 
 - [apps/api/AGENTS.md](apps/api/AGENTS.md): Express.js backend, Clean Architecture layers, Prisma, env and error handling conventions
-- [apps/web/AGENTS.md](apps/web/AGENTS.md): Next.js 16 frontend, App Router, Tailwind CSS, fonts and layout
+- [apps/web/AGENTS.md](apps/web/AGENTS.md): Next.js 16 frontend, App Router, Tailwind CSS, design system (`design.md`), components and layout
 - [packages/shared/AGENTS.md](packages/shared/AGENTS.md): shared types, Zod schemas, constants consumed by both api and web
 - [docs/deployment.md](docs/deployment.md): platform-agnostic deployment guide (Docker, Compose, reverse proxy, managed hosts)
 
