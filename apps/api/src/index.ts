@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import type { Server } from "node:http";
-import express from "express";
+import express, { type Router } from "express";
 import cors from "cors";
 import { loadEnv, type ApiEnv } from "./config/env.js";
 import {
@@ -9,6 +9,15 @@ import {
 } from "./infrastructure/database/prisma.js";
 import { createHealthRouter } from "./presentation/routes/health.routes.js";
 import { errorHandler } from "./presentation/middleware/errorHandler.js";
+import { PrismaUserRepository } from "./infrastructure/database/user.repository.js";
+import { PrismaSessionRepository } from "./infrastructure/database/session.repository.js";
+import { BcryptPasswordHasher } from "./infrastructure/auth/bcrypt-password-hasher.js";
+import { JwtTokenService } from "./infrastructure/auth/jwt-token-service.js";
+import { ResendEmailSender } from "./infrastructure/email/resend-email-sender.js";
+import { createOAuthAuthenticator } from "./infrastructure/oauth/passport.js";
+import { systemClock } from "./domain/ports/clock.js";
+import type { AuthDependencies } from "./application/dependencies.js";
+import { createAuthRouter } from "./presentation/auth/auth.routes.js";
 
 dotenv.config({ quiet: true });
 
@@ -17,11 +26,13 @@ dotenv.config({ quiet: true });
  *
  * @param env Validated runtime configuration.
  * @param checkDatabase Readiness probe for PostgreSQL.
+ * @param authRouter Auth router, wired with its repositories and ports.
  * @returns Configured Express application.
  */
 export function createApp(
   env: ApiEnv,
   checkDatabase: () => Promise<boolean>,
+  authRouter?: Router,
 ): express.Application {
   const app = express();
 
@@ -40,6 +51,10 @@ export function createApp(
   app.use(express.json({ limit: "1mb" }));
 
   app.use("/api", createHealthRouter({ checkDatabase }));
+
+  if (authRouter) {
+    app.use("/api/auth", authRouter);
+  }
 
   // Error handler (must be last)
   app.use(errorHandler);
@@ -107,7 +122,44 @@ async function main(): Promise<void> {
     console.warn("[DB]", error instanceof Error ? error.message : error);
   }
 
-  const app = createApp(env, database.checkHealth);
+  const authRouter = buildAuthRouter();
+  const app = createApp(env, database.checkHealth, authRouter);
+
+  /**
+   * Builds the auth dependencies from the validated environment and the
+   * Prisma client.
+   */
+  function buildAuthRouter(): Router {
+    const auth: AuthDependencies = {
+      users: new PrismaUserRepository(database.client),
+      sessions: new PrismaSessionRepository(database.client),
+      passwords: new BcryptPasswordHasher(),
+      tokens: new JwtTokenService({
+        jwtSecret: env.jwtSecret,
+        refreshSecret: env.jwtRefreshSecret,
+      }),
+      emails: new ResendEmailSender({
+        apiKey: env.resendApiKey,
+        from: env.emailFrom,
+        logLinks: env.nodeEnv !== "production",
+      }),
+      clock: systemClock,
+      webAppUrl: env.webAppUrl,
+      isProduction: env.nodeEnv === "production",
+    };
+
+    return createAuthRouter({
+      auth,
+      proxySharedSecret: env.proxySharedSecret,
+      webAppUrl: env.webAppUrl,
+      isProduction: env.nodeEnv === "production",
+      authenticator: createOAuthAuthenticator({
+        webAppUrl: env.webAppUrl,
+        google: env.googleClient,
+        facebook: env.facebookClient,
+      }),
+    });
+  }
   const server = app.listen(env.port, env.host, () => {
     console.log(
       `[API] Crochet PeakZ API running on http://${env.host}:${env.port}`,

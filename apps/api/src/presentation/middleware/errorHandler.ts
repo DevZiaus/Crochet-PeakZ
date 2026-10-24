@@ -4,9 +4,18 @@ import type { Request, Response, NextFunction } from "express";
  * Custom application error with an HTTP status code.
  */
 export class AppError extends Error {
+  /**
+   * @param statusCode HTTP status to return.
+   * @param message Human readable message safe for the client.
+   * @param options Optional machine readable code and extra response fields.
+   */
   constructor(
     public readonly statusCode: number,
     message: string,
+    public readonly options?: {
+      code?: string;
+      details?: Record<string, unknown>;
+    },
   ) {
     super(message);
     this.name = "AppError";
@@ -36,6 +45,12 @@ export function errorHandler(
     error: {
       message,
       statusCode,
+      ...(err instanceof AppError && err.options?.code
+        ? { code: err.options.code }
+        : {}),
+      ...(err instanceof AppError && err.options?.details
+        ? { details: err.options.details }
+        : {}),
     },
   });
 }

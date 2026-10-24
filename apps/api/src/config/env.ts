@@ -26,6 +26,22 @@ export interface ApiEnv {
   corsOrigins: string[];
   /** Express `trust proxy` setting, used behind reverse proxies. */
   trustProxy: TrustProxy;
+  /** Public web origin used inside links, OAuth callbacks, and redirects. */
+  webAppUrl: string;
+  /** Shared secret the web proxy sends and this API requires on auth routes. */
+  proxySharedSecret: string;
+  /** HS256 secret for access tokens and OAuth state values. */
+  jwtSecret: string;
+  /** HS256 secret for refresh token payloads. Distinct from `jwtSecret`. */
+  jwtRefreshSecret: string;
+  /** Google OAuth 2.0 client credentials. */
+  googleClient: { id: string; secret: string };
+  /** Facebook OAuth 2.0 app credentials. */
+  facebookClient: { id: string; secret: string };
+  /** Resend API key used for verification and reset email. */
+  resendApiKey: string;
+  /** Sender address on every auth email. */
+  emailFrom: string;
 }
 
 const DEFAULT_PORT = 4000;
@@ -50,6 +66,15 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     );
   }
 
+  const jwtSecret = parseJwtSecret(source, "JWT_SECRET");
+  const jwtRefreshSecret = parseJwtSecret(source, "JWT_REFRESH_SECRET");
+
+  if (jwtSecret === jwtRefreshSecret) {
+    throw new Error(
+      "JWT_SECRET and JWT_REFRESH_SECRET must be different values.",
+    );
+  }
+
   return {
     nodeEnv: parseNodeEnv(source["NODE_ENV"]),
     host: source["HOST"]?.trim() || DEFAULT_HOST,
@@ -57,7 +82,99 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     databaseUrl,
     corsOrigins: parseCorsOrigins(source["CORS_ORIGIN"]),
     trustProxy: parseTrustProxy(source["TRUST_PROXY"]),
+    webAppUrl: parseWebAppUrl(source["WEB_APP_URL"]),
+    proxySharedSecret: parseSecret(source, "PROXY_SHARED_SECRET", 16),
+    jwtSecret,
+    jwtRefreshSecret,
+    googleClient: {
+      id: parseCredential(source, "GOOGLE_CLIENT_ID"),
+      secret: parseCredential(source, "GOOGLE_CLIENT_SECRET"),
+    },
+    facebookClient: {
+      id: parseCredential(source, "FACEBOOK_APP_ID"),
+      secret: parseCredential(source, "FACEBOOK_APP_SECRET"),
+    },
+    resendApiKey: parseCredential(source, "RESEND_API_KEY"),
+    emailFrom: parseEmailFrom(source["EMAIL_FROM"]),
   };
+}
+
+const PLACEHOLDER_PATTERN =
+  /change[-_ ]?me|placeholder|your[-_ ]?(secret|key|value)|^\.+$/i;
+
+/**
+ * Reads a required string and rejects values that still look like a sample.
+ */
+function parseSecret(
+  source: NodeJS.ProcessEnv,
+  name: string,
+  minLength: number,
+): string {
+  const value = source[name]?.trim();
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}. Set it in apps/api/.env.`,
+    );
+  }
+  if (value.length < minLength) {
+    throw new Error(`${name} must be at least ${minLength} characters long.`);
+  }
+  if (PLACEHOLDER_PATTERN.test(value)) {
+    throw new Error(
+      `${name} is still set to a placeholder value. Use a real secret.`,
+    );
+  }
+  return value;
+}
+
+function parseJwtSecret(source: NodeJS.ProcessEnv, name: string): string {
+  return parseSecret(source, name, 32);
+}
+
+function parseCredential(source: NodeJS.ProcessEnv, name: string): string {
+  const value = source[name]?.trim();
+  if (!value || PLACEHOLDER_PATTERN.test(value) || value === "...") {
+    throw new Error(
+      `Missing required environment variable: ${name}. Set a real value in apps/api/.env.`,
+    );
+  }
+  return value;
+}
+
+function parseWebAppUrl(value: string | undefined): string {
+  const raw = value?.trim();
+  if (!raw) {
+    throw new Error(
+      "Missing required environment variable: WEB_APP_URL. " +
+        "Set it to the public web origin, for example http://localhost:3000.",
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error(
+      `Invalid WEB_APP_URL "${raw}". Expected an absolute http(s) URL.`,
+    );
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("WEB_APP_URL must use http or https.");
+  }
+
+  return parsed.origin;
+}
+
+function parseEmailFrom(value: string | undefined): string {
+  const raw = value?.trim();
+  if (!raw || !raw.includes("@") || PLACEHOLDER_PATTERN.test(raw)) {
+    throw new Error(
+      "Missing required environment variable: EMAIL_FROM. " +
+        "Set it to a verified sender such as Crochet PeakZ <hello@example.com>.",
+    );
+  }
+  return raw;
 }
 
 function parseNodeEnv(value: string | undefined): NodeEnv {
