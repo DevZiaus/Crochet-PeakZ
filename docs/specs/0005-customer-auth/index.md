@@ -1,7 +1,7 @@
 # 0005. Customer auth
 
 **Date**: 2026-10-25
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 

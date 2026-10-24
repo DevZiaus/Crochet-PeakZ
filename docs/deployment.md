@@ -76,6 +76,12 @@ CORS_ORIGIN=https://shop.example.com
 TRUST_PROXY=1
 DOMAIN=shop.example.com
 
+# Customer auth: the same secret on both services, and the public origin the
+# browser uses. The web container reaches the API over the compose network.
+API_INTERNAL_URL=http://api:4000/api
+PROXY_SHARED_SECRET=<same value as the API>
+WEB_APP_URL=https://shop.example.com
+
 docker compose --profile proxy up -d --build
 ```
 
@@ -161,8 +167,26 @@ to port 3000.
 | `TRUST_PROXY`    | no       | `false`                 | Express `trust proxy`; use `1` behind one proxy |
 | `RUN_MIGRATIONS` | no       | `false`                 | Docker entrypoint runs `prisma migrate deploy`  |
 
-Future feature secrets (JWT, OAuth, Cloudinary, payment gateways, email) are
-documented in `.env.example` and `apps/api/.env.example`.
+### Customer auth (API, required)
+
+These are validated at startup; the API refuses to start when one is missing,
+shorter than its minimum, or still looks like a sample value.
+
+| Variable               | Purpose                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `JWT_SECRET`           | HS256 access token and OAuth state secret, at least 32 characters        |
+| `JWT_REFRESH_SECRET`   | Refresh token hash key, at least 32 characters, different from the above |
+| `PROXY_SHARED_SECRET`  | Shared secret the web proxy must send on every auth request, 16+ chars   |
+| `WEB_APP_URL`          | Public web origin used in email links, OAuth callbacks, and redirects    |
+| `GOOGLE_CLIENT_ID`     | Google OAuth 2.0 client id                                               |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 client secret                                           |
+| `FACEBOOK_APP_ID`      | Facebook app id                                                          |
+| `FACEBOOK_APP_SECRET`  | Facebook app secret                                                      |
+| `RESEND_API_KEY`       | Resend API key for verification and reset mail                           |
+| `EMAIL_FROM`           | Verified sender, for example `Crochet PeakZ <hello@example.com>`         |
+
+Other feature secrets (Cloudinary, payment gateways, monitoring) are documented
+in `apps/api/.env.example`.
 
 ### Build time (web)
 
@@ -172,6 +196,20 @@ documented in `.env.example` and `apps/api/.env.example`.
 
 `NEXT_PUBLIC_*` values are baked into the client bundle. Changing one requires a
 new web build; it is not a runtime setting.
+
+### Auth proxy (web runtime)
+
+Read by the Next.js server on each auth request, never sent to the browser.
+
+| Variable              | Purpose                                                            |
+| --------------------- | ------------------------------------------------------------------ |
+| `API_INTERNAL_URL`    | API base URL including `/api`, reached from the web server         |
+| `PROXY_SHARED_SECRET` | Must equal the API value; the API rejects auth calls without it    |
+| `WEB_APP_URL`         | Public origin of this web app, used for the proxy's `Origin` check |
+
+`NEXT_PUBLIC_API_URL` is only for browser calls to non-auth endpoints. The auth
+screens always talk to the web origin (`/api/auth/*`), and the web server
+forwards them to `API_INTERNAL_URL` with the shared secret.
 
 ## Health checks
 

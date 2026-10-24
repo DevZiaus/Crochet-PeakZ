@@ -117,12 +117,12 @@ Mandatory account creation (no guest checkout). Local email/password auth with v
 **Done when:** a user can register, verify email, sign in (local + Google + Facebook), and access protected routes; admin role guard works; sessions persist across page reloads.
 
 - [x] Design it (spec): [0005](../specs/0005-customer-auth/index.md)
-- [ ] Build it: `/develop customer auth`
-  - [ ] Foundation: migration, shared schemas, env validation (AC-1, AC-5, AC-6, AC-15)
-  - [ ] Password sessions end to end: domain, use cases, adapters, proxy, sign in and register screens, header menu, layout guard (AC-1, AC-4, AC-5, AC-7, AC-11, AC-14)
-  - [ ] Email verification and password reset (AC-2, AC-3, AC-9)
-  - [ ] Google and Facebook sign in (AC-8)
-  - [ ] Admin guard, accessibility, noindex, and tests (AC-10, AC-12, AC-13)
+- [x] Build it: `/develop customer auth`
+  - [x] Foundation: migration, shared schemas, env validation (AC-1, AC-5, AC-6, AC-15)
+  - [x] Password sessions end to end: domain, use cases, adapters, proxy, sign in and register screens, header menu, layout guard (AC-1, AC-4, AC-5, AC-7, AC-11, AC-14)
+  - [x] Email verification and password reset (AC-2, AC-3, AC-9)
+  - [x] Google and Facebook sign in (AC-8)
+  - [x] Admin guard, accessibility, noindex, and tests (AC-10, AC-12, AC-13)
 - [ ] Verify it: `/check verify customer auth`
 - [ ] Test it: `/test customer auth`
 - [ ] Review it (fresh model): `/check review customer auth`
