@@ -9,15 +9,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ShoppingBag,
-  User,
-  Sun,
-  Moon,
-  Menu,
-  XIcon,
-  Search,
-} from "lucide-react";
+import { ShoppingBag, Sun, Moon, Menu, XIcon, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import {
@@ -27,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/container";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AuthMenu } from "@/components/auth/auth-menu";
 
 interface NavLink {
   /** The visible label. */
@@ -315,14 +308,7 @@ function Header() {
               </Button>
 
               {/* Auth */}
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Account"
-                className="min-h-[44px] min-w-[44px]"
-              >
-                <User className="size-5" />
-              </Button>
+              <AuthMenu />
 
               {/* Mobile hamburger */}
               <Button
