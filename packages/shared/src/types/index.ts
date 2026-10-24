@@ -103,6 +103,65 @@ export type CommissionStatus =
   (typeof CommissionStatus)[keyof typeof CommissionStatus];
 
 /**
+ * How an account was first created. Mirrors the Prisma `AuthProvider` enum.
+ * The value records the first sign in method and is never rewritten on link.
+ */
+export const AuthProvider = {
+  LOCAL: "LOCAL",
+  GOOGLE: "GOOGLE",
+  FACEBOOK: "FACEBOOK",
+} as const;
+
+/** Union type of account creation methods. Mirrors the Prisma `AuthProvider` enum. */
+export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider];
+
+/**
+ * The OAuth providers a customer can sign in with. These values are also the
+ * path segment used by the auth routes (`/api/auth/google`).
+ */
+export const OAuthProvider = {
+  GOOGLE: "google",
+  FACEBOOK: "facebook",
+} as const;
+
+/** Union type of supported OAuth providers. */
+export type OAuthProvider = (typeof OAuthProvider)[keyof typeof OAuthProvider];
+
+/**
+ * The failure codes the OAuth result page understands. The API redirects with
+ * one of these so the page can show a readable message.
+ */
+export const OAUTH_ERROR_CODES = [
+  "access_denied",
+  "email_missing",
+  "provider_error",
+  "link_failed",
+] as const;
+
+/** Union type of OAuth failure codes. */
+export type OAuthErrorCode = (typeof OAUTH_ERROR_CODES)[number];
+
+/**
+ * The public shape of a signed in customer. Every user bearing auth response
+ * returns exactly these fields, with `null` instead of an omitted value so the
+ * web type never drifts from the API.
+ */
+export interface AuthUser {
+  /** Account id (UUID v7). */
+  id: string;
+  /** Display name. */
+  name: string;
+  /** Email address, stored trimmed and lowercased. */
+  email: string;
+  /** Account role. */
+  role: UserRole;
+  /** Avatar URL, or null when the account has none. */
+  avatarUrl: string | null;
+  /** Whether the email address has been verified. */
+  emailVerified: boolean;
+}
+
+/**
  * Order status lifecycle states. Mirrors the Prisma `OrderStatus` enum.
  * Orders move through these stages from placement to completion.
  */
