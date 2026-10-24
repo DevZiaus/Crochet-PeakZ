@@ -124,7 +124,15 @@ _Choices recorded here. `/develop tooling` installs them._
 - [document](.agents/skills/document/): workflow skill, writes human facing prose
 - [sync](.agents/skills/sync/): workflow skill, keeps durable knowledge current
 
-Declined: Vitest · React Testing Library · Radix UI · Sonner (offered 2026-10-24, no Agent Skill installed) · MCP servers: none found
+Installed for customer auth (spec 0005):
+
+- [auth-implementation-patterns](.agents/skills/auth-implementation-patterns/): JWT, session, OAuth2, and role based access patterns
+- [resend](.agents/skills/resend/): Resend SDK and API conventions for transactional email
+- [email-best-practices](.agents/skills/email-best-practices/): email deliverability, SPF/DKIM/DMARC, and template guidance
+
+MCP servers: resend (`https://mcp.resend.com/mcp`, OAuth sign in required; used to inspect verification and reset mail in development)
+
+Declined: Vitest · React Testing Library · Radix UI · Sonner (offered 2026-10-24, no Agent Skill installed)
 
 ## Context files
 

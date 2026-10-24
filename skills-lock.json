@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "agent-email-inbox": {
+      "source": "resend/resend-skills",
+      "sourceType": "github",
+      "skillPath": "skills/agent-email-inbox/SKILL.md",
+      "computedHash": "6295af96409a0c82a7400ca60b90a5ef33f804b19dfea0d8681651affc806107"
+    },
     "architect": {
       "source": "jsmastery-pro/skills",
       "sourceType": "github",
@@ -12,6 +18,12 @@
       "sourceType": "github",
       "skillPath": "skills/audit/SKILL.md",
       "computedHash": "a8d524118ce6d60911840ef31509f1f5551ce1099cb8fd8a241ed0859e5c62ed"
+    },
+    "auth-implementation-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-essentials/skills/auth-implementation-patterns/SKILL.md",
+      "computedHash": "06f33be59282b5cb58cba503f15d19dcfebbb7e7904224c2dee320c0ec823ead"
     },
     "check": {
       "source": "jsmastery-pro/skills",
@@ -36,6 +48,36 @@
       "sourceType": "github",
       "skillPath": "skills/document/SKILL.md",
       "computedHash": "90933443f204d2ed29c84730be87b7b5470f6819fccde6129aedad1df517fb92"
+    },
+    "email-best-practices": {
+      "source": "resend/resend-skills",
+      "sourceType": "github",
+      "skillPath": "skills/email-best-practices/SKILL.md",
+      "computedHash": "4c26ca203af6b3df259621544b09a9b28183b9ead10897b7315225e87dd012d5"
+    },
+    "nextjs-app-router": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-kit-typescript/skills/nextjs-app-router/SKILL.md",
+      "computedHash": "59651cf76c1a5a7704ea71ec275f98f702623ceb7bcf2ab2e093802ac6b81104"
+    },
+    "react-email": {
+      "source": "resend/resend-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-email/SKILL.md",
+      "computedHash": "ff40e3355c318e5ef203eb1118cab574454ce65dae01bb268b05a2e244b8041b"
+    },
+    "resend": {
+      "source": "resend/resend-skills",
+      "sourceType": "github",
+      "skillPath": "skills/resend/SKILL.md",
+      "computedHash": "e12ac96a3c05509aabf1b03f40a3112e710e1bda060161b6495f851b7ac18f34"
+    },
+    "resend-cli": {
+      "source": "resend/resend-skills",
+      "sourceType": "github",
+      "skillPath": "skills/resend-cli/SKILL.md",
+      "computedHash": "32c729456e8b6384e7d581d3aef289c4755cb85ba44c963137cc41531506023c"
     },
     "scope": {
       "source": "jsmastery-pro/skills",

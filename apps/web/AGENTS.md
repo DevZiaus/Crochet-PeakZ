@@ -61,6 +61,10 @@ npm run test --workspace=@crochet-peakz/web
 - **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
 
+## Agent skills
+
+- [nextjs-app-router](.agents/skills/nextjs-app-router/): App Router routing, route handlers, data fetching, and caching conventions for work in this workspace
+
 ## Related specs
 
 - [0001 Stack and architecture](../../docs/specs/0001-stack-and-architecture/index.md)
