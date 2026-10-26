@@ -7,8 +7,10 @@ reference self-hosted deployment.
 
 ```
 Browser ──► reverse proxy (optional) ──► web (Next.js, :3000)
-                   │
-                   └──► /api/* ────────► api (Express, :4000) ──► PostgreSQL
+                   │                         └──► /api/auth/* ──► api (Express, :4000)
+                   └──► other /api/* ──────────────────────────► api (Express, :4000)
+
+api ──► PostgreSQL
 ```
 
 ## Portability contract
@@ -86,8 +88,10 @@ docker compose --profile proxy up -d --build
 ```
 
 The optional Caddy service in `docker-compose.yml` terminates TLS, sends
-`/api/*` to the API, and everything else to the web server. `deploy/Caddyfile`
-is the configuration. For Nginx, start from `deploy/nginx.conf.example`.
+`/api/auth/*` to the web server so the Next.js auth proxy can add the shared
+secret, sends other `/api/*` requests to the API, and sends everything else to
+the web server. `deploy/Caddyfile` is the configuration. For Nginx, start from
+`deploy/nginx.conf.example`.
 
 If the web and API are on different origins, set `NEXT_PUBLIC_API_URL` to the
 absolute API URL and list the web origin in `CORS_ORIGIN`:
@@ -150,8 +154,8 @@ the standalone artifact, copy `apps/web/.next/static` and `apps/web/public` into
 `node apps/web/.next/standalone/apps/web/server.js`.
 
 Run the web and API as separate processes behind Nginx, Caddy, or another
-reverse proxy. The proxy should send `/api/*` to port 4000 and everything else
-to port 3000.
+reverse proxy. The proxy should send `/api/auth/*` to port 3000, other `/api/*`
+requests to port 4000, and everything else to port 3000.
 
 ## Environment variables
 

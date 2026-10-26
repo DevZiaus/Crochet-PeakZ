@@ -146,12 +146,18 @@ function buildHeaders(
   const headers = new Headers();
   const contentType = input.request.headers.get("content-type");
   const accept = input.request.headers.get("accept");
+  const userAgent = input.request.headers.get("user-agent");
 
   if (contentType) {
     headers.set("content-type", contentType);
   }
   if (accept) {
     headers.set("accept", accept);
+  }
+  if (userAgent) {
+    // The API stores this on the session row so customers can tell devices
+    // apart. The API truncates it to 255 characters.
+    headers.set("user-agent", userAgent);
   }
   if (input.cookie) {
     headers.set("cookie", input.cookie);
