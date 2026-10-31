@@ -46,6 +46,13 @@ yarn-error.log*
 # Test coverage
 coverage/
 
+# Playwright artifacts. The config writes them to /tmp on purpose, because the
+# dev servers watch the repo root and a trace written here triggers a rebuild
+# that reloads the page under test. Ignored so a stray run cannot dirty the repo.
+test-results/
+playwright-report/
+blob-report/
+
 #misc
 .claude/settings.local.json
 .claude/*.local.json
