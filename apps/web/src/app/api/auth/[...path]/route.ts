@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getWebAuthEnv } from "@/lib/auth/web-env";
 
-/** The access cookie the proxy watches to decide whether to refresh. */
+/** The access cookie the proxy replaces on a successful refresh. */
 const ACCESS_COOKIE = "cp_access";
+
+/** The long lived session cookie that proves a refresh is possible. */
+const REFRESH_COOKIE = "cp_refresh";
 
 /** Forces request time evaluation on every call. */
 export const dynamic = "force-dynamic";
@@ -45,7 +48,7 @@ export async function POST(
  *
  * The browser only ever talks to the web origin. The proxy adds the shared
  * secret, forwards the client IP, relays `Set-Cookie` and `Location`, and on a
- * 401 with an access cookie it refreshes once and replays the request once.
+ * 401 with a refresh cookie it refreshes once and replays the request once.
  */
 async function proxyAuthRequest(
   request: NextRequest,
@@ -93,10 +96,16 @@ async function proxyAuthRequest(
   let response = await send(originalCookie);
 
   let refreshSetCookies: string[] = [];
-  const carriedAccess = readCookie(originalCookie, ACCESS_COOKIE);
+  const carriedRefresh = readCookie(originalCookie, REFRESH_COOKIE);
   const isRefreshCall = targetPath === "refresh";
+  const isLoginCall = targetPath === "login";
 
-  if (response.status === 401 && carriedAccess && !isRefreshCall) {
+  if (
+    response.status === 401 &&
+    carriedRefresh &&
+    !isRefreshCall &&
+    !isLoginCall
+  ) {
     const refreshResponse = await fetch(`${env.apiInternalUrl}/auth/refresh`, {
       method: "POST",
       headers: buildHeaders(env, {
