@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth/register-form";
 import { AuthFormFallback } from "@/components/auth/auth-form-fallback";
+import { RequireGuest } from "@/components/auth/require-guest";
 
 export const metadata: Metadata = {
   title: "Create account | Crochet PeakZ",
@@ -13,7 +14,9 @@ export const metadata: Metadata = {
 export default function RegisterPage() {
   return (
     <Suspense fallback={<AuthFormFallback />}>
-      <RegisterForm />
+      <RequireGuest>
+        <RegisterForm />
+      </RequireGuest>
     </Suspense>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { sanitizeNextPath } from "@crochet-peakz/shared";
 import { LayoutDashboard, LogOut, User as UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ export function AuthMenu() {
   const { user, loading, signOut } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const next = sanitizeNextPath(pathname, "/");
 
   if (loading) {
     return (
@@ -59,7 +61,7 @@ export function AuthMenu() {
         className="min-h-[44px] min-w-[44px]"
       >
         <Link
-          href={`/login?next=${encodeURIComponent(pathname || "/")}`}
+          href={`/login?next=${encodeURIComponent(next)}`}
           aria-label="Sign in to your account"
         >
           <UserIcon className="size-5" />
