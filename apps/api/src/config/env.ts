@@ -12,6 +12,16 @@ export type NodeEnv = "development" | "test" | "production";
 /** Express `trust proxy` accepts these forms. */
 export type TrustProxy = boolean | number | string;
 
+/** Optional endpoint overrides used to point a provider at a local mock. */
+export interface OAuthEndpointsConfig {
+  /** Authorization page the browser is sent to. */
+  authorizationUrl?: string;
+  /** Token endpoint used for the code exchange. */
+  tokenUrl?: string;
+  /** Profile or userinfo endpoint used after the exchange. */
+  profileUrl?: string;
+}
+
 /** Validated API configuration. */
 export interface ApiEnv {
   /** Current Node.js environment. */
@@ -34,10 +44,18 @@ export interface ApiEnv {
   jwtSecret: string;
   /** HS256 secret for refresh token payloads. Distinct from `jwtSecret`. */
   jwtRefreshSecret: string;
-  /** Google OAuth 2.0 client credentials. */
-  googleClient: { id: string; secret: string };
-  /** Facebook OAuth 2.0 app credentials. */
-  facebookClient: { id: string; secret: string };
+  /** Google OAuth 2.0 client credentials, plus test-only endpoint overrides. */
+  googleClient: {
+    id: string;
+    secret: string;
+    endpoints?: OAuthEndpointsConfig | undefined;
+  };
+  /** Facebook OAuth 2.0 app credentials, plus test-only endpoint overrides. */
+  facebookClient: {
+    id: string;
+    secret: string;
+    endpoints?: OAuthEndpointsConfig | undefined;
+  };
   /** Resend API key used for verification and reset email. */
   resendApiKey: string;
   /** Sender address on every auth email. */
@@ -66,6 +84,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     );
   }
 
+  const nodeEnv = parseNodeEnv(source["NODE_ENV"]);
   const jwtSecret = parseJwtSecret(source, "JWT_SECRET");
   const jwtRefreshSecret = parseJwtSecret(source, "JWT_REFRESH_SECRET");
 
@@ -75,8 +94,27 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     );
   }
 
+  const googleEndpoints = parseOAuthEndpoints(
+    source,
+    {
+      authorizationUrl: "GOOGLE_AUTH_URL",
+      tokenUrl: "GOOGLE_TOKEN_URL",
+      profileUrl: "GOOGLE_USERINFO_URL",
+    },
+    nodeEnv,
+  );
+  const facebookEndpoints = parseOAuthEndpoints(
+    source,
+    {
+      authorizationUrl: "FACEBOOK_AUTH_URL",
+      tokenUrl: "FACEBOOK_TOKEN_URL",
+      profileUrl: "FACEBOOK_PROFILE_URL",
+    },
+    nodeEnv,
+  );
+
   return {
-    nodeEnv: parseNodeEnv(source["NODE_ENV"]),
+    nodeEnv,
     host: source["HOST"]?.trim() || DEFAULT_HOST,
     port: parsePort(source["PORT"]),
     databaseUrl,
@@ -89,10 +127,12 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     googleClient: {
       id: parseCredential(source, "GOOGLE_CLIENT_ID"),
       secret: parseCredential(source, "GOOGLE_CLIENT_SECRET"),
+      ...(googleEndpoints ? { endpoints: googleEndpoints } : {}),
     },
     facebookClient: {
       id: parseCredential(source, "FACEBOOK_APP_ID"),
       secret: parseCredential(source, "FACEBOOK_APP_SECRET"),
+      ...(facebookEndpoints ? { endpoints: facebookEndpoints } : {}),
     },
     resendApiKey: parseCredential(source, "RESEND_API_KEY"),
     emailFrom: parseEmailFrom(source["EMAIL_FROM"]),
@@ -175,6 +215,89 @@ function parseEmailFrom(value: string | undefined): string {
     );
   }
   return raw;
+}
+
+/** Environment variable names for one provider's three endpoints. */
+interface OAuthEndpointNames {
+  authorizationUrl: string;
+  tokenUrl: string;
+  profileUrl: string;
+}
+
+/**
+ * Reads optional endpoint overrides for a local mock provider.
+ *
+ * All three values are optional, but any value is rejected in production so a
+ * deployment cannot accidentally route sign in through a test server.
+ *
+ * @param source Environment object.
+ * @param names Variable name for each endpoint.
+ * @param nodeEnv Current Node.js environment.
+ * @returns Overrides, or undefined when none are set.
+ */
+function parseOAuthEndpoints(
+  source: NodeJS.ProcessEnv,
+  names: OAuthEndpointNames,
+  nodeEnv: NodeEnv,
+): OAuthEndpointsConfig | undefined {
+  const authorizationUrl = parseOptionalHttpUrl(
+    source[names.authorizationUrl],
+    names.authorizationUrl,
+  );
+  const tokenUrl = parseOptionalHttpUrl(source[names.tokenUrl], names.tokenUrl);
+  const profileUrl = parseOptionalHttpUrl(
+    source[names.profileUrl],
+    names.profileUrl,
+  );
+
+  if (!authorizationUrl && !tokenUrl && !profileUrl) {
+    return undefined;
+  }
+
+  if (nodeEnv === "production") {
+    throw new Error(
+      `${names.authorizationUrl}, ${names.tokenUrl}, and ${names.profileUrl} ` +
+        "are test-only overrides and cannot be set when NODE_ENV=production.",
+    );
+  }
+
+  return {
+    ...(authorizationUrl ? { authorizationUrl } : {}),
+    ...(tokenUrl ? { tokenUrl } : {}),
+    ...(profileUrl ? { profileUrl } : {}),
+  };
+}
+
+/**
+ * Reads an optional absolute http(s) URL.
+ *
+ * @param value Raw environment value.
+ * @param name Variable name used in the error message.
+ * @returns The normalized URL, or undefined when unset.
+ */
+function parseOptionalHttpUrl(
+  value: string | undefined,
+  name: string,
+): string | undefined {
+  const raw = value?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error(
+      `Invalid ${name} "${raw}". Expected an absolute http(s) URL.`,
+    );
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`${name} must use http or https.`);
+  }
+
+  return parsed.toString();
 }
 
 function parseNodeEnv(value: string | undefined): NodeEnv {

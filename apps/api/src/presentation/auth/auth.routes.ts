@@ -304,6 +304,10 @@ function handleOAuthCallback(
       { session: false },
       (error: Error | null | undefined, user: unknown) => {
         if (error || !user) {
+          console.error(
+            `[auth] ${provider} OAuth callback failed:`,
+            error?.message ?? "no profile returned",
+          );
           res.redirect(
             302,
             resultUrl(deps.webAppUrl, provider, nextPath, "provider_error"),

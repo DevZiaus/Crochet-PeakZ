@@ -7,6 +7,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "prisma generate && tsx watch src/index.ts",
+    "dev:mock-oauth": "tsx scripts/mock-oauth-provider.ts",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "prisma generate && npm run clean && tsc -p tsconfig.build.json",
     "start": "node dist/index.js",

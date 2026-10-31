@@ -86,6 +86,7 @@ export class PrismaUserRepository implements UserRepository {
         avatarUrl: input.avatarUrl,
         emailVerified: true,
         role: PrismaUserRole.CUSTOMER,
+        lastLoginAt: input.lastLoginAt,
       },
     });
     return toDomain(row);

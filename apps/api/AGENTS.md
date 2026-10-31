@@ -20,6 +20,9 @@ The API is deployment agnostic: it reads `HOST` and `PORT` from the environment,
 # Dev server (hot reload)
 npm run dev --workspace=@crochet-peakz/api
 
+# Local OAuth mock provider for a manual browser run
+npm run dev:mock-oauth --workspace=@crochet-peakz/api
+
 # Build (builds shared first; prisma generate + compile to dist/index.js)
 npm run build:shared && npm run build --workspace=@crochet-peakz/api
 
@@ -40,20 +43,24 @@ npm run db:studio --workspace=@crochet-peakz/api
 
 ## Key files
 
-| File                                          | Owns                                                                              |
-| --------------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/index.ts`                                | Composition root: env + database setup, Express app, listen, graceful shutdown    |
-| `src/config/env.ts`                           | Environment parsing and validation (`HOST`, `PORT`, `CORS_ORIGIN`, `TRUST_PROXY`) |
-| `src/infrastructure/database/prisma.ts`       | Prisma client + `@prisma/adapter-pg` factory, health check, disconnect helper     |
-| `src/generated/prisma/`                       | Generated Prisma Client (gitignored; recreated by `prisma generate`)              |
-| `prisma/schema.prisma`                        | Database schema (PostgreSQL, single `DATABASE_URL`)                               |
-| `prisma.config.ts`                            | Prisma CLI config: datasource URL, schema path, migrations path, and seed command |
-| `prisma/seed.ts`                              | Seed script for realistic local data (users, categories, products, settings)      |
-| `src/presentation/routes/health.routes.ts`    | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)           |
-| `src/presentation/middleware/errorHandler.ts` | Centralized error handler and `AppError` class                                    |
-| `tsconfig.json`                               | Typecheck config: `src` + `prisma`, no emit                                       |
-| `tsconfig.build.json`                         | Build config: emits `src` to `dist/` only                                         |
-| `.env` / `.env.example`                       | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)    |
+| File                                              | Owns                                                                              |
+| ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `src/index.ts`                                    | Composition root: env + database setup, Express app, listen, graceful shutdown    |
+| `src/app.ts`                                      | Express app factory shared by `index.ts` and integration tests                    |
+| `src/config/env.ts`                               | Environment parsing and validation (`HOST`, `PORT`, `CORS_ORIGIN`, `TRUST_PROXY`) |
+| `src/infrastructure/database/prisma.ts`           | Prisma client + `@prisma/adapter-pg` factory, health check, disconnect helper     |
+| `src/generated/prisma/`                           | Generated Prisma Client (gitignored; recreated by `prisma generate`)              |
+| `prisma/schema.prisma`                            | Database schema (PostgreSQL, single `DATABASE_URL`)                               |
+| `prisma.config.ts`                                | Prisma CLI config: datasource URL, schema path, migrations path, and seed command |
+| `prisma/seed.ts`                                  | Seed script for realistic local data (users, categories, products, settings)      |
+| `src/presentation/routes/health.routes.ts`        | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)           |
+| `src/presentation/middleware/errorHandler.ts`     | Centralized error handler and `AppError` class                                    |
+| `src/presentation/auth/oauth.integration.test.ts` | Full OAuth round trip against the local mock provider                             |
+| `src/test-support/mock-oauth-provider.ts`         | In-process authorize, token, and profile provider for tests                       |
+| `scripts/mock-oauth-provider.ts`                  | Manual mock provider started by `npm run dev:mock-oauth`                          |
+| `tsconfig.json`                                   | Typecheck config: `src` + `scripts` + `prisma`, no emit                           |
+| `tsconfig.build.json`                             | Build config: emits `src` to `dist/` only                                         |
+| `.env` / `.env.example`                           | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)    |
 
 ## Conventions
 
@@ -77,6 +84,7 @@ npm run db:studio --workspace=@crochet-peakz/api
 - `@crochet-peakz/shared` resolves to compiled JavaScript in `packages/shared/dist`. Build it first (`npm run build:shared` at the repo root) or run commands through the root scripts, which do it automatically.
 - `CORS_ORIGIN` accepts a comma separated list and rejects `*` because credentials are enabled.
 - Behind a reverse proxy or a PaaS router, set `TRUST_PROXY=1` so Express reads `X-Forwarded-Proto` and `X-Forwarded-For`.
+- The six `GOOGLE_*` / `FACEBOOK_*` endpoint URLs are test-only overrides for the local mock provider. `loadEnv()` rejects them when `NODE_ENV=production`. The OAuth integration suite starts its own mock; `npm run dev:mock-oauth` prints the values for a manual browser run.
 
 ## Related specs
 

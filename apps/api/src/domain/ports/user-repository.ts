@@ -15,6 +15,8 @@ export interface CreateOAuthUserInput {
   provider: Exclude<AuthProvider, "LOCAL">;
   providerId: string;
   avatarUrl: string | null;
+  /** Time of the sign in that created the account. */
+  lastLoginAt: Date;
 }
 
 /** New verification link details stored on the account. */

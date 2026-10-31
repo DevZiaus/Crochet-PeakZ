@@ -33,6 +33,7 @@ export async function signInWithOAuth(
       provider: profile.provider,
       providerId: profile.providerId,
       avatarUrl: profile.avatarUrl,
+      lastLoginAt: now,
     });
 
     return issueSession(deps, user, context);

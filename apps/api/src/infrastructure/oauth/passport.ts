@@ -27,11 +27,29 @@ export interface OAuthAuthenticator {
   ): RequestHandler;
 }
 
-/** Credentials and callback origins for the two OAuth apps. */
+/** Optional endpoint overrides that point a provider at a local mock. */
+export interface OAuthProviderEndpoints {
+  /** Authorization page the browser is sent to. */
+  authorizationUrl?: string;
+  /** Token endpoint used for the code exchange. */
+  tokenUrl?: string;
+  /** Profile or userinfo endpoint used after the exchange. */
+  profileUrl?: string;
+}
+
+/** Credentials, callback origins, and optional endpoint overrides. */
 export interface OAuthStrategyConfig {
   webAppUrl: string;
-  google: { id: string; secret: string };
-  facebook: { id: string; secret: string };
+  google: {
+    id: string;
+    secret: string;
+    endpoints?: OAuthProviderEndpoints | undefined;
+  };
+  facebook: {
+    id: string;
+    secret: string;
+    endpoints?: OAuthProviderEndpoints | undefined;
+  };
 }
 
 /**
@@ -55,6 +73,9 @@ export function createOAuthAuthenticator(
         clientSecret: config.google.secret,
         callbackURL: `${config.webAppUrl}/api/auth/google/callback`,
         scope: ["profile", "email"],
+        authorizationURL: config.google.endpoints?.authorizationUrl,
+        tokenURL: config.google.endpoints?.tokenUrl,
+        userProfileURL: config.google.endpoints?.profileUrl,
       },
       (_accessToken, _refreshToken, profile, done) => {
         done(null, profile);
@@ -69,6 +90,10 @@ export function createOAuthAuthenticator(
         clientSecret: config.facebook.secret,
         callbackURL: `${config.webAppUrl}/api/auth/facebook/callback`,
         profileFields: ["id", "displayName", "emails", "photos"],
+        scope: ["email"],
+        authorizationURL: config.facebook.endpoints?.authorizationUrl,
+        tokenURL: config.facebook.endpoints?.tokenUrl,
+        profileURL: config.facebook.endpoints?.profileUrl,
       },
       (_accessToken, _refreshToken, profile, done) => {
         done(null, profile);

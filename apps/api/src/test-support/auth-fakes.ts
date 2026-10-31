@@ -232,6 +232,7 @@ export class InMemoryUserRepository implements UserRepository {
         providerId: input.providerId,
         avatarUrl: input.avatarUrl,
         emailVerified: true,
+        lastLoginAt: input.lastLoginAt,
       }),
     );
     this.users.set(user.id, user);

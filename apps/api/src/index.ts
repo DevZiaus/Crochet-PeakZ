@@ -1,14 +1,12 @@
 import dotenv from "dotenv";
+import type { Router } from "express";
 import type { Server } from "node:http";
-import express, { type Router } from "express";
-import cors from "cors";
-import { loadEnv, type ApiEnv } from "./config/env.js";
+import { createApp } from "./app.js";
+import { loadEnv } from "./config/env.js";
 import {
   createDatabase,
   type Database,
 } from "./infrastructure/database/prisma.js";
-import { createHealthRouter } from "./presentation/routes/health.routes.js";
-import { errorHandler } from "./presentation/middleware/errorHandler.js";
 import { PrismaUserRepository } from "./infrastructure/database/user.repository.js";
 import { PrismaSessionRepository } from "./infrastructure/database/session.repository.js";
 import { BcryptPasswordHasher } from "./infrastructure/auth/bcrypt-password-hasher.js";
@@ -20,47 +18,6 @@ import type { AuthDependencies } from "./application/dependencies.js";
 import { createAuthRouter } from "./presentation/auth/auth.routes.js";
 
 dotenv.config({ quiet: true });
-
-/**
- * Creates and configures the Express application.
- *
- * @param env Validated runtime configuration.
- * @param checkDatabase Readiness probe for PostgreSQL.
- * @param authRouter Auth router, wired with its repositories and ports.
- * @returns Configured Express application.
- */
-export function createApp(
-  env: ApiEnv,
-  checkDatabase: () => Promise<boolean>,
-  authRouter?: Router,
-): express.Application {
-  const app = express();
-
-  app.disable("x-powered-by");
-
-  if (env.trustProxy !== false) {
-    app.set("trust proxy", env.trustProxy);
-  }
-
-  app.use(
-    cors({
-      origin: env.corsOrigins,
-      credentials: true,
-    }),
-  );
-  app.use(express.json({ limit: "1mb" }));
-
-  app.use("/api", createHealthRouter({ checkDatabase }));
-
-  if (authRouter) {
-    app.use("/api/auth", authRouter);
-  }
-
-  // Error handler (must be last)
-  app.use(errorHandler);
-
-  return app;
-}
 
 /**
  * Registers SIGTERM/SIGINT handlers so containers and process managers can
