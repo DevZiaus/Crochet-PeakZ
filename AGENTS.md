@@ -104,6 +104,7 @@ _Choices recorded here. `/develop tooling` installs them._
 - **Formatter**: Prettier
 - **Pre commit**: Husky + lint-staged (lint + format + typecheck on every commit)
 - **Testing**: Vitest (unit/integration), React Testing Library (components), Playwright (E2E)
+- **Auth test isolation**: never call live Google, Facebook, or Resend from tests. OAuth tests use the local mock provider in `apps/api/src/test-support/mock-oauth-provider.ts`; email tests assert the envelope handed to the Resend transport. Manual steps are in `README.md` and `docs/deployment.md`.
 - **CI**: GitHub Actions (lint, typecheck, test on push)
 
 ## Git

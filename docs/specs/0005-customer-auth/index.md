@@ -257,7 +257,7 @@ Tracer Bullet: the first milestone is a thin but real thread from a sign in form
 
 ## Follow-up
 
-- [ ] Document the new environment variables and the OAuth callback URLs in `docs/deployment.md` and both `.env.example` files.
+- [x] Document the new environment variables and the OAuth callback URLs in `docs/deployment.md` and both `.env.example` files (2026-10-27).
 - [ ] Facebook requires the app to be live and, for email access, app review with a privacy policy URL. Google needs a published consent screen. This is an outside prerequisite before OAuth works for real customers.
 - [ ] Account suspension, admin promotion, and account deletion are deferred; they belong to admin user management and the customer dashboard.
 - [ ] Multi factor authentication is not in this slice. Note it before handling high value admin actions.

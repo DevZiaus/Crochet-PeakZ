@@ -189,6 +189,39 @@ shorter than its minimum, or still looks like a sample value.
 | `RESEND_API_KEY`       | Resend API key for verification and reset mail                           |
 | `EMAIL_FROM`           | Verified sender, for example `Crochet PeakZ <hello@example.com>`         |
 
+Register these redirect URIs in each provider's app settings. They point at the
+web origin, which proxies the callback to the API:
+
+- Google: `<WEB_APP_URL>/api/auth/google/callback`
+- Facebook: `<WEB_APP_URL>/api/auth/facebook/callback`
+
+Locally that is `http://localhost:3000/api/auth/google/callback` and
+`http://localhost:3000/api/auth/facebook/callback`. Use the public web origin
+in every deployed environment, not the API host.
+
+#### Test-only OAuth endpoint overrides
+
+These are unset in production and rejected when `NODE_ENV=production`. They
+point the provider redirect, token exchange, and profile call at a local mock
+so automated tests never load a live Google or Facebook login page.
+
+| Variable                                                          | Purpose                                    |
+| ----------------------------------------------------------------- | ------------------------------------------ |
+| `GOOGLE_AUTH_URL`, `GOOGLE_TOKEN_URL`, `GOOGLE_USERINFO_URL`      | Google authorization, token, and profile   |
+| `FACEBOOK_AUTH_URL`, `FACEBOOK_TOKEN_URL`, `FACEBOOK_PROFILE_URL` | Facebook authorization, token, and profile |
+
+`apps/api/src/presentation/auth/oauth.integration.test.ts` starts the mock from
+`apps/api/src/test-support/mock-oauth-provider.ts` and drives the entire round
+trip through the real auth router and PostgreSQL. To run the same flow manually
+through the web app, start the mock provider and copy the six values it prints:
+
+```bash
+npm run dev:mock-oauth --workspace=@crochet-peakz/api
+```
+
+Set `MOCK_GOOGLE_EMAIL` or `MOCK_FACEBOOK_EMAIL` to change the fixture account
+the mock returns.
+
 Other feature secrets (Cloudinary, payment gateways, monitoring) are documented
 in `apps/api/.env.example`.
 

@@ -123,7 +123,7 @@ Mandatory account creation (no guest checkout). Local email/password auth with v
   - [x] Email verification and password reset (AC-2, AC-3, AC-9)
   - [x] Google and Facebook sign in (AC-8)
   - [x] Admin guard, accessibility, noindex, and tests (AC-10, AC-12, AC-13)
-- [ ] Verify it: `/check verify customer auth`
+- [x] Verify it: `/check verify customer auth`
 - [ ] Test it: `/test customer auth`
 - [ ] Review it (fresh model): `/check review customer auth`
 - [ ] Document it: `/document customer auth`

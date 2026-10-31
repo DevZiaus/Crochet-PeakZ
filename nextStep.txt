@@ -1,3 +1,34 @@
- /check review design system & UI foundation
+What was wrong
 
- The 7 minor and 11 nit findings are untouched. No other call site uses the manual dialog overlay pair; the pattern now exists only inside ui/dialog.tsx.
+  Two independent causes, both surfacing as "sign in didn't work":
+
+  1. Rate limiter collisions (the 3 mobile failures). AC-12 caps sign-in at 10 per 15 min per client IP. The suite signs in 6 times per
+  project × 2 projects = 12, so mobile spent desktop's budget and got 429s. The error context showed it plainly: "Too many sign in
+  attempts. Try again in 821 seconds."
+
+  2. A real test bug (the desktop failure). Sign-out router.replace("/"), and / is still the header-less scaffold — so the assertion on
+  the "Sign in to your account" link could never pass there. verify.md already noted this blind spot in U8, U9, and U26.
+
+  Fixes
+
+  - signIn helper now awaits the post-login navigation, so a later goto can't cancel the in-flight login (the race from before the break).
+  - sign-out test now proves the session is gone via the cookie jar and the admin guard, then observes the signed-out header on
+    /verify-email, which does mount a header.
+  - Per-test client IPs via an auto fixture setting X-Forwarded-For — the same isolation trick routes.integration.test.ts already uses.
+
+  Two things worth flagging
+
+  I reverted my first IP scheme, and the reason matters. I first used a counter from a fixed base. It passed twice, then a different test
+  failed: register is capped at 5 per hour (vs sign-in's 15 min), and a fixed base means every run replays the same addresses into an
+  hour-long bucket — it passed only because I'd restarted the API. Random addresses fix the class of bug. Final state: 3 consecutive clean
+  runs against one long-lived API process, where the fixed base failed.
+
+  Spoofable X-Forwarded-For — a false alarm, and I checked rather than assumed. My fixture works only because the browser can set that
+  header, which raised an obvious question: could an attacker do the same and bypass every rate limit? I tested it against real Caddy with
+  host networking. Caddy overwrites the header with the real peer address, so spoofing is neutralized in the documented topology. No
+  vulnerability — but the raw API does trust the header, which is why S11 says not to expose port 3000 directly. That guidance is
+  load-bearing.
+
+  One loose end I did not fix: e2e/ is in no tsconfig and isn't linted, so npm run typecheck and npm run lint silently skip it. I verified
+  my changes with a standalone tsc (and confirmed it actually reports errors by injecting a deliberate one). Adding an e2e/tsconfig.json
+  wired into the check scripts is a real gap — want me to do that?
