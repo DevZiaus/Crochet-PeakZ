@@ -9,6 +9,13 @@ import { getSessionUser } from "@/lib/auth/session";
 /** Where a caller without a session is sent, and where they return from. */
 const SIGN_IN_URL = `/login?next=${encodeURIComponent("/admin")}`;
 
+/**
+ * The admin shell reads the request session, so it must render on every
+ * request. This also keeps the build from evaluating the server auth
+ * environment, which is only available at runtime.
+ */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Admin | Crochet PeakZ",
   robots: { index: false, follow: false },
