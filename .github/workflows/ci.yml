@@ -18,10 +18,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # Prisma only needs a syntactically valid URL to generate the client.
+      # The API integration tests run against a real PostgreSQL, so the job
+      # starts the service below and applies the migrations before testing.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       NEXT_PUBLIC_API_URL: http://localhost:4000/api
       NEXT_TELEMETRY_DISABLED: "1"
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -39,6 +55,9 @@ jobs:
       # The API lint rules are type-aware and need the generated Prisma client.
       - name: Generate Prisma client
         run: npm run db:generate --workspace=@crochet-peakz/api
+
+      - name: Apply database migrations
+        run: npm run db:deploy --workspace=@crochet-peakz/api
 
       - name: Lint
         run: npm run lint
