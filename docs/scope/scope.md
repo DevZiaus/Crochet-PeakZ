@@ -125,7 +125,7 @@ Mandatory account creation (no guest checkout). Local email/password auth with v
   - [x] Admin guard, accessibility, noindex, and tests (AC-10, AC-12, AC-13)
 - [x] Verify it: `/check verify customer auth`
 - [x] Test it: `/test customer auth`
-- [ ] Review it (fresh model): `/check review customer auth`
+- [x] Review it (fresh model): `/check review customer auth`
 - [ ] Document it: `/document customer auth`
 
 ### 6. Product catalog storefront · needs a decision
