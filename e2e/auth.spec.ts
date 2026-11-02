@@ -6,9 +6,10 @@
  * handling, and the refresh path are all exercised the way a customer exercises
  * them. The accounts come from the Prisma seed.
  *
- * Covers AC-1, AC-4, AC-5, AC-7, AC-10, AC-11 and AC-13. AC-2 (unverified sign
- * in) and AC-12 (throttling) are asserted at the API layer instead; a throttled
- * or unverified sign in is not what these flows are about.
+ * Covers AC-1 through AC-5, AC-7 through AC-13 through a real browser. The API
+ * tests still own the exact headers, database rows, and token rotation rules;
+ * these flows prove the screens and the web proxy present those rules the way a
+ * customer meets them.
  */
 import {
   test as base,
@@ -16,6 +17,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test";
+import { AuthDatabase, createOpaqueToken } from "./support/auth-database";
 
 /**
  * Gives every test its own forwarded client address.
@@ -39,7 +41,7 @@ function randomClientIp(): string {
   return `10.${String(octet())}.${String(octet())}.${String(octet())}`;
 }
 
-export const test = base.extend<{ clientIp: string }>({
+export const test = base.extend<{ clientIp: string; authDb: AuthDatabase }>({
   clientIp: [
     async ({ context }, use) => {
       const ip = randomClientIp();
@@ -48,6 +50,11 @@ export const test = base.extend<{ clientIp: string }>({
     },
     { auto: true },
   ],
+  authDb: async ({ browserName: _browserName }, use) => {
+    const authDb = await AuthDatabase.open();
+    await use(authDb);
+    await authDb.close();
+  },
 });
 
 export { expect };
@@ -163,6 +170,120 @@ test.describe("sign in screen", () => {
     await expect(page.getByText(/invalid email or password/i)).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test("asks an unverified customer to confirm and offers a resend (AC-2, AC-3)", async ({
+    page,
+    context,
+    authDb,
+  }) => {
+    const account = await authDb.createUser({ verified: false });
+
+    await page.goto("/login");
+    await field(page, "Email").fill(account.email);
+    await field(page, "Password").fill(account.password);
+    await form(page).getByRole("button", { name: "Sign in" }).click();
+
+    await expect(
+      page.getByText("Your email is not verified yet."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Resend verification email" }),
+    ).toBeVisible();
+
+    // AC-2: the refusal issues no session and does not count as a failed
+    // password attempt.
+    const cookieNames = (await context.cookies()).map((cookie) => cookie.name);
+    expect(cookieNames).not.toContain("cp_access");
+    expect(cookieNames).not.toContain("cp_refresh");
+    const row = await authDb.getUser(account.id);
+    expect(row.failedLoginAttempts).toBe(0);
+
+    await page
+      .getByRole("button", { name: "Resend verification email" })
+      .click();
+    await expect(
+      page.getByText(/A new verification link is on its way/),
+    ).toBeVisible();
+  });
+});
+
+test.describe("verification screen", () => {
+  test("does not consume the link on opening and confirms it only once (AC-3)", async ({
+    page,
+    authDb,
+  }) => {
+    const account = await authDb.createUser({ verified: false });
+    const token = createOpaqueToken();
+    await authDb.issueEmailVerification(account.id, token);
+    const url = `/verify-email?token=${encodeURIComponent(token)}`;
+
+    await page.goto(url);
+    await expect(
+      page.getByRole("heading", { name: "Confirm your email" }),
+    ).toBeVisible();
+
+    // AC-3: a GET renders the page and leaves the account and token untouched.
+    const before = await authDb.getUser(account.id);
+    expect(before.emailVerified).toBe(false);
+    expect(before.emailVerificationToken).not.toBeNull();
+
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "Confirm your email" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Confirm my email" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Email confirmed" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("main")
+        .getByRole("link", { name: "Sign in to your account" }),
+    ).toBeVisible();
+
+    const after = await authDb.getUser(account.id);
+    expect(after.emailVerified).toBe(true);
+    expect(after.emailVerificationToken).toBeNull();
+
+    // The token is cleared on use, so the same link renders the confirm screen
+    // again, then rejects the second explicit confirmation.
+    await page.goto(url);
+    await page.getByRole("button", { name: "Confirm my email" }).click();
+    await expect(
+      page.getByRole("heading", { name: "This link is no longer valid" }),
+    ).toBeVisible();
+  });
+
+  test("prefills an expired link and throttles the resend (AC-3, AC-12)", async ({
+    page,
+    authDb,
+  }) => {
+    const account = await authDb.createUser({ verified: false });
+    const token = createOpaqueToken();
+    await authDb.issueEmailVerification(account.id, token, {
+      expiresAt: new Date(Date.now() - 60_000),
+      sentAt: new Date(Date.now() - 120_000),
+    });
+
+    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+    await page.getByRole("button", { name: "Confirm my email" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "This link has expired" }),
+    ).toBeVisible();
+    await expect(field(page, "Email")).toHaveValue(account.email);
+
+    await page.getByRole("button", { name: "Send a new link" }).click();
+    await expect(
+      page.getByText(/A new verification link is on its way/),
+    ).toBeVisible();
+
+    // The first resend moves the per account timestamp to now, so an immediate
+    // second request is refused with the wait message.
+    await page.getByRole("button", { name: "Send a new link" }).click();
+    await expect(page.getByText(/Please wait \d+ seconds/)).toBeVisible();
+  });
 });
 
 test.describe("customer session", () => {
@@ -214,6 +335,16 @@ test.describe("customer session", () => {
     await signIn(page, CUSTOMER, "/shop");
 
     await expect(page).toHaveURL(/\/shop/, { timeout: 20_000 });
+  });
+
+  test("ignores an external next and uses the role default (AC-11)", async ({
+    page,
+  }) => {
+    await signIn(page, CUSTOMER, "https://evil.example");
+
+    await expect(page).toHaveURL("http://localhost:3000/", {
+      timeout: 20_000,
+    });
   });
 
   test("sends a signed in customer away from the sign in form (AC-5)", async ({
@@ -282,6 +413,156 @@ test.describe("register screen", () => {
   });
 });
 
+test.describe("sign in throttling", () => {
+  test("shows a wait message after ten failed attempts from one address (AC-12)", async ({
+    page,
+  }) => {
+    const email = `rate-${String(Date.now())}@example.com`;
+    await page.goto("/login");
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      await field(page, "Email").fill(email);
+      await field(page, "Password").fill("definitely-the-wrong-password");
+      const response = page.waitForResponse(
+        (candidate) =>
+          candidate.url().endsWith("/api/auth/login") &&
+          candidate.request().method() === "POST",
+      );
+      await form(page).getByRole("button", { name: "Sign in" }).click();
+      expect((await response).status()).toBe(401);
+    }
+
+    await field(page, "Email").fill(email);
+    await field(page, "Password").fill("definitely-the-wrong-password");
+    const limited = page.waitForResponse(
+      (candidate) =>
+        candidate.url().endsWith("/api/auth/login") &&
+        candidate.request().method() === "POST",
+    );
+    await form(page).getByRole("button", { name: "Sign in" }).click();
+
+    expect((await limited).status()).toBe(429);
+    await expect(page.getByText(/Too many sign in attempts/)).toBeVisible();
+  });
+});
+
+test.describe("password reset", () => {
+  test("resets the password once and revokes the open session (AC-9)", async ({
+    page,
+    context,
+    authDb,
+  }) => {
+    const account = await authDb.createUser();
+    const token = createOpaqueToken();
+    await authDb.issuePasswordReset(account.id, token);
+    const newPassword = "a brand new horse battery";
+    const url = `/reset-password?token=${encodeURIComponent(token)}`;
+
+    await signIn(page, account);
+    await page.goto(url);
+    await expect(
+      page.getByRole("heading", { name: "Choose a new password" }),
+    ).toBeVisible();
+
+    const password = form(page).locator('input[name="password"]');
+    const confirm = form(page).locator('input[name="confirmPassword"]');
+
+    await password.fill(newPassword);
+    await confirm.fill("a different password");
+    await page.getByRole("button", { name: "Update password" }).click();
+    await expect(
+      page.getByText("The two passwords do not match."),
+    ).toBeVisible();
+
+    await password.fill(newPassword);
+    await confirm.fill(newPassword);
+    await page.getByRole("button", { name: "Update password" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Password updated" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("main")
+        .getByRole("link", { name: "Sign in to your account" }),
+    ).toBeVisible();
+
+    // A completed reset revokes every session row, including this browser.
+    const refresh = await context.request.post("/api/auth/refresh", {
+      headers: { origin: "http://localhost:3000" },
+    });
+    expect(refresh.status()).toBe(401);
+
+    // The same link cannot be used again.
+    await page.goto(url);
+    await password.fill(newPassword);
+    await confirm.fill(newPassword);
+    await page.getByRole("button", { name: "Update password" }).click();
+    await expect(
+      page.getByRole("heading", { name: "This reset link is no longer valid" }),
+    ).toBeVisible();
+
+    // The old password no longer works and the new one does.
+    await context.clearCookies();
+    await page.goto("/login");
+    await field(page, "Email").fill(account.email);
+    await field(page, "Password").fill(account.password);
+    await form(page).getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByText(/invalid email or password/i)).toBeVisible();
+
+    await field(page, "Password").fill(newPassword);
+    await form(page).getByRole("button", { name: "Sign in" }).click();
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 20_000 });
+  });
+
+  test("asks for a reset without revealing whether the account exists (AC-9)", async ({
+    page,
+  }) => {
+    const email = `missing-${String(Date.now())}@example.com`;
+
+    await page.goto("/forgot-password?next=%2Fshop");
+    await field(page, "Email").fill(email);
+    await page.getByRole("button", { name: "Send reset link" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "Check your email" }),
+    ).toBeVisible();
+    await expect(page.getByText(email)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Back to sign in" }),
+    ).toHaveAttribute("href", "/login?next=%2Fshop");
+  });
+});
+
+test.describe("OAuth result screen", () => {
+  test("shows a readable provider failure and safe retry links (AC-8, AC-11)", async ({
+    page,
+  }) => {
+    await page.goto(
+      "/auth/callback?provider=google&error=access_denied&next=%2Fshop",
+    );
+
+    await expect(
+      page.getByRole("heading", { name: "Could not sign in with Google" }),
+    ).toBeVisible();
+    await expect(page.getByText(/You cancelled the sign in/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Try again" })).toHaveAttribute(
+      "href",
+      "/api/auth/google?next=%2Fshop",
+    );
+    await expect(
+      page.getByRole("link", { name: "Sign in with email" }),
+    ).toHaveAttribute("href", "/login?next=%2Fshop");
+
+    // An external next is replaced with the role default on the error screen.
+    await page.goto(
+      "/auth/callback?provider=google&error=access_denied&next=https%3A%2F%2Fevil.example",
+    );
+    await expect(
+      page.getByRole("link", { name: "Sign in with email" }),
+    ).toHaveAttribute("href", "/login?next=%2F");
+  });
+});
+
 test.describe("admin area", () => {
   test("sends an anonymous visitor to sign in without rendering admin markup (AC-10)", async ({
     page,
@@ -314,5 +595,26 @@ test.describe("admin area", () => {
     await expect(
       page.getByRole("heading", { name: "Store dashboard" }),
     ).toBeVisible({ timeout: 20_000 });
+  });
+
+  test("removes access when the role changes in the database (AC-10)", async ({
+    page,
+    authDb,
+  }) => {
+    const account = await authDb.createUser({ role: "ADMIN" });
+
+    await signIn(page, account, "/admin");
+    await expect(
+      page.getByRole("heading", { name: "Store dashboard" }),
+    ).toBeVisible({ timeout: 20_000 });
+
+    await authDb.setRole(account.id, "CUSTOMER");
+    await page.reload();
+
+    await expect(page).toHaveURL("http://localhost:3000/", {
+      timeout: 20_000,
+    });
+    const html = await page.content();
+    expect(html).not.toContain("Store dashboard");
   });
 });

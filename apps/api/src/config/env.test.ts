@@ -17,6 +17,75 @@ const baseEnv: NodeJS.ProcessEnv = {
   EMAIL_FROM: "Crochet PeakZ <hello@example.com>",
 };
 
+describe("loadEnv startup validation", () => {
+  it("accepts a complete environment", () => {
+    expect(() => loadEnv(baseEnv)).not.toThrow();
+  });
+
+  it.each([
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET",
+    "PROXY_SHARED_SECRET",
+    "WEB_APP_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "FACEBOOK_APP_ID",
+    "FACEBOOK_APP_SECRET",
+    "RESEND_API_KEY",
+    "EMAIL_FROM",
+  ])("refuses to start when %s is missing and names it (AC-15)", (name) => {
+    const source = Object.fromEntries(
+      Object.entries(baseEnv).filter(([key]) => key !== name),
+    );
+
+    expect(() => loadEnv(source)).toThrow(new RegExp(name));
+  });
+
+  it("refuses a placeholder JWT secret (AC-15)", () => {
+    expect(() =>
+      loadEnv({
+        ...baseEnv,
+        JWT_SECRET: "change-me-change-me-change-me-change",
+      }),
+    ).toThrow(/JWT_SECRET is still set to a placeholder/);
+  });
+
+  it("refuses a JWT secret shorter than 32 characters (AC-15)", () => {
+    expect(() => loadEnv({ ...baseEnv, JWT_SECRET: "too-short" })).toThrow(
+      /JWT_SECRET must be at least 32 characters/,
+    );
+  });
+
+  it("refuses the same value for both JWT secrets (AC-15)", () => {
+    expect(() =>
+      loadEnv({
+        ...baseEnv,
+        JWT_SECRET: "c".repeat(32),
+        JWT_REFRESH_SECRET: "c".repeat(32),
+      }),
+    ).toThrow(/must be different values/);
+  });
+
+  it("refuses a malformed WEB_APP_URL (AC-15)", () => {
+    expect(() =>
+      loadEnv({ ...baseEnv, WEB_APP_URL: "not-an-absolute-url" }),
+    ).toThrow(/Invalid WEB_APP_URL/);
+  });
+
+  it("refuses a WEB_APP_URL that is not http or https (AC-15)", () => {
+    expect(() =>
+      loadEnv({ ...baseEnv, WEB_APP_URL: "ftp://shop.example.com" }),
+    ).toThrow(/WEB_APP_URL must use http or https/);
+  });
+
+  it("refuses an EMAIL_FROM without an address (AC-15)", () => {
+    expect(() => loadEnv({ ...baseEnv, EMAIL_FROM: "Crochet PeakZ" })).toThrow(
+      /EMAIL_FROM/,
+    );
+  });
+});
+
 describe("loadEnv OAuth endpoint overrides", () => {
   it("leaves the provider endpoints at their defaults when unset", () => {
     const env = loadEnv(baseEnv);

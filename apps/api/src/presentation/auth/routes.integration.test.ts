@@ -644,6 +644,66 @@ describeWithDatabase("auth routes over HTTP", () => {
       expect(statuses[3]).toBe(429);
     });
 
+    it("answers 429 for registration after five requests (AC-12)", async () => {
+      const ip = "198.51.100.46";
+      const statuses: number[] = [];
+
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const response = await post(
+          "register",
+          {
+            name: "Rate Limited",
+            email: uniqueEmail("rate-register"),
+            password: PASSWORD,
+          },
+          { ip },
+        );
+        statuses.push(response.status);
+      }
+
+      expect(statuses.slice(0, 5)).toEqual([201, 201, 201, 201, 201]);
+      expect(statuses[5]).toBe(429);
+    });
+
+    it("answers 429 for refresh after sixty requests (AC-12)", async () => {
+      const ip = "198.51.100.47";
+      const statuses: number[] = [];
+
+      for (let attempt = 0; attempt < 61; attempt += 1) {
+        const response = await post("refresh", {}, { ip });
+        statuses.push(response.status);
+      }
+
+      expect(statuses.slice(0, 60).every((status) => status === 401)).toBe(
+        true,
+      );
+      expect(statuses[60]).toBe(429);
+    });
+
+    it("allows one resend per account per minute and sets Retry-After (AC-3, AC-12)", async () => {
+      const email = uniqueEmail("resend-throttle");
+      const registered = await post("register", {
+        name: "Resend Throttle",
+        email,
+        password: PASSWORD,
+      });
+      expect(registered.status).toBe(201);
+
+      await database.client.user.update({
+        where: { email },
+        data: { emailVerificationSentAt: new Date(Date.now() - 120_000) },
+      });
+
+      const first = await post("resend-verification", { email });
+      const second = await post("resend-verification", { email });
+
+      expect(first.status).toBe(202);
+      expect(second.status).toBe(429);
+      const retryAfter = Number(second.headers.get("retry-after"));
+      expect(Number.isInteger(retryAfter)).toBe(true);
+      expect(retryAfter).toBeGreaterThan(0);
+    });
+
     it("keeps rate limit buckets per client address", async () => {
       const exhausted = "198.51.100.44";
       for (let attempt = 0; attempt < 4; attempt += 1) {

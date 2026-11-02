@@ -29,6 +29,24 @@ const fetchMock = vi.fn(
     calls.push({ url, init });
 
     if (url.endsWith("/auth/refresh")) {
+      if (cookieOf(init).includes("cp_refresh=dead-refresh")) {
+        const headers = new Headers();
+        headers.append(
+          "set-cookie",
+          "cp_access=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax",
+        );
+        headers.append(
+          "set-cookie",
+          "cp_refresh=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax",
+        );
+        return new Response(
+          JSON.stringify({
+            error: { message: "Session expired.", statusCode: 401 },
+          }),
+          { status: 401, headers },
+        );
+      }
+
       const headers = new Headers();
       headers.append(
         "set-cookie",
@@ -42,6 +60,19 @@ const fetchMock = vi.fn(
         status: 200,
         headers,
       });
+    }
+
+    if (new URL(url).pathname === "/api/auth/google") {
+      const headers = new Headers();
+      headers.set(
+        "location",
+        "https://accounts.google.com/o/oauth2/v2/auth?state=state-1",
+      );
+      headers.append(
+        "set-cookie",
+        "cp_oauth_state=state-1; Max-Age=600; Path=/; HttpOnly; SameSite=Lax",
+      );
+      return new Response(null, { status: 302, headers });
     }
 
     if (url.endsWith("/auth/login")) {
@@ -117,6 +148,31 @@ describe("auth proxy refresh and replay", () => {
     expect(calls).toHaveLength(3);
   });
 
+  it("relays a failed refresh and its cookie clearing instead of retrying again (AC-5)", async () => {
+    const request = new NextRequest("http://web.test/api/auth/me", {
+      headers: {
+        cookie: "cp_access=old-access; cp_refresh=dead-refresh",
+      },
+    });
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ["me"] }),
+    });
+
+    expect(response.status).toBe(401);
+    expect(calls.map((call) => new URL(call.url).pathname)).toEqual([
+      "/api/auth/me",
+      "/api/auth/refresh",
+    ]);
+    const cookies = response.headers.getSetCookie();
+    expect(cookies).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("cp_access=; Max-Age=0"),
+        expect.stringContaining("cp_refresh=; Max-Age=0"),
+      ]),
+    );
+  });
+
   it("does not refresh a failed login", async () => {
     const request = new NextRequest("http://web.test/api/auth/login", {
       method: "POST",
@@ -133,5 +189,63 @@ describe("auth proxy refresh and replay", () => {
     expect(response.status).toBe(401);
     expect(calls).toHaveLength(1);
     expect(response.headers.getSetCookie()).toEqual([]);
+  });
+});
+
+describe("auth proxy origin guard and redirect relay", () => {
+  it("rejects a write from another origin without calling the API (AC-14)", async () => {
+    const request = new NextRequest("http://web.test/api/auth/login", {
+      method: "POST",
+      headers: { origin: "https://evil.example" },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ["login"] }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        message: "This request came from an untrusted origin.",
+        statusCode: 403,
+      },
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("rejects a write with no Origin header (AC-14)", async () => {
+    const request = new NextRequest("http://web.test/api/auth/register", {
+      method: "POST",
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ["register"] }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("relays an OAuth redirect and its state cookie without refreshing (AC-8)", async () => {
+    const request = new NextRequest(
+      "http://web.test/api/auth/google?next=%2F",
+      {
+        headers: { cookie: "cp_refresh=old-refresh" },
+      },
+    );
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ["google"] }),
+    });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "https://accounts.google.com/o/oauth2/v2/auth?state=state-1",
+    );
+    expect(response.headers.getSetCookie()).toEqual([
+      expect.stringContaining("cp_oauth_state=state-1"),
+    ]);
+    expect(calls).toHaveLength(1);
+    expect(new URL(calls[0]?.url ?? "").search).toBe("?next=%2F");
   });
 });
