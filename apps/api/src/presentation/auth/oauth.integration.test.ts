@@ -298,6 +298,58 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
     expect(row.passwordHash).toBeNull();
   });
 
+  it("refuses a Facebook email the provider has not verified (M1)", async () => {
+    const email = uniqueEmail("facebook-unverified");
+    provider.setProfile(
+      "facebook",
+      makeProfile({
+        id: "facebook-sub-unverified",
+        name: "Unproven Nadia",
+        email,
+        emailVerified: false,
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("facebook");
+    const response = await completeRoundTrip("facebook", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("facebook");
+    expect(result.searchParams.get("error")).toBe("email_unverified");
+    expect(hasCookie(response, "cp_access")).toBe(false);
+    expect(hasCookie(response, "cp_refresh")).toBe(false);
+    expect(
+      await database.client.user.findUnique({ where: { email } }),
+    ).toBeNull();
+  });
+
+  it("refuses a Google email the provider has not explicitly verified (M1)", async () => {
+    const email = uniqueEmail("google-unattested");
+    provider.setProfile(
+      "google",
+      makeProfile({
+        id: "google-sub-unattested",
+        name: "Unproven Ada",
+        email,
+        omitEmailVerified: true,
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("google");
+    const response = await completeRoundTrip("google", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("google");
+    expect(result.searchParams.get("error")).toBe("email_unverified");
+    expect(hasCookie(response, "cp_access")).toBe(false);
+    expect(hasCookie(response, "cp_refresh")).toBe(false);
+    expect(
+      await database.client.user.findUnique({ where: { email } }),
+    ).toBeNull();
+  });
+
   it("links an unverified local account, verifies it, and clears its password (U22, S19)", async () => {
     const email = uniqueEmail("link-customer");
     const local = await deps.users.createLocal({
@@ -330,7 +382,8 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
     });
     expect(row.emailVerified).toBe(true);
     expect(row.passwordHash).toBeNull();
-    expect(row.providerId).toBe("google-link-1");
+    // The account stays LOCAL, so no provider id is stored for it.
+    expect(row.providerId).toBeNull();
     expect(row.avatarUrl).toBe("https://cdn.example.com/linked.png");
 
     await expect(
@@ -411,6 +464,31 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
       },
     );
     expect(resultOf(noState).searchParams.get("error")).toBe("provider_error");
+  });
+
+  it("redirects to a provider error, not a 500, for a malformed state cookie", async () => {
+    provider.setProfile(
+      "google",
+      makeProfile({ email: uniqueEmail("state-malformed") }),
+    );
+
+    const roundTrip = await beginRoundTrip("google");
+    const code = encodeURIComponent(roundTrip.code);
+    const state = encodeURIComponent(roundTrip.state);
+
+    const response = await fetch(
+      `${apiUrl}/api/auth/google/callback?code=${code}&state=${state}`,
+      {
+        headers: {
+          "x-proxy-secret": PROXY_SECRET,
+          cookie: "cp_oauth_state=%E0%A4%A",
+        },
+        redirect: "manual",
+      },
+    );
+
+    expect(response.status).toBe(302);
+    expect(resultOf(response).searchParams.get("error")).toBe("provider_error");
   });
 
   it("honours the role default and sanitizes next (U21, S20)", async () => {

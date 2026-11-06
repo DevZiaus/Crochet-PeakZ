@@ -6,7 +6,9 @@ import { passwordResetUrl } from "../dependencies.js";
  * Issues a password reset link when the account has a stored password.
  *
  * The response is deliberately identical for unknown accounts and OAuth only
- * accounts; only an account with a password receives mail.
+ * accounts; only an account with a password receives mail. The replacement
+ * email is sent before the stored hash is overwritten, so a transport failure
+ * leaves the previous link valid.
  *
  * @param deps Injected auth dependencies.
  * @param email Normalized email address.
@@ -25,11 +27,6 @@ export async function forgotPassword(
   const now = deps.clock.now();
   const rawToken = deps.tokens.generateOpaqueToken();
 
-  await deps.users.savePasswordResetIssue(user.id, {
-    tokenHash: deps.tokens.hashOpaqueToken(rawToken),
-    expiresAt: new Date(now.getTime() + PASSWORD_RESET_TTL_MS),
-  });
-
   try {
     await deps.emails.sendPasswordResetEmail({
       to: user.email,
@@ -37,6 +34,15 @@ export async function forgotPassword(
       url: passwordResetUrl(deps.webAppUrl, rawToken),
     });
   } catch (error) {
+    // The email is sent before the stored hash is replaced, so a delivery
+    // failure leaves the customer's previous reset link working. The
+    // controller still answers 202 so the endpoint never reveals the failure.
     console.error("[auth] password reset email failed", error);
+    return;
   }
+
+  await deps.users.savePasswordResetIssue(user.id, {
+    tokenHash: deps.tokens.hashOpaqueToken(rawToken),
+    expiresAt: new Date(now.getTime() + PASSWORD_RESET_TTL_MS),
+  });
 }

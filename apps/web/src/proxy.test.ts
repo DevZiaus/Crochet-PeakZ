@@ -38,6 +38,43 @@ const fetchMock = vi.fn(
 
     const cookie = new Headers(init?.headers).get("cookie") ?? "";
 
+    if (url.endsWith("/auth/refresh")) {
+      const headers = new Headers();
+
+      if (cookie.includes("cp_refresh=dead-refresh")) {
+        headers.append(
+          "set-cookie",
+          "cp_access=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax",
+        );
+        headers.append(
+          "set-cookie",
+          "cp_refresh=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax",
+        );
+        return new Response(
+          JSON.stringify({
+            error: { message: "Session expired.", statusCode: 401 },
+          }),
+          { status: 401, headers },
+        );
+      }
+
+      const access = cookie.includes("cp_refresh=customer-refresh")
+        ? "customer-token"
+        : "admin-token";
+      headers.append(
+        "set-cookie",
+        `cp_access=${access}; Max-Age=900; Path=/; HttpOnly; SameSite=Lax`,
+      );
+      headers.append(
+        "set-cookie",
+        "cp_refresh=new-refresh; Max-Age=2592000; Path=/; HttpOnly; SameSite=Lax",
+      );
+      return new Response(JSON.stringify({ id: "user-1" }), {
+        status: 200,
+        headers,
+      });
+    }
+
     if (cookie.includes("cp_access=admin-token")) {
       return new Response(JSON.stringify({ role: "ADMIN" }), {
         status: 200,
@@ -73,10 +110,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Builds an incoming request for a path with optional cookies. */
-function request(path: string, cookie?: string): NextRequest {
+/** Builds an incoming request for a path with optional cookies and headers. */
+function request(
+  path: string,
+  cookie?: string,
+  headers: Record<string, string> = {},
+): NextRequest {
   return new NextRequest(`http://web.test${path}`, {
-    headers: cookie ? { cookie } : {},
+    headers: cookie ? { cookie, ...headers } : headers,
   });
 }
 
@@ -112,6 +153,14 @@ describe("admin guard", () => {
     );
   });
 
+  it("keeps the query string in the next target after sign in", async () => {
+    const response = await proxy(request("/admin/products?page=2"));
+
+    expect(redirectTarget(response)).toBe(
+      "/login?next=%2Fadmin%2Fproducts%3Fpage%3D2",
+    );
+  });
+
   it("sends a signed in customer to the storefront", async () => {
     const response = await proxy(request("/admin", "cp_access=customer-token"));
 
@@ -126,13 +175,124 @@ describe("admin guard", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("checks the role with the refresh cookie alone, so a reload still works", async () => {
-    const response = await proxy(request("/admin", "cp_refresh=live-refresh"));
+  it("ignores a client supplied x-auth-role when there is no session", async () => {
+    // A caller can set any request header. The proxy must judge the session
+    // itself, so a forged admin role changes nothing.
+    const response = await proxy(
+      request("/admin", undefined, { "x-auth-role": "ADMIN" }),
+    );
+
+    expect(response.status).toBe(307);
+    expect(redirectTarget(response)).toBe("/login?next=%2Fadmin");
+    expect(response.headers.get("x-middleware-request-x-auth-role")).toBeNull();
+  });
+
+  it("refuses a customer even when they claim x-auth-role: ADMIN", async () => {
+    const response = await proxy(
+      request("/admin", "cp_access=customer-token", {
+        "x-auth-role": "ADMIN",
+      }),
+    );
+
+    expect(redirectTarget(response)).toBe("/");
+  });
+
+  it("overwrites a forged x-auth-role with the role the API proved", async () => {
+    const response = await proxy(
+      request("/admin", "cp_access=admin-token", { "x-auth-role": "CUSTOMER" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-request-x-auth-role")).toBe(
+      "ADMIN",
+    );
+  });
+
+  it("refreshes with the refresh cookie alone, so a reload still works (AC-5)", async () => {
+    const forwardedFor = "203.0.113.7";
+    const response = await proxy(
+      request("/admin", "cp_refresh=live-refresh", {
+        "x-forwarded-for": forwardedFor,
+      }),
+    );
 
     expect(calls.map((call) => new URL(call.url).pathname)).toEqual([
       "/api/auth/me",
+      "/api/auth/refresh",
+      "/api/auth/me",
     ]);
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.getSetCookie()).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("cp_access=admin-token"),
+        expect.stringContaining("cp_refresh=new-refresh"),
+      ]),
+    );
+
+    // The real API refuses a refresh without the origin and proxy secret, and
+    // buckets every guard call by the forwarded address. A mock that ignores
+    // these would let a regression pass here and fail only in the browser.
+    const refresh = calls.find((call) => call.url.endsWith("/auth/refresh"));
+    const refreshHeaders = new Headers(refresh?.init?.headers);
+    expect(refreshHeaders.get("origin")).toBe("http://web.test");
+    expect(refreshHeaders.get("x-proxy-secret")).toBe("test-secret");
+    expect(refreshHeaders.get("cookie")).toContain("cp_refresh=live-refresh");
+    expect(refreshHeaders.get("x-forwarded-for")).toBe(forwardedFor);
+    for (const call of calls) {
+      expect(new Headers(call.init?.headers).get("x-forwarded-for")).toBe(
+        forwardedFor,
+      );
+    }
+
+    // The server render reads the request cookies from this header, not from
+    // the browser's Set-Cookie. Both rotated values must reach it.
+    const requestCookie = response.headers.get("x-middleware-request-cookie");
+    expect(requestCookie).toContain("cp_access=admin-token");
+    expect(requestCookie).toContain("cp_refresh=new-refresh");
+  });
+
+  it("refreshes an expired access cookie instead of sending an admin to sign in (AC-5)", async () => {
+    const response = await proxy(
+      request("/admin", "cp_access=expired-token; cp_refresh=live-refresh"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(calls.map((call) => new URL(call.url).pathname)).toEqual([
+      "/api/auth/me",
+      "/api/auth/refresh",
+      "/api/auth/me",
+    ]);
+    expect(new Headers(calls[2]?.init?.headers).get("cookie")).toContain(
+      "cp_access=admin-token",
+    );
+  });
+
+  it("relays the clearing cookies when the refresh cookie is also dead", async () => {
+    const response = await proxy(
+      request("/admin", "cp_access=expired-token; cp_refresh=dead-refresh"),
+    );
+
+    expect(redirectTarget(response)).toBe("/login?next=%2Fadmin");
+    expect(response.headers.getSetCookie()).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("cp_access=; Max-Age=0"),
+        expect.stringContaining("cp_refresh=; Max-Age=0"),
+      ]),
+    );
+  });
+
+  it("refreshes a customer and still sends them to the storefront", async () => {
+    const response = await proxy(
+      request("/admin", "cp_access=expired-token; cp_refresh=customer-refresh"),
+    );
+
+    expect(redirectTarget(response)).toBe("/");
+    expect(response.headers.getSetCookie()).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("cp_access=customer-token"),
+      ]),
+    );
   });
 
   it("asks the API for the role rather than trusting the cookie", async () => {

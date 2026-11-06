@@ -41,6 +41,7 @@ export {
   PASSWORD_MAX_BYTES,
   utf8ByteLength,
   passwordSchema,
+  normalizeEmail,
   authEmailSchema,
   authNameSchema,
   registerSchema,

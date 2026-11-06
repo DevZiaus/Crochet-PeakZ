@@ -12,6 +12,11 @@
 	# relay cookies, and refresh an expired access token once. Caddy sorts
 	# handle blocks by path specificity, so this wins over /api/*.
 	handle /api/auth/* {
+		# Auth bodies are small JSON payloads. Cap them here as well so a large
+		# upload is rejected before it reaches the Next.js proxy.
+		request_body {
+			max_size 1MB
+		}
 		reverse_proxy web:3000
 	}
 

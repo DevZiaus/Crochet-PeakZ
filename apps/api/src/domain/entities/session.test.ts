@@ -44,13 +44,16 @@ describe("Session", () => {
     ).toBe(true);
   });
 
-  it("treats a revoked session without a successor as reuse immediately", () => {
+  it("does not treat a revoked session without a successor as reuse", () => {
     const session = Session.reconstitute(
       makeSessionSnapshot({ revokedAt: NOW, replacedByTokenId: null }),
     );
 
     expect(session.isWithinRotationGrace(NOW)).toBe(false);
-    expect(session.isReuse(NOW)).toBe(true);
+    expect(session.isReuse(NOW)).toBe(false);
+    expect(
+      session.isReuse(new Date(NOW.getTime() + ROTATION_GRACE_MS + 1)),
+    ).toBe(false);
   });
 
   it("does not treat an active session as reuse", () => {
@@ -58,5 +61,19 @@ describe("Session", () => {
 
     expect(session.isRevoked()).toBe(false);
     expect(session.isReuse(new Date(NOW.getTime() + 60_000))).toBe(false);
+  });
+
+  it("is active only while neither revoked nor expired", () => {
+    const active = Session.reconstitute(makeSessionSnapshot());
+    const revoked = Session.reconstitute(
+      makeSessionSnapshot({ revokedAt: NOW }),
+    );
+    const expired = Session.reconstitute(
+      makeSessionSnapshot({ expiresAt: NOW }),
+    );
+
+    expect(active.isActive(NOW)).toBe(true);
+    expect(revoked.isActive(NOW)).toBe(false);
+    expect(expired.isActive(NOW)).toBe(false);
   });
 });

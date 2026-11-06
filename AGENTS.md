@@ -113,6 +113,10 @@ _Choices recorded here. `/develop tooling` installs them._
 - branch prefix: feat/
 - commit: per-milestone
 
+## Personal notes
+
+- `nextStep.txt` is the repository owner's own file for tracking what to do next and for other notes. It is deliberately tracked in git. Never edit, overwrite, truncate, move, or delete it; only the owner changes that file. Treat it as read only input when you need context.
+
 ## Agent skills
 
 - [scope](.agents/skills/scope/): workflow skill, turns ideas into living scope in `docs/scope/`

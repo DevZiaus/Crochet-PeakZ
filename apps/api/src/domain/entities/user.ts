@@ -75,6 +75,16 @@ export class User {
     return this.state.role;
   }
 
+  /** Provider the account was created with. */
+  get authProvider(): AuthProvider {
+    return this.state.authProvider;
+  }
+
+  /** Provider's stable user id, or null for a local account. */
+  get providerId(): string | null {
+    return this.state.providerId;
+  }
+
   /** Whether the email address is verified. */
   get emailVerified(): boolean {
     return this.state.emailVerified;
@@ -140,13 +150,20 @@ export class User {
    * Records a failed password attempt and applies the lock rule.
    *
    * While the account is already locked the count does not move, so an
-   * attacker cannot extend the lock forever.
+   * attacker cannot extend the lock forever. When a previous lock has expired,
+   * the window starts fresh, so mistyping once after waiting out the lock does
+   * not immediately re-lock the account.
    *
    * @param now Current time.
    */
   recordFailedLogin(now: Date): void {
     if (this.isLocked(now)) {
       return;
+    }
+
+    if (this.state.lockedUntil !== null) {
+      this.state.failedLoginAttempts = 0;
+      this.state.lockedUntil = null;
     }
 
     this.state.failedLoginAttempts += 1;

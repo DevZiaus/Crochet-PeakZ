@@ -1,4 +1,4 @@
-import type { RequestHandler } from "express";
+import type { Request, RequestHandler } from "express";
 import { AppError } from "../middleware/errorHandler.js";
 import { getClientIp } from "../auth/proxy-guard.js";
 
@@ -8,8 +8,11 @@ export interface RateLimitOptions {
   windowMs: number;
   /** Maximum requests allowed inside the window. */
   max: number;
-  /** Key builder. Defaults to the forwarded client IP. */
-  key?: (ip: string) => string;
+  /**
+   * Key builder. Defaults to the forwarded client IP. Return null to skip
+   * limiting a request that has nothing safe to key on.
+   */
+  key?: (req: Request, ip: string) => string | null;
 }
 
 /** Largest number of distinct keys kept before stale entries are pruned. */
@@ -27,12 +30,17 @@ const PRUNE_THRESHOLD = 10_000;
  */
 export function createRateLimit(options: RateLimitOptions): RequestHandler {
   const hits = new Map<string, number[]>();
-  const keyFor = options.key ?? ((ip: string) => ip);
+  const keyFor = options.key ?? ((_req: Request, ip: string) => ip);
 
   return (req, res, next) => {
     const now = Date.now();
     const ip = getClientIp(req) ?? "unknown";
-    const key = keyFor(ip);
+    const key = keyFor(req, ip);
+
+    if (key === null) {
+      next();
+      return;
+    }
 
     const recent = (hits.get(key) ?? []).filter(
       (timestamp) => now - timestamp < options.windowMs,
@@ -57,6 +65,9 @@ export function createRateLimit(options: RateLimitOptions): RequestHandler {
     recent.push(now);
     hits.set(key, recent);
 
+    // Pruning drops only fully stale keys, so a sustained burst of unique keys
+    // keeps the map at up to PRUNE_THRESHOLD live entries for a whole window.
+    // Bounded, and every entry is dropped once its own window passes.
     if (hits.size > PRUNE_THRESHOLD) {
       for (const [entryKey, timestamps] of hits) {
         if (

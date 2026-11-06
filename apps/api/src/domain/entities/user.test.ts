@@ -32,6 +32,24 @@ describe("User", () => {
     expect(user.lockedUntil).toBe(lockedUntil);
   });
 
+  it("starts a fresh window once an expired lock has passed", () => {
+    const lockedUntil = new Date(NOW.getTime() + LOCK_DURATION_MS);
+    const user = User.reconstitute(
+      makeUserSnapshot({
+        failedLoginAttempts: MAX_FAILED_LOGINS,
+        lockedUntil,
+      }),
+    );
+
+    const afterLock = new Date(lockedUntil.getTime() + 1);
+    expect(user.isLocked(afterLock)).toBe(false);
+
+    user.recordFailedLogin(afterLock);
+
+    expect(user.failedLoginAttempts).toBe(1);
+    expect(user.lockedUntil).toBeNull();
+  });
+
   it("clears the counter and lock after a successful sign in", () => {
     const user = User.reconstitute(
       makeUserSnapshot({

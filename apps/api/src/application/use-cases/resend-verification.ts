@@ -10,8 +10,9 @@ import { AuthError } from "../errors.js";
  * Issues a new verification link for an unverified account.
  *
  * Unknown and already verified addresses are treated the same, so the endpoint
- * never reveals whether an account exists. The previous link is invalidated by
- * overwriting the stored hash.
+ * never reveals whether an account exists. The replacement email is sent
+ * before the stored hash is overwritten, so a transport failure leaves the
+ * previous link valid and the resend throttle unspent.
  *
  * @param deps Injected auth dependencies.
  * @param email Normalized email address.
@@ -44,12 +45,6 @@ export async function resendVerification(
 
   const rawToken = deps.tokens.generateOpaqueToken();
 
-  await deps.users.saveVerificationIssue(user.id, {
-    tokenHash: deps.tokens.hashOpaqueToken(rawToken),
-    expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
-    sentAt: now,
-  });
-
   try {
     await deps.emails.sendVerificationEmail({
       to: user.email,
@@ -57,6 +52,16 @@ export async function resendVerification(
       url: verificationUrl(deps.webAppUrl, rawToken),
     });
   } catch (error) {
+    // The email is sent before the stored hash is replaced, so a delivery
+    // failure leaves the customer's previous link working. The controller
+    // still answers 202 so the endpoint never reveals whether the send failed.
     console.error("[auth] verification email failed", error);
+    return;
   }
+
+  await deps.users.saveVerificationIssue(user.id, {
+    tokenHash: deps.tokens.hashOpaqueToken(rawToken),
+    expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
+    sentAt: now,
+  });
 }

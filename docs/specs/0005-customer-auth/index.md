@@ -27,7 +27,7 @@ Crochet PeakZ gets its own customer accounts: email and password sign up with a 
 - **AC-5**: With valid cookies, `GET /api/auth/me` returns id, name, email, role, avatarUrl, and emailVerified, so the session survives a reload. When the access token has expired, the request is retried once through the refresh endpoint and comes back successful without the customer noticing. Each refresh rotates the refresh token and extends its life to 30 days from that moment.
 - **AC-6**: Presenting a refresh token that was already rotated revokes every session for that account and returns 401, requiring a fresh sign in on all devices, except within the 10 second window after that rotation, where a concurrent refresh receives a fresh pair from the same chain instead.
 - **AC-7**: Sign out revokes the current refresh row, clears both cookies, and leaves the browser signed out; a protected page opened afterwards redirects to sign in.
-- **AC-8**: Sign in with Google and with Facebook resolves an account by verified email. On a first sign in it stores the provider name, provider id, and avatar. It always marks the email verified. It redirects to the web OAuth result page with the provider, the revalidated relative `next`, and a success status; the page then moves the customer to `next` or their role default. On failure the same page receives `provider` and one of `access_denied`, `email_missing`, `provider_error`, or `link_failed`, and shows a readable message with Try again and Sign in with email. Linking to an existing unverified local account verifies that account and clears its stored password.
+- **AC-8**: Sign in with Google and with Facebook resolves an account by verified email. On a first sign in it stores the provider name, provider id, and avatar. It always marks the email verified. It redirects to the web OAuth result page with the provider, the revalidated relative `next`, and a success status; the page then moves the customer to `next` or their role default. On failure the same page receives `provider` and one of `access_denied`, `email_missing`, `email_unverified`, `provider_error`, or `link_failed`, and shows a readable message with Try again and Sign in with email. A profile only resolves or links an account when the provider asserts that the email is verified (Google `email_verified`, Facebook `verified`); an unproven email is refused with `email_unverified` and creates or links nothing. Linking to an existing unverified local account verifies that account and clears its stored password.
 - **AC-9**: `POST /api/auth/forgot-password` always answers 202, and only an account with a stored password receives an email. A valid reset link works once, for 1 hour, with the same password rule as registration. A completed reset revokes every session for the account.
 - **AC-10**: Admin only endpoints return 401 for anonymous callers and 403 for a signed in CUSTOMER. The admin area in the web app sends a CUSTOMER to the storefront. A user whose role was removed in the database loses admin access on the next admin request even while holding an unexpired access token.
 - **AC-11**: A signed out visitor opening a protected page is sent to `/login?next=<path>` and returned to that path after a successful sign in. `next` only accepts a same origin relative path; anything else falls back to the role default destination.
@@ -64,10 +64,10 @@ Two tables, both already in spec 0002. `User` gains auth columns and `RefreshTok
 | providerId                 | String(255)                | nullable, the provider's stable user id, indexed, not unique |
 | avatarUrl                  | String                     | nullable, filled from the provider on first OAuth sign in    |
 | emailVerified              | Boolean                    | default false                                                |
-| emailVerificationToken     | String(255)                | nullable, SHA 256 hash of the link token                     |
+| emailVerificationToken     | String(255)                | nullable, HMAC-SHA256 hash of the link token                 |
 | emailVerificationExpiresAt | **DateTime, new**          | nullable, issued at now + 24 hours                           |
 | emailVerificationSentAt    | **DateTime, new**          | nullable, set on every issue; the 60 second resend throttle  |
-| passwordResetToken         | **String(255), new**       | nullable, SHA 256 hash                                       |
+| passwordResetToken         | **String(255), new**       | nullable, HMAC-SHA256 hash                                   |
 | passwordResetExpiresAt     | **DateTime, new**          | nullable, now + 1 hour                                       |
 | failedLoginAttempts        | **Int, new**               | default 0                                                    |
 | lockedUntil                | **DateTime, new**          | nullable, now + 15 minutes after the 5th consecutive failure |
@@ -80,7 +80,7 @@ Two tables, both already in spec 0002. `User` gains auth columns and `RefreshTok
 | ----------------- | ------------------- | -------------------------------------------------------------- |
 | id                | UUID v7             | PK                                                             |
 | userId            | UUID                | FK to User, cascade delete, indexed                            |
-| tokenHash         | String(255)         | unique, SHA 256 of the opaque refresh token                    |
+| tokenHash         | String(255)         | unique, HMAC-SHA256 of the opaque refresh token                |
 | expiresAt         | DateTime            | now + 30 days, moved forward on every rotation                 |
 | deviceInfo        | String(255)         | nullable, from the User Agent header, copied on rotation       |
 | ipAddress         | **String(45), new** | nullable, client IP forwarded by the proxy, copied on rotation |
@@ -118,44 +118,44 @@ Proxy contract (web origin, `apps/web/src/app/api/auth/[...path]/route.ts`): for
 
 The OAuth start and callback URLs point at the web origin, so the provider round trip returns through the proxy and the cookies are set on the web host.
 
-OAuth state: the API issues a signed, 10 minute `state` value that carries a nonce and the relative `next`, stores it in an HttpOnly cookie scoped to `/api/auth`, and verifies both on callback. This gives CSRF protection for the redirect without adding session middleware. The result URL carries `provider`, the relative `next`, and on failure one of `access_denied`, `email_missing`, `provider_error`, or `link_failed`; on success the page uses `next` to replace its route.
+OAuth state: the API issues a signed, 10 minute `state` value that carries a nonce, the provider, and the relative `next`, stores it in an HttpOnly cookie scoped to `/api/auth`, and verifies both on callback (a state minted for one provider is rejected by the other). This gives CSRF protection for the redirect without adding session middleware. The result URL carries `provider`, the relative `next`, and on failure one of `access_denied`, `email_missing`, `email_unverified`, `provider_error`, or `link_failed`; on success the page uses `next` to replace its route.
 
 **Value sourcing**:
 
-| Action                  | Value produced / displayed                  | Source                                                                                                               |
-| ----------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| register                | normalized email                            | `trim()` then `toLowerCase()` in the input schema, stored in `User.email`                                            |
-| register, resend        | verification link URL                       | `WEB_APP_URL` + `/verify-email?token=` + raw token                                                                   |
-| register, resend, reset | raw token                                   | `crypto.randomBytes(32)` base64url, generated per issue                                                              |
-| register, resend, reset | stored token value                          | SHA 256 of the raw token, in the matching User column                                                                |
-| register, resend        | link lifetime                               | `User.emailVerificationExpiresAt`, 24 hours from issue                                                               |
-| register, resend        | 60 second throttle                          | `User.emailVerificationSentAt` compared to now                                                                       |
-| forgot password, reset  | reset link lifetime                         | `User.passwordResetExpiresAt`, 1 hour from issue                                                                     |
-| expired verify link     | account email for the resend form           | `User.email` resolved by the stored token hash                                                                       |
-| login                   | locked or not                               | `User.lockedUntil` compared to now; 15 minutes after the 5th failure                                                 |
-| login                   | device string                               | `User-Agent` request header, truncated to 255                                                                        |
-| login, refresh          | client IP                                   | proxy overwrites `x-forwarded-for` with the socket peer; the API takes the first value only after the secret matches |
-| login                   | session lifetime                            | now + 30 days, written to `RefreshToken.expiresAt`                                                                   |
-| login, OAuth success    | last sign in                                | `User.lastLoginAt`, set to now                                                                                       |
-| login, refresh, /me     | role, name, email, avatarUrl, emailVerified | `User` columns read at request time                                                                                  |
-| login, refresh, /me     | access token claims                         | `sub` = User.id, `role` = User.role, plus `iss`, `aud`, `iat`, `exp`                                                 |
-| refresh                 | successor device trail                      | `deviceInfo` and `ipAddress` copied from the rotated row                                                             |
-| reset                   | cleared account state                       | `failedLoginAttempts` = 0, `lockedUntil` = null, both reset columns null                                             |
-| OAuth callback          | name, avatar, provider id                   | provider profile fields on first sign in                                                                             |
-| OAuth callback          | email verified                              | provider proves the inbox, so set true                                                                               |
-| OAuth callback          | redirect destination                        | signed `state` value, which carries the relative `next` from the entry request                                       |
-| OAuth redirect target   | result page URL                             | `WEB_APP_URL` + `/auth/callback` with `status` or `error`, `provider`, and `next`                                    |
-| OAuth strategy          | `state` value                               | nonce plus relative `next`, HMAC signed with `JWT_SECRET`, 10 minute life                                            |
-| sign in redirect        | destination after sign in                   | `next` query param (relative only), else `/admin` for ADMIN and `/` for CUSTOMER                                     |
-| every user response     | `AuthUser` fields                           | `id`, `name`, `email`, `role`, `avatarUrl`, `emailVerified` from `User`                                              |
-| auth screens            | noindex                                     | `robots: { index: false }` in each of the six route segments plus an `X-Robots-Tag` response header                  |
-| auth emails             | sender address                              | `EMAIL_FROM`                                                                                                         |
-| proxy                   | shared secret value                         | `PROXY_SHARED_SECRET`, compared with a timing safe check                                                             |
-| API OAuth strategies    | callback URLs                               | `WEB_APP_URL` + `/api/auth/<provider>/callback`                                                                      |
+| Action                  | Value produced / displayed                  | Source                                                                                                                                 |
+| ----------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| register                | normalized email                            | `trim()` then `toLowerCase()` in the input schema, stored in `User.email`                                                              |
+| register, resend        | verification link URL                       | `WEB_APP_URL` + `/verify-email?token=` + raw token                                                                                     |
+| register, resend, reset | raw token                                   | `crypto.randomBytes(32)` base64url, generated per issue                                                                                |
+| register, resend, reset | stored token value                          | HMAC-SHA256 of the raw token, in the matching User column                                                                              |
+| register, resend        | link lifetime                               | `User.emailVerificationExpiresAt`, 24 hours from issue                                                                                 |
+| register, resend        | 60 second throttle                          | `User.emailVerificationSentAt` compared to now                                                                                         |
+| forgot password, reset  | reset link lifetime                         | `User.passwordResetExpiresAt`, 1 hour from issue                                                                                       |
+| expired verify link     | account email for the resend form           | `User.email` resolved by the stored token hash                                                                                         |
+| login                   | locked or not                               | `User.lockedUntil` compared to now; 15 minutes after the 5th failure                                                                   |
+| login                   | device string                               | `User-Agent` request header, truncated to 255                                                                                          |
+| login, refresh          | client IP                                   | proxy overwrites `x-forwarded-for` with the socket peer; the API takes the first value only after the secret matches                   |
+| login                   | session lifetime                            | now + 30 days, written to `RefreshToken.expiresAt`                                                                                     |
+| login, OAuth success    | last sign in                                | `User.lastLoginAt`, set to now                                                                                                         |
+| login, refresh, /me     | role, name, email, avatarUrl, emailVerified | `User` columns read at request time                                                                                                    |
+| login, refresh, /me     | access token claims                         | `sub` = User.id, `role` = User.role, plus `iss`, `aud`, `iat`, `exp`                                                                   |
+| refresh                 | successor device trail                      | `deviceInfo` and `ipAddress` copied from the rotated row                                                                               |
+| reset                   | cleared account state                       | `failedLoginAttempts` = 0, `lockedUntil` = null, both reset columns null                                                               |
+| OAuth callback          | name, avatar, provider id                   | provider profile fields on first sign in                                                                                               |
+| OAuth callback          | email verified                              | only when the provider asserts it (Google `email_verified`, Facebook `verified`); an unproven email is refused with `email_unverified` |
+| OAuth callback          | redirect destination                        | signed `state` value, which carries the relative `next` from the entry request                                                         |
+| OAuth redirect target   | result page URL                             | `WEB_APP_URL` + `/auth/callback` with `status` or `error`, `provider`, and `next`                                                      |
+| OAuth strategy          | `state` value                               | nonce plus relative `next` and provider, HMAC signed with `JWT_SECRET`, 10 minute life                                                 |
+| sign in redirect        | destination after sign in                   | `next` query param (relative only), else `/admin` for ADMIN and `/` for CUSTOMER                                                       |
+| every user response     | `AuthUser` fields                           | `id`, `name`, `email`, `role`, `avatarUrl`, `emailVerified` from `User`                                                                |
+| auth screens            | noindex                                     | `robots: { index: false }` in each of the six route segments plus an `X-Robots-Tag` response header                                    |
+| auth emails             | sender address                              | `EMAIL_FROM`                                                                                                                           |
+| proxy                   | shared secret value                         | `PROXY_SHARED_SECRET`, compared with a timing safe check                                                                               |
+| API OAuth strategies    | callback URLs                               | `WEB_APP_URL` + `/api/auth/<provider>/callback`                                                                                        |
 
 **Key invariants**:
 
-- No raw token is ever stored or logged. Cookies carry raw values; the database holds SHA 256 hashes only.
+- No raw token is ever stored. Cookies carry raw values; the database holds HMAC-SHA256 hashes only. The full verification or reset link (which contains a raw token) is logged only outside production, as a local fallback, and never in production.
 - No admin endpoint exists that grants ADMIN. Only the seed creates the first admin.
 - One account per email, compared in lowercase. Email is the identity key across local and OAuth sign in.
 - `authProvider` records how the account was first created and is never rewritten on link. The password reset rule keys on `passwordHash` being present, never on `authProvider`.
@@ -175,14 +175,14 @@ OAuth state: the API issues a signed, 10 minute `state` value that carries a non
 - Access tokens carry `iss` = `crochet-peakz` and `aud` = `crochet-peakz-web`, and a token with any other value is rejected.
 - A password reset email is only sent to an account that has a stored password. An OAuth only account still gets the generic 202 and signs in with its provider.
 - A failed verification email send does not roll back the account. The error is logged and the customer can resend.
-- OAuth accounts are resolved by verified email, which is the identity key. `providerId` is stored for support and debugging and is never the lookup key.
+- OAuth accounts are resolved by verified email, which is the identity key. `providerId` is stored for support and debugging and is never the lookup key. The provider must assert the email is verified before the API resolves or links an account: Google sends `email_verified`, Facebook sends `verified`, and an unproven email is refused rather than trusted.
 
 **Security model**:
 
 - Public: register, verify, resend, login, forgot, reset, the two OAuth entry points and callbacks, and refresh (guarded by the refresh cookie itself).
 - Authenticated: `/me`, sign out (a session, when present).
 - Admin: no auth endpoint is admin only in this slice. The guard helper built here (`requireAuth`, `requireAdmin`) is what later admin endpoints use; `requireAdmin` rechecks the role in the database on every call.
-- Sensitive data: email, name, avatar, password hash, session rows. Passwords are bcrypt hashed with cost 12; tokens are hashed with SHA 256; the shared secret is held only in environment variables.
+- Sensitive data: email, name, avatar, password hash, session rows. Passwords are bcrypt hashed with cost 12; tokens are hashed with HMAC-SHA256; the shared secret is held only in environment variables.
 - No card data is handled here, so PCI DSS scope is unchanged. Auth cookies are strictly necessary and do not wait for the cookie consent feature.
 - Compliance scope: household names and email addresses (personal data). No new consent flow; account deletion and export belong to the customer dashboard feature.
 
@@ -219,7 +219,7 @@ Tracer Bullet: the first milestone is a thin but real thread from a sign in form
 3. Add the env variables to `apps/api/src/config/env.ts` with fail fast checks, including the 32 character secret rule and a distinct secret rule, satisfies **AC-15**.
 4. Build the domain layer: `User` and `Session` entities with the verification, lock, and rotation invariants, plus `PasswordHasher` and `TokenService` interfaces with no framework imports, satisfies **AC-1**, **AC-4**, **AC-6**.
 5. Build the application use cases: register, verify email, resend, login, refresh, logout, me, forgot, reset, satisfies **AC-1** through **AC-7**, **AC-9**.
-6. Build the infrastructure adapters: Prisma user and session repositories, bcrypt hasher, `jose` access token signer, SHA 256 token hasher, Resend email sender with a console fallback in development, satisfies **AC-1**, **AC-5**.
+6. Build the infrastructure adapters: Prisma user and session repositories, bcrypt hasher, `jose` access token signer, HMAC-SHA256 token hasher, Resend email sender with a console fallback in development, satisfies **AC-1**, **AC-5**.
 7. Build the presentation layer: auth controller, router, `requireAuth` and `requireAdmin` middleware, cookie writer, proxy secret and trusted client IP middleware, and per route throttling, satisfies **AC-4**, **AC-7**, **AC-10**, **AC-12**, **AC-14**.
 8. Build the web proxy route handler and the server side session helper, including the Origin check, the forwarded client IP, manual redirects, `Set-Cookie` relay and clearing, and the one time refresh and replay, satisfies **AC-5**, **AC-14**.
 9. Build the sign in and register screens, the header avatar menu with sign out, and the protected layout guard with `next` handling, satisfies **AC-4**, **AC-7**, **AC-11**, **AC-13**.

@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UserRole } from "@crochet-peakz/shared";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,22 @@ function homeForRole(role: UserRole): string {
 }
 
 /**
+ * Returns the signed out visitor target with the request path plus query.
+ *
+ * The full path (with its query string) becomes the `next` value, so the sign
+ * in form, which only reads `next`, sends the visitor back to the same view.
+ */
+function signInReturnPath(
+  pathname: string,
+  searchParams: URLSearchParams,
+): string {
+  const query = searchParams.toString();
+  const destination = query ? `${pathname}?${query}` : pathname;
+
+  return `/login?next=${encodeURIComponent(destination)}`;
+}
+
+/**
  * Client guard for a protected area.
  *
  * It asks `/api/auth/me` through the web proxy, which refreshes a stale access
@@ -34,6 +50,7 @@ function homeForRole(role: UserRole): string {
  */
 export function RequireRole({ role, children }: RequireRoleProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { user, loading } = useSession();
 
@@ -43,14 +60,14 @@ export function RequireRole({ role, children }: RequireRoleProps) {
     }
 
     if (!user) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(signInReturnPath(pathname, searchParams));
       return;
     }
 
     if (user.role !== role) {
       router.replace(homeForRole(user.role));
     }
-  }, [loading, pathname, role, router, user]);
+  }, [loading, pathname, role, router, searchParams, user]);
 
   if (loading) {
     return (
@@ -80,9 +97,7 @@ export function RequireRole({ role, children }: RequireRoleProps) {
         </p>
         {!user ? (
           <Button asChild>
-            <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
-              Sign in
-            </Link>
+            <Link href={signInReturnPath(pathname, searchParams)}>Sign in</Link>
           </Button>
         ) : null}
       </div>

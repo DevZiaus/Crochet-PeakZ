@@ -14,6 +14,18 @@ import { usePathname } from "next/navigation";
 import { Header, MobileNavDrawer, navLinks } from "./header";
 import { mockDesktopBreakpoint } from "../test/match-media";
 
+// The account control reads the session with `useSession`, which would call
+// `/api/auth/me`. Stub it to the signed out state so the suite stays offline
+// and deterministic, and so the account control renders its real signed out
+// link instead of waiting on a request.
+vi.mock("../lib/auth/use-session", () => ({
+  useSession: () => ({
+    user: null,
+    loading: false,
+    signOut: () => Promise.resolve({ success: true as const }),
+  }),
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(usePathname).mockReturnValue("/");
@@ -57,15 +69,13 @@ describe("Header", () => {
   it("gives every header action an accessible name and keeps the placeholder disabled", () => {
     render(<Header />);
 
-    for (const name of [
-      "Search products",
-      "Shopping cart",
-      "Account",
-      "Open menu",
-    ]) {
+    for (const name of ["Search products", "Shopping cart", "Open menu"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
 
+    expect(
+      screen.getByRole("link", { name: "Sign in to your account" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Switch to dark mode" }),
     ).toBeInTheDocument();

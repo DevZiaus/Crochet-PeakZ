@@ -17,9 +17,8 @@ export async function verifyEmail(
   deps: AuthDependencies,
   rawToken: string,
 ): Promise<AuthUserDto> {
-  const user = await deps.users.findByVerificationTokenHash(
-    deps.tokens.hashOpaqueToken(rawToken),
-  );
+  const tokenHash = deps.tokens.hashOpaqueToken(rawToken);
+  const user = await deps.users.findByVerificationTokenHash(tokenHash);
 
   if (!user) {
     throw new AuthError(
@@ -37,7 +36,15 @@ export async function verifyEmail(
     );
   }
 
-  await deps.users.saveVerified(user.id);
+  // The guarded consume closes the race: when a second request redeemed the
+  // same link first, this call finds the token gone and reports it invalid.
+  const consumed = await deps.users.saveVerified(user.id, tokenHash);
+  if (!consumed) {
+    throw new AuthError(
+      "INVALID_LINK",
+      "This verification link is invalid or has already been used.",
+    );
+  }
 
   return { ...user.toAuthUser(), emailVerified: true };
 }

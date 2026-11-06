@@ -3,7 +3,9 @@ import type { AuthDependencies } from "../dependencies.js";
 /**
  * Revokes the session behind a refresh token.
  *
- * Sign out is idempotent: a missing or unknown token is not an error.
+ * Sign out kills the presented session and every successor it rotated into, so
+ * signing out with an already rotated token still ends the live chain. It is
+ * idempotent: a missing or unknown token is not an error.
  *
  * @param deps Injected auth dependencies.
  * @param rawToken Raw refresh token from the cookie, when present.
@@ -24,5 +26,5 @@ export async function logoutSession(
     return;
   }
 
-  await deps.sessions.revoke(session.id, deps.clock.now());
+  await deps.sessions.revokeChain(session.id, deps.clock.now());
 }

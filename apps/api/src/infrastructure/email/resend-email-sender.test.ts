@@ -32,7 +32,9 @@ describe("composeAuthEmail", () => {
     expect(message.from).toBe(FROM);
     expect(message.to).toEqual(["ada@example.com"]);
     expect(message.subject).toBe("Confirm your Crochet PeakZ email");
-    expect(message.idempotencyKey).toBe("verify-email/ada@example.com");
+    expect(message.idempotencyKey).toMatch(
+      /^verify-email\/[a-f0-9]{64}\/[a-f0-9]{32}$/,
+    );
     expect(message.text).toContain(VERIFY_URL);
     expect(message.html).toContain(VERIFY_URL);
     expect(message.html).toContain("Confirm my email");
@@ -48,7 +50,9 @@ describe("composeAuthEmail", () => {
     expect(message.from).toBe(FROM);
     expect(message.to).toEqual(["ada@example.com"]);
     expect(message.subject).toBe("Reset your Crochet PeakZ password");
-    expect(message.idempotencyKey).toBe("reset-password/ada@example.com");
+    expect(message.idempotencyKey).toMatch(
+      /^reset-password\/[a-f0-9]{64}\/[a-f0-9]{32}$/,
+    );
     expect(message.text).toContain(RESET_URL);
     expect(message.html).toContain(RESET_URL);
     expect(message.html).toContain("Choose a new password");
@@ -97,16 +101,42 @@ describe("composeAuthEmail", () => {
     expect(message.to).toHaveLength(1);
   });
 
-  it("scopes the idempotency key to the recipient so a resend is distinct", () => {
+  it("gives a resend with a new link its own idempotency key", () => {
     const first = composeAuthEmail("verification", FROM, makeEmail());
     const second = composeAuthEmail(
       "verification",
       FROM,
-      makeEmail({ to: "grace@example.com" }),
+      makeEmail({
+        url: "https://shop.example.com/verify-email?token=new-token",
+      }),
     );
 
     expect(first.idempotencyKey).not.toBe(second.idempotencyKey);
-    expect(second.idempotencyKey).toBe("verify-email/grace@example.com");
+    expect(second.idempotencyKey).toMatch(
+      /^verify-email\/[a-f0-9]{64}\/[a-f0-9]{32}$/,
+    );
+  });
+
+  it("keeps the same idempotency key for a retry of the same link", () => {
+    const first = composeAuthEmail("verification", FROM, makeEmail());
+    const retry = composeAuthEmail("verification", FROM, makeEmail());
+
+    expect(first.idempotencyKey).toBe(retry.idempotencyKey);
+  });
+
+  it("fits under Resend's 256 character idempotency limit for a long address", () => {
+    // A 255 character address is the longest the email column accepts. The
+    // recipient is digested, so the key stays a fixed, short length.
+    const longAddress = `${"a".repeat(243)}@example.com`;
+    const message = composeAuthEmail(
+      "verification",
+      FROM,
+      makeEmail({ to: longAddress }),
+    );
+
+    expect(longAddress).toHaveLength(255);
+    expect(message.idempotencyKey).toHaveLength(12 + 1 + 64 + 1 + 32);
+    expect(message.idempotencyKey.length).toBeLessThan(256);
   });
 
   it("keeps the two kinds on separate idempotency key prefixes", () => {
@@ -114,7 +144,9 @@ describe("composeAuthEmail", () => {
     const reset = composeAuthEmail("password-reset", FROM, makeEmail());
 
     expect(verification.idempotencyKey).not.toBe(reset.idempotencyKey);
-    expect(reset.idempotencyKey).toBe("reset-password/ada@example.com");
+    expect(reset.idempotencyKey).toMatch(
+      /^reset-password\/[a-f0-9]{64}\/[a-f0-9]{32}$/,
+    );
   });
 
   it("carries the link in both bodies so the message is usable without HTML", () => {

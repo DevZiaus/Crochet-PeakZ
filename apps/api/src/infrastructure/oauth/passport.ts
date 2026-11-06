@@ -89,7 +89,7 @@ export function createOAuthAuthenticator(
         clientID: config.facebook.id,
         clientSecret: config.facebook.secret,
         callbackURL: `${config.webAppUrl}/api/auth/facebook/callback`,
-        profileFields: ["id", "displayName", "emails", "photos"],
+        profileFields: ["id", "displayName", "emails", "photos", "verified"],
         scope: ["email"],
         authorizationURL: config.facebook.endpoints?.authorizationUrl,
         tokenURL: config.facebook.endpoints?.tokenUrl,

@@ -1,6 +1,7 @@
 import type { CookieOptions, Response } from "express";
 import {
   ACCESS_COOKIE_NAME,
+  ACCESS_TOKEN_TTL_SECONDS,
   OAUTH_STATE_COOKIE_NAME,
   OAUTH_STATE_COOKIE_PATH,
   OAUTH_STATE_TTL_SECONDS,
@@ -37,7 +38,7 @@ export function setAuthCookies(
 ): void {
   res.cookie(ACCESS_COOKIE_NAME, tokens.accessToken, {
     ...baseOptions(isProduction),
-    maxAge: 15 * 60 * 1000,
+    maxAge: ACCESS_TOKEN_TTL_SECONDS * 1000,
   });
   res.cookie(REFRESH_COOKIE_NAME, tokens.refreshToken, {
     ...baseOptions(isProduction),

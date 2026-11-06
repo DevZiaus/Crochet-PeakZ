@@ -60,7 +60,6 @@ function session(overrides: Partial<SessionState>): SessionState {
   return {
     user: null,
     loading: false,
-    refresh: vi.fn(),
     signOut: vi.fn(),
     ...overrides,
   };

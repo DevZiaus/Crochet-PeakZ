@@ -84,6 +84,21 @@ describe("loadEnv startup validation", () => {
       /EMAIL_FROM/,
     );
   });
+
+  it.each(["foo@", "@example.com", "foo@bar", "Crochet PeakZ <hello>"])(
+    "refuses a malformed EMAIL_FROM address %s (AC-15)",
+    (value) => {
+      expect(() => loadEnv({ ...baseEnv, EMAIL_FROM: value })).toThrow(
+        /EMAIL_FROM/,
+      );
+    },
+  );
+
+  it("accepts a display name with a real address (AC-15)", () => {
+    expect(() =>
+      loadEnv({ ...baseEnv, EMAIL_FROM: "Crochet PeakZ <hello@example.com>" }),
+    ).not.toThrow();
+  });
 });
 
 describe("loadEnv OAuth endpoint overrides", () => {

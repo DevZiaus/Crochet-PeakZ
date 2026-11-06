@@ -206,7 +206,9 @@ describeWithDatabase("PrismaUserRepository", () => {
         sentAt: new Date(),
       });
 
-      await repository.saveVerified(user.id);
+      const consumed = await repository.saveVerified(user.id, "hash:to-clear");
+
+      expect(consumed).toBe(true);
 
       const row = await database.client.user.findUniqueOrThrow({
         where: { id: user.id },
@@ -217,6 +219,10 @@ describeWithDatabase("PrismaUserRepository", () => {
       expect(
         await repository.findByVerificationTokenHash("hash:to-clear"),
       ).toBeNull();
+      // The second redemption of the same link finds no matching digest.
+      expect(await repository.saveVerified(user.id, "hash:to-clear")).toBe(
+        false,
+      );
     });
   });
 
@@ -260,7 +266,14 @@ describeWithDatabase("PrismaUserRepository", () => {
         lockedUntil: new Date("2026-04-01T00:00:00.000Z"),
       });
 
-      await repository.savePasswordReset(user.id, "hashed:new");
+      const consumed = await repository.completePasswordReset({
+        userId: user.id,
+        passwordHash: "hashed:new",
+        tokenHash: "hash:apply",
+        now: new Date("2026-03-02T00:00:00.000Z"),
+      });
+
+      expect(consumed).toBe(true);
 
       const row = await database.client.user.findUniqueOrThrow({
         where: { id: user.id },
@@ -270,6 +283,19 @@ describeWithDatabase("PrismaUserRepository", () => {
       expect(row.passwordResetExpiresAt).toBeNull();
       expect(row.failedLoginAttempts).toBe(0);
       expect(row.lockedUntil).toBeNull();
+      // Replaying the spent link changes nothing and reports the miss.
+      expect(
+        await repository.completePasswordReset({
+          userId: user.id,
+          passwordHash: "hashed:again",
+          tokenHash: "hash:apply",
+          now: new Date("2026-03-02T00:00:00.000Z"),
+        }),
+      ).toBe(false);
+      const unchanged = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(unchanged.passwordHash).toBe("hashed:new");
     });
   });
 
@@ -338,6 +364,141 @@ describeWithDatabase("PrismaUserRepository", () => {
     });
   });
 
+  describe("saveSuccessfulLogin", () => {
+    it("clears the counter and lock when the count still matches", async () => {
+      const email = uniqueEmail("repo-success-match");
+      const user = await repository.createLocal({
+        name: "Success Match",
+        email,
+        passwordHash: "hashed:x",
+      });
+      await repository.saveLoginState(user.id, {
+        failedLoginAttempts: 3,
+        lockedUntil: null,
+      });
+      const lastLoginAt = new Date("2026-08-01T12:00:00.000Z");
+
+      await expect(
+        repository.saveSuccessfulLogin(
+          user.id,
+          { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt },
+          3,
+        ),
+      ).resolves.toBe(true);
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(row.failedLoginAttempts).toBe(0);
+      expect(row.lockedUntil).toBeNull();
+      expect(row.lastLoginAt?.toISOString()).toBe(lastLoginAt.toISOString());
+    });
+
+    it("keeps a newer failure count and still records the sign in time", async () => {
+      const email = uniqueEmail("repo-success-stale");
+      const user = await repository.createLocal({
+        name: "Success Stale",
+        email,
+        passwordHash: "hashed:x",
+      });
+      await repository.saveLoginState(user.id, {
+        failedLoginAttempts: 4,
+        lockedUntil: null,
+      });
+      const lastLoginAt = new Date("2026-08-02T12:00:00.000Z");
+
+      await expect(
+        repository.saveSuccessfulLogin(
+          user.id,
+          { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt },
+          3,
+        ),
+      ).resolves.toBe(false);
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      // The stale success write must not erase the parallel failure.
+      expect(row.failedLoginAttempts).toBe(4);
+      expect(row.lastLoginAt?.toISOString()).toBe(lastLoginAt.toISOString());
+    });
+  });
+
+  describe("saveFailedLogin", () => {
+    it("persists the increment when the counter still matches", async () => {
+      const email = uniqueEmail("repo-failed-match");
+      const user = await repository.createLocal({
+        name: "Failed Match",
+        email,
+        passwordHash: "hashed:x",
+      });
+
+      await expect(
+        repository.saveFailedLogin(
+          user.id,
+          { failedLoginAttempts: 1, lockedUntil: null },
+          0,
+        ),
+      ).resolves.toBe(true);
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(row.failedLoginAttempts).toBe(1);
+    });
+
+    it("refuses the write when the stored counter has moved on", async () => {
+      const email = uniqueEmail("repo-failed-stale");
+      const user = await repository.createLocal({
+        name: "Failed Stale",
+        email,
+        passwordHash: "hashed:x",
+      });
+      await repository.saveLoginState(user.id, {
+        failedLoginAttempts: 1,
+        lockedUntil: null,
+      });
+
+      await expect(
+        repository.saveFailedLogin(
+          user.id,
+          { failedLoginAttempts: 1, lockedUntil: null },
+          0,
+        ),
+      ).resolves.toBe(false);
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      // The stale write must not overwrite the newer count.
+      expect(row.failedLoginAttempts).toBe(1);
+    });
+
+    it("lets exactly one of two parallel writes win", async () => {
+      const email = uniqueEmail("repo-failed-race");
+      const user = await repository.createLocal({
+        name: "Failed Race",
+        email,
+        passwordHash: "hashed:x",
+      });
+
+      const results = await Promise.all([
+        repository.saveFailedLogin(
+          user.id,
+          { failedLoginAttempts: 1, lockedUntil: null },
+          0,
+        ),
+        repository.saveFailedLogin(
+          user.id,
+          { failedLoginAttempts: 1, lockedUntil: null },
+          0,
+        ),
+      ]);
+
+      expect(results.filter(Boolean)).toHaveLength(1);
+    });
+  });
+
   describe("saveOAuthLogin", () => {
     it("keeps the existing password when the link does not clear it", async () => {
       const email = uniqueEmail("repo-oauth-keep");
@@ -366,6 +527,42 @@ describeWithDatabase("PrismaUserRepository", () => {
       expect(row.lastLoginAt?.toISOString()).toBe(lastLoginAt.toISOString());
     });
 
+    it("clears pending verification and reset links", async () => {
+      const email = uniqueEmail("repo-oauth-clear-links");
+      const user = await repository.createLocal({
+        name: "Clear Links",
+        email,
+        passwordHash: "hashed:kept",
+      });
+      await database.client.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerificationToken: "verify-hash",
+          emailVerificationExpiresAt: new Date("2027-01-01T00:00:00.000Z"),
+          emailVerificationSentAt: new Date("2026-12-01T00:00:00.000Z"),
+          passwordResetToken: "reset-hash",
+          passwordResetExpiresAt: new Date("2027-01-02T00:00:00.000Z"),
+        },
+      });
+
+      await repository.saveOAuthLogin(user.id, {
+        providerId: "google-3",
+        avatarUrl: null,
+        emailVerified: true,
+        clearPassword: false,
+        lastLoginAt: new Date("2026-12-03T00:00:00.000Z"),
+      });
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(row.emailVerificationToken).toBeNull();
+      expect(row.emailVerificationExpiresAt).toBeNull();
+      expect(row.emailVerificationSentAt).toBeNull();
+      expect(row.passwordResetToken).toBeNull();
+      expect(row.passwordResetExpiresAt).toBeNull();
+    });
+
     it("clears the password when the link says to", async () => {
       const email = uniqueEmail("repo-oauth-clear");
       const user = await repository.createLocal({
@@ -387,6 +584,28 @@ describeWithDatabase("PrismaUserRepository", () => {
       });
       expect(row.passwordHash).toBeNull();
       expect(row.emailVerified).toBe(true);
+    });
+
+    it("stores a null provider id when the link has none", async () => {
+      const email = uniqueEmail("repo-oauth-null");
+      const user = await repository.createLocal({
+        name: "Null Provider",
+        email,
+        passwordHash: "hashed:kept",
+      });
+
+      await repository.saveOAuthLogin(user.id, {
+        providerId: null,
+        avatarUrl: null,
+        emailVerified: true,
+        clearPassword: false,
+        lastLoginAt: new Date("2026-07-03T00:00:00.000Z"),
+      });
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(row.providerId).toBeNull();
     });
   });
 });

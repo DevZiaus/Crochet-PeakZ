@@ -13,12 +13,16 @@ import userEvent from "@testing-library/user-event";
 import type { AuthUser } from "@crochet-peakz/shared";
 import type { SessionState } from "../../lib/auth/use-session";
 
-const { pathname, routerReplace, routerRefresh, signOut } = vi.hoisted(() => ({
-  pathname: { current: "/shop/hats" },
-  routerReplace: vi.fn(),
-  routerRefresh: vi.fn(),
-  signOut: vi.fn(() => Promise.resolve()),
-}));
+const { pathname, searchParams, routerReplace, routerRefresh, signOut } =
+  vi.hoisted(() => ({
+    pathname: { current: "/shop/hats" },
+    searchParams: new URLSearchParams(),
+    routerReplace: vi.fn(),
+    routerRefresh: vi.fn(),
+    signOut: vi.fn((): Promise<{ success: true } | { success: false }> =>
+      Promise.resolve({ success: true }),
+    ),
+  }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -30,7 +34,7 @@ vi.mock("next/navigation", () => ({
     prefetch: vi.fn(),
   }),
   usePathname: () => pathname.current,
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => searchParams,
   useSelectedLayoutSegment: () => null,
   useParams: () => ({}),
 }));
@@ -65,7 +69,6 @@ function session(overrides: Partial<SessionState> = {}): SessionState {
   return {
     user: null,
     loading: false,
-    refresh: vi.fn(),
     signOut,
     ...overrides,
   };
@@ -73,6 +76,9 @@ function session(overrides: Partial<SessionState> = {}): SessionState {
 
 beforeEach(() => {
   pathname.current = "/shop/hats";
+  for (const key of [...searchParams.keys()]) {
+    searchParams.delete(key);
+  }
   routerReplace.mockClear();
   routerRefresh.mockClear();
   signOut.mockClear();
@@ -96,6 +102,20 @@ describe("AuthMenu", () => {
     expect(
       screen.getByRole("link", { name: "Sign in to your account" }),
     ).toHaveAttribute("href", "/login?next=%2Fshop%2Fhats%2Fwool-beanie");
+  });
+
+  it("keeps the query string as the destination after signing in", () => {
+    searchParams.set("status", "open");
+    searchParams.set("page", "2");
+
+    render(<AuthMenu />);
+
+    expect(
+      screen.getByRole("link", { name: "Sign in to your account" }),
+    ).toHaveAttribute(
+      "href",
+      "/login?next=%2Fshop%2Fhats%3Fstatus%3Dopen%26page%3D2",
+    );
   });
 
   it("falls back to the storefront when the current path is an auth screen", () => {
@@ -189,5 +209,75 @@ describe("AuthMenu", () => {
       expect(routerReplace).toHaveBeenCalledWith("/");
     });
     expect(routerRefresh).toHaveBeenCalled();
+  });
+
+  it("stays put when the server did not revoke the session", async () => {
+    const user = userEvent.setup();
+    mockedUseSession.mockReturnValue(session({ user: customer }));
+    signOut.mockResolvedValueOnce({ success: false });
+
+    render(<AuthMenu />);
+    await user.click(
+      screen.getByRole("button", { name: "Account menu for Ada Lovelace" }),
+    );
+    await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
+
+    await waitFor(() => {
+      expect(signOut).toHaveBeenCalledTimes(1);
+    });
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(routerRefresh).not.toHaveBeenCalled();
+  });
+
+  it("tells the customer when sign out failed and offers a retry", async () => {
+    const user = userEvent.setup();
+    mockedUseSession.mockReturnValue(session({ user: customer }));
+    signOut.mockResolvedValueOnce({ success: false });
+
+    render(<AuthMenu />);
+    await user.click(
+      screen.getByRole("button", { name: "Account menu for Ada Lovelace" }),
+    );
+    await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
+
+    // The menu stays open, the failure is announced, and a retry is offered as
+    // a menu item so the arrow keys can reach it.
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "We could not sign you out",
+    );
+    const retry = screen.getByRole("menuitem", { name: "Try again" });
+
+    signOut.mockResolvedValueOnce({ success: true });
+    await user.click(retry);
+
+    await waitFor(() => {
+      expect(signOut).toHaveBeenCalledTimes(2);
+    });
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith("/");
+    });
+  });
+
+  it("forgets the failure once the menu closes", async () => {
+    const user = userEvent.setup();
+    mockedUseSession.mockReturnValue(session({ user: customer }));
+    signOut.mockResolvedValueOnce({ success: false });
+
+    render(<AuthMenu />);
+    const trigger = screen.getByRole("button", {
+      name: "Account menu for Ada Lovelace",
+    });
+    await user.click(trigger);
+    await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    await user.click(trigger);
+    await screen.findByText("ada@example.com");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

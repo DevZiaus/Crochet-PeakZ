@@ -40,10 +40,22 @@ export const passwordSchema = z.string().refine(
 /** Email schema: trims surrounding whitespace and lowercases the value. */
 export const authEmailSchema = z
   .string()
-  .trim()
-  .toLowerCase()
+  .transform(normalizeEmail)
   .pipe(z.email({ message: "Enter a valid email address." }))
   .pipe(z.string().max(255, "Email must be 255 characters or fewer."));
+
+/**
+ * Normalizes an email address for storage and comparison.
+ *
+ * One definition is shared by the input schema and the login and resend
+ * throttles, so a normalized address can never drift between them.
+ *
+ * @param value Raw address.
+ * @returns Trimmed, lowercased address.
+ */
+export function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
 
 /** Display name schema. */
 export const authNameSchema = z

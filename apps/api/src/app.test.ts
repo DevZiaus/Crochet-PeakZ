@@ -139,6 +139,21 @@ describe("createApp", () => {
     expect(JSON.stringify(body)).not.toContain("unexpected failure");
   });
 
+  it("answers 400, not 500, for a malformed JSON body", async () => {
+    const response = await fetch(`${baseUrl}/api/auth/probe`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{not json",
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as {
+      error: { message: string; statusCode: number };
+    };
+    expect(body.error.statusCode).toBe(400);
+    expect(body.error.message).toBe("The request could not be read.");
+  });
+
   it("does not advertise the server technology", async () => {
     const response = await fetch(`${baseUrl}/api/health`);
 

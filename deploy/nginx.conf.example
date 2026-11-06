@@ -1,8 +1,10 @@
 # Example Nginx reverse proxy for a self-hosted deployment.
 #
 # The API and web server listen on localhost ports (or container names on a
-# Docker network). Route /api/* to Express and everything else to Next.js so
-# the browser sees one origin. That keeps cookies first-party and avoids CORS.
+# Docker network). Route /api/auth/* to Next.js so its auth proxy can add the
+# shared secret and relay cookies, route other /api/* to Express, and route
+# everything else to Next.js. The browser still sees one origin, which keeps
+# cookies first-party and avoids CORS.
 #
 # If you use this file, build the web image with NEXT_PUBLIC_API_URL=/api.
 # Set TRUST_PROXY=1 on the API so Express reads X-Forwarded-* correctly.

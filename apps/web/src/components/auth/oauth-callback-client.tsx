@@ -25,6 +25,8 @@ const ERROR_MESSAGES: Record<OAuthErrorCode, string> = {
     "You cancelled the sign in before sharing your account. Nothing changed.",
   email_missing:
     "Your provider did not share an email address. Add one to that account, or sign in with email instead.",
+  email_unverified:
+    "Your provider has not confirmed that email address yet. Confirm it there, then try again, or sign in with email instead.",
   provider_error:
     "The provider did not finish the sign in. This is usually temporary, so try again.",
   link_failed:

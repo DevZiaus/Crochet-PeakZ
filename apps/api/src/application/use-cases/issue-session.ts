@@ -6,7 +6,7 @@ import type { SessionContext } from "../errors.js";
 /**
  * Opens a new session row and signs an access token for the account.
  *
- * The raw refresh token is returned to the caller and only its SHA 256 hash is
+ * The raw refresh token is returned to the caller and only its HMAC-SHA256
  * persisted.
  *
  * @param deps Injected auth dependencies.

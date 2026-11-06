@@ -9,11 +9,18 @@ export interface SessionState {
   user: AuthUser | null;
   /** True until the first `/me` answer arrives. */
   loading: boolean;
-  /** Re-reads the session, using the proxy's refresh and replay. */
-  refresh: () => Promise<void>;
-  /** Revokes the current session and clears the local user. */
-  signOut: () => Promise<void>;
+  /**
+   * Revokes the current session and clears the local user.
+   *
+   * Returns `success: true` when the server revoked the session and `success:
+   * false` when the request failed, so callers can keep the user in place and
+   * retry on failure.
+   */
+  signOut: () => Promise<SignOutResult>;
 }
+
+/** Whether the server revoked the session behind a sign out call. */
+type SignOutResult = { success: true } | { success: false };
 
 /**
  * Reads the current session from the server.
@@ -52,19 +59,26 @@ export function useSession(): SessionState {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    const nextUser = await readSession();
-    setUser(nextUser);
-    setLoading(false);
-  }, []);
+  const signOut = useCallback(async (): Promise<SignOutResult> => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+      });
 
-  const signOut = useCallback(async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-    });
-    setUser(null);
+      // Keep the local user when the server did not revoke the session, so the
+      // screen never claims the customer is signed out while the cookie lives.
+      if (response.ok) {
+        setUser(null);
+        return { success: true };
+      }
+
+      return { success: false };
+    } catch {
+      // The request never reached the server, so the session is still alive.
+      return { success: false };
+    }
   }, []);
 
   useEffect(() => {
@@ -85,5 +99,5 @@ export function useSession(): SessionState {
     };
   }, []);
 
-  return { user, loading, refresh, signOut };
+  return { user, loading, signOut };
 }

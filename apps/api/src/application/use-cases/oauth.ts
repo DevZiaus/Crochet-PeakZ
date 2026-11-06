@@ -39,8 +39,14 @@ export async function signInWithOAuth(
     return issueSession(deps, user, context);
   }
 
+  // Keep the stored provider pair whenever the signing in provider differs,
+  // even when the stored id is null, so the record never mixes one provider's
+  // name with another's id. A same provider sign in refreshes the stored id.
+  const sameProvider = existing.authProvider === profile.provider;
+  const keepProvider = !sameProvider;
+
   await deps.users.saveOAuthLogin(existing.id, {
-    providerId: profile.providerId,
+    providerId: keepProvider ? existing.providerId : profile.providerId,
     avatarUrl: existing.avatarUrl ?? profile.avatarUrl,
     emailVerified: true,
     clearPassword: existing.shouldClearPasswordOnLink(),

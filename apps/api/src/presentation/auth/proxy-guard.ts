@@ -1,6 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
 import type { RequestHandler } from "express";
 import { AppError } from "../middleware/errorHandler.js";
+import { timingSafeStringEquals } from "./timing-safe.js";
 
 /** Header the web proxy uses to prove it sent the request. */
 export const PROXY_SECRET_HEADER = "x-proxy-secret";
@@ -8,9 +8,11 @@ export const PROXY_SECRET_HEADER = "x-proxy-secret";
 /**
  * Rejects requests that did not come through the web proxy.
  *
- * The secret comparison is timing safe. After the secret matches, every state
- * changing request must also carry the configured web origin, which blocks a
- * cross site form post from riding the customer's cookies.
+ * The secret comparison is timing safe, including its length, so a caller
+ * cannot time it to learn the secret or how long it is. After the secret
+ * matches, every state changing request must also carry the configured web
+ * origin, which blocks a cross site form post from riding the customer's
+ * cookies.
  *
  * @param options Proxy shared secret and the one accepted web origin.
  * @returns Express middleware.
@@ -19,13 +21,12 @@ export function createProxyGuard(options: {
   sharedSecret: string;
   webAppUrl: string;
 }): RequestHandler {
-  const expected = Buffer.from(options.sharedSecret);
+  const expected = options.sharedSecret;
 
   return (req, _res, next) => {
     const provided = req.get(PROXY_SECRET_HEADER) ?? "";
-    const given = Buffer.from(provided);
 
-    if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+    if (!timingSafeStringEquals(provided, expected)) {
       next(
         new AppError(
           401,
@@ -50,8 +51,10 @@ export function createProxyGuard(options: {
 /**
  * Returns the client IP the proxy forwarded.
  *
- * The proxy overwrites `X-Forwarded-For` with the socket peer address, so the
- * first value is the only one the API honours.
+ * The web proxy selects the last hop added by the trusted edge and sends that
+ * single value, so the first entry here is the one it chose. The raw API still
+ * trusts this header, so it must not be reachable from untrusted networks. This
+ * assumes exactly one trusted edge in front of the web app.
  *
  * @param req Express request.
  * @returns An IP address, or null when no header is present.

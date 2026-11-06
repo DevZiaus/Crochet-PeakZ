@@ -11,16 +11,22 @@ import { render, screen } from "@testing-library/react";
 import type { AuthUser } from "@crochet-peakz/shared";
 import type { SessionState } from "../../lib/auth/use-session";
 
-const { redirectMock } = vi.hoisted(() => ({
+const { redirectMock, headersMock } = vi.hoisted(() => ({
   // Next.js signals a redirect by throwing, so the mock must throw too.
   redirectMock: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
+  headersMock: vi.fn(() => Promise.resolve(new Headers())),
+}));
+
+vi.mock("next/headers", () => ({
+  headers: headersMock,
 }));
 
 vi.mock("next/navigation", () => ({
   redirect: redirectMock,
   usePathname: () => "/admin",
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({
     replace: vi.fn(),
     push: vi.fn(),
@@ -67,7 +73,6 @@ function clientSession(overrides: Partial<SessionState>): SessionState {
   return {
     user: null,
     loading: false,
-    refresh: vi.fn(),
     signOut: vi.fn(),
     ...overrides,
   };
@@ -80,6 +85,8 @@ function renderShell() {
 
 beforeEach(() => {
   redirectMock.mockClear();
+  headersMock.mockClear();
+  headersMock.mockResolvedValue(new Headers());
   mockedGetSessionUser.mockReset();
   mockedUseSession.mockReturnValue(clientSession({ user: admin }));
 });
@@ -91,6 +98,19 @@ describe("AdminLayout", () => {
     await expect(renderShell()).rejects.toThrow("NEXT_REDIRECT");
 
     expect(redirectMock).toHaveBeenCalledWith("/login?next=%2Fadmin");
+  });
+
+  it("returns an anonymous caller to the admin subpath it asked for", async () => {
+    mockedGetSessionUser.mockResolvedValue(null);
+    headersMock.mockResolvedValue(
+      new Headers({ "x-auth-return-to": "/admin/orders?status=open" }),
+    );
+
+    await expect(renderShell()).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirectMock).toHaveBeenCalledWith(
+      "/login?next=%2Fadmin%2Forders%3Fstatus%3Dopen",
+    );
   });
 
   it("sends a customer to the storefront instead of rendering", async () => {
@@ -108,6 +128,27 @@ describe("AdminLayout", () => {
 
     expect(redirectMock).not.toHaveBeenCalled();
     expect(screen.getByText("Store dashboard")).toBeInTheDocument();
+  });
+
+  it("trusts the role the proxy already proved", async () => {
+    headersMock.mockResolvedValue(new Headers({ "x-auth-role": "ADMIN" }));
+    mockedGetSessionUser.mockResolvedValue(null);
+
+    render(await renderShell());
+
+    expect(redirectMock).not.toHaveBeenCalled();
+    expect(mockedGetSessionUser).not.toHaveBeenCalled();
+    expect(screen.getByText("Store dashboard")).toBeInTheDocument();
+  });
+
+  it("keeps a customer out when the proxy proved a customer", async () => {
+    headersMock.mockResolvedValue(new Headers({ "x-auth-role": "CUSTOMER" }));
+    mockedGetSessionUser.mockResolvedValue(admin);
+
+    await expect(renderShell()).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirectMock).toHaveBeenCalledWith("/");
+    expect(mockedGetSessionUser).not.toHaveBeenCalled();
   });
 
   it("never puts admin markup in the output for a non admin", async () => {

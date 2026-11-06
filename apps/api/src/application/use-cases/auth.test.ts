@@ -9,12 +9,13 @@ import { logoutSession } from "./logout.js";
 import { signInWithOAuth } from "./oauth.js";
 import { refreshSession } from "./refresh.js";
 import { registerUser } from "./register.js";
+import { resendVerification } from "./resend-verification.js";
 import { resetPassword } from "./reset-password.js";
 import { verifyEmail } from "./verify-email.js";
 import {
   createTestDependencies,
+  InMemoryUserRepository,
   makeUserSnapshot,
-  type InMemoryUserRepository,
 } from "../../test-support/auth-fakes.js";
 
 /**
@@ -38,6 +39,63 @@ function seedUser(
   const user = User.reconstitute(makeUserSnapshot(overrides));
   users.seed(user);
   return user;
+}
+
+/**
+ * Repository that refuses the first failed login write, standing in for a
+ * parallel attempt that commits its own increment first.
+ */
+class RacingUserRepository extends InMemoryUserRepository {
+  /** When set, the next failed login write is refused. */
+  refuseNextWrite = false;
+
+  override async saveFailedLogin(
+    userId: string,
+    state: { failedLoginAttempts: number; lockedUntil: Date | null },
+    expectedFailedLoginAttempts: number,
+  ): Promise<boolean> {
+    if (this.refuseNextWrite) {
+      this.refuseNextWrite = false;
+      this.loginStates.set(userId, {
+        failedLoginAttempts: expectedFailedLoginAttempts + 1,
+        lockedUntil: null,
+      });
+      return false;
+    }
+    return super.saveFailedLogin(userId, state, expectedFailedLoginAttempts);
+  }
+}
+
+/**
+ * Repository that commits a parallel failure just before the successful sign
+ * in write lands, standing in for two writes racing on the same account.
+ */
+class RacingSuccessRepository extends InMemoryUserRepository {
+  /** When set, a parallel failure commits before the success write. */
+  commitParallelFailure = false;
+
+  override async saveSuccessfulLogin(
+    userId: string,
+    state: {
+      failedLoginAttempts: number;
+      lockedUntil: Date | null;
+      lastLoginAt: Date;
+    },
+    expectedFailedLoginAttempts: number,
+  ): Promise<boolean> {
+    if (this.commitParallelFailure) {
+      this.commitParallelFailure = false;
+      this.loginStates.set(userId, {
+        failedLoginAttempts: expectedFailedLoginAttempts + 1,
+        lockedUntil: null,
+      });
+    }
+    return super.saveSuccessfulLogin(
+      userId,
+      state,
+      expectedFailedLoginAttempts,
+    );
+  }
 }
 
 describe("registerUser", () => {
@@ -74,6 +132,49 @@ describe("registerUser", () => {
         password: "correct horse",
       }),
       "EMAIL_TAKEN",
+    );
+  });
+});
+
+describe("resendVerification", () => {
+  it("keeps the previous link valid when the replacement email fails to send", async () => {
+    const { deps, users, emails } = createTestDependencies();
+    const user = seedUser(users, {
+      email: "customer@example.com",
+      emailVerified: false,
+    });
+    await users.saveVerificationIssue(user.id, {
+      tokenHash: "hash:earlier-link",
+      expiresAt: new Date("2026-02-01T00:00:00Z"),
+      sentAt: new Date("2026-01-01T00:00:00Z"),
+    });
+    emails.sendVerificationEmail = () =>
+      Promise.reject(new Error("transport down"));
+
+    await resendVerification(deps, "customer@example.com");
+
+    // The stored issue is still the one already delivered, so the earlier link
+    // keeps working and the resend throttle is not spent.
+    expect(users.verificationIssues.get(user.id)?.tokenHash).toBe(
+      "hash:earlier-link",
+    );
+  });
+
+  it("stores the new issue and emails the link on the happy path", async () => {
+    const { deps, users, emails } = createTestDependencies();
+    const user = seedUser(users, {
+      email: "customer@example.com",
+      emailVerified: false,
+    });
+
+    await resendVerification(deps, "customer@example.com");
+
+    expect(emails.verification).toHaveLength(1);
+    expect(emails.verification[0]?.url).toBe(
+      "https://shop.example.com/verify-email?token=refresh-1",
+    );
+    expect(users.verificationIssues.get(user.id)?.tokenHash).toBe(
+      "hash:refresh-1",
     );
   });
 });
@@ -174,6 +275,47 @@ describe("loginUser", () => {
       lockedUntil: null,
     });
   });
+
+  it("re-reads and counts a failure when a parallel write wins the race", async () => {
+    const users = new RacingUserRepository();
+    const { deps } = createTestDependencies({ users });
+    const user = seedUser(users, { email: "race@example.com" });
+
+    users.refuseNextWrite = true;
+
+    await expectAuthError(
+      loginUser(
+        deps,
+        { email: "race@example.com", password: "wrong" },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "INVALID_CREDENTIALS",
+    );
+
+    // The competing write counted one failure and the retry added this attempt
+    // on top, so the counter is two rather than one.
+    expect(users.loginStates.get(user.id)?.failedLoginAttempts).toBe(2);
+  });
+
+  it("keeps a parallel failure count instead of erasing it on success", async () => {
+    const users = new RacingSuccessRepository();
+    const { deps } = createTestDependencies({ users });
+    const user = seedUser(users, { email: "success-race@example.com" });
+
+    users.commitParallelFailure = true;
+
+    const result = await loginUser(
+      deps,
+      { email: "success-race@example.com", password: "correct horse" },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    expect(result.user.id).toBe(user.id);
+    // The parallel failure committed first, so its increment survives the
+    // successful sign in even though the counter would normally be cleared.
+    expect(users.loginStates.get(user.id)?.failedLoginAttempts).toBe(1);
+    expect(users.loginStates.get(user.id)?.lastLoginAt).toBeInstanceOf(Date);
+  });
 });
 
 describe("verifyEmail", () => {
@@ -212,6 +354,62 @@ describe("verifyEmail", () => {
       details: { email: "late@example.com" },
     });
     expect(users.verified.has(user.id)).toBe(false);
+  });
+});
+
+describe("loginUser timing", () => {
+  it("runs the password check even when the account cannot match", async () => {
+    let verifies = 0;
+    const countingHasher = {
+      hash: (): Promise<string> => Promise.resolve("hashed:counting"),
+      verify: (): Promise<boolean> => {
+        verifies += 1;
+        return Promise.resolve(false);
+      },
+    };
+    const { deps, users } = createTestDependencies({
+      passwords: countingHasher,
+    });
+
+    await expectAuthError(
+      loginUser(
+        deps,
+        { email: "missing@example.com", password: "whatever" },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "INVALID_CREDENTIALS",
+    );
+    expect(verifies).toBe(1);
+
+    seedUser(users, {
+      email: "oauth-only@example.com",
+      passwordHash: null,
+      authProvider: "GOOGLE",
+      providerId: "google-1",
+    });
+    await expectAuthError(
+      loginUser(
+        deps,
+        { email: "oauth-only@example.com", password: "whatever" },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "INVALID_CREDENTIALS",
+    );
+    expect(verifies).toBe(2);
+
+    seedUser(users, {
+      email: "locked@example.com",
+      lockedUntil: new Date("2026-01-01T00:10:00Z"),
+    });
+    await expectAuthError(
+      loginUser(
+        deps,
+        { email: "locked@example.com", password: "whatever" },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "INVALID_CREDENTIALS",
+    );
+    expect(verifies).toBe(3);
   });
 });
 
@@ -261,6 +459,79 @@ describe("refreshSession", () => {
     );
     expect(sessions.activeCount()).toBe(0);
   });
+
+  it("does not revive a chain after a password reset, even inside the grace window", async () => {
+    const { deps, users, sessions, clock } = createTestDependencies();
+    const user = seedUser(users, { email: "reset-grace@example.com" });
+    const first = await loginUser(
+      deps,
+      { email: "reset-grace@example.com", password: "correct horse" },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    clock.advance(1_000);
+    await refreshSession(deps, first.refreshToken);
+
+    const rawToken = deps.tokens.generateOpaqueToken();
+    await users.savePasswordResetIssue(user.id, {
+      tokenHash: deps.tokens.hashOpaqueToken(rawToken),
+      expiresAt: new Date(clock.now().getTime() + 3_600_000),
+    });
+    await resetPassword(deps, rawToken, "new correct horse");
+
+    clock.advance(5_000);
+    await expectAuthError(
+      refreshSession(deps, first.refreshToken),
+      "INVALID_SESSION",
+    );
+    expect(sessions.activeCount()).toBe(0);
+  });
+
+  it("does not revive a chain after sign out, even inside the grace window", async () => {
+    const { deps, users, sessions, clock } = createTestDependencies();
+    seedUser(users, { email: "logout-grace@example.com" });
+    const first = await loginUser(
+      deps,
+      { email: "logout-grace@example.com", password: "correct horse" },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    clock.advance(1_000);
+    const rotated = await refreshSession(deps, first.refreshToken);
+    await logoutSession(deps, rotated.refreshToken);
+
+    clock.advance(5_000);
+    await expectAuthError(
+      refreshSession(deps, first.refreshToken),
+      "INVALID_SESSION",
+    );
+    expect(sessions.activeCount()).toBe(0);
+  });
+
+  it("does not revoke other sessions when a signed out token is replayed", async () => {
+    const { deps, users, sessions, clock } = createTestDependencies();
+    seedUser(users, { email: "logout-replay@example.com" });
+    const deviceA = await loginUser(
+      deps,
+      { email: "logout-replay@example.com", password: "correct horse" },
+      { deviceInfo: "device-a", ipAddress: null },
+    );
+    await loginUser(
+      deps,
+      { email: "logout-replay@example.com", password: "correct horse" },
+      { deviceInfo: "device-b", ipAddress: null },
+    );
+    expect(sessions.activeCount()).toBe(2);
+
+    await logoutSession(deps, deviceA.refreshToken);
+    clock.advance(11_000);
+
+    await expectAuthError(
+      refreshSession(deps, deviceA.refreshToken),
+      "INVALID_SESSION",
+    );
+    expect(sessions.activeCount()).toBe(1);
+  });
 });
 
 describe("password reset", () => {
@@ -283,6 +554,23 @@ describe("password reset", () => {
     expect(emails.reset).toHaveLength(1);
     expect(emails.reset[0]?.url).toContain("/reset-password?token=");
     expect(users.resetIssues.has(local.id)).toBe(true);
+  });
+
+  it("keeps the previous reset link valid when the replacement email fails to send", async () => {
+    const { deps, users, emails } = createTestDependencies();
+    const user = seedUser(users, { email: "customer@example.com" });
+    await users.savePasswordResetIssue(user.id, {
+      tokenHash: "hash:earlier-reset",
+      expiresAt: new Date("2026-02-01T00:00:00Z"),
+    });
+    emails.sendPasswordResetEmail = () =>
+      Promise.reject(new Error("transport down"));
+
+    await forgotPassword(deps, "customer@example.com");
+
+    expect(users.resetIssues.get(user.id)?.tokenHash).toBe(
+      "hash:earlier-reset",
+    );
   });
 
   it("applies a new hash once and revokes every session", async () => {
@@ -370,11 +658,86 @@ describe("signInWithOAuth", () => {
 
     expect(result.user.id).toBe(user.id);
     expect(result.user.emailVerified).toBe(true);
+    // The account stays LOCAL, so the record keeps no provider id rather than
+    // mixing the LOCAL name with a Facebook id.
     expect(users.oauthLogins.get(user.id)).toMatchObject({
-      providerId: "facebook-7",
+      providerId: null,
       emailVerified: true,
       clearPassword: true,
     });
+  });
+
+  it("clears a pending reset link when linking a local account", async () => {
+    const { deps, users } = createTestDependencies();
+    const user = seedUser(users, {
+      email: "link-reset@example.com",
+      emailVerified: false,
+    });
+    await users.savePasswordResetIssue(user.id, {
+      tokenHash: "pending-reset-hash",
+      expiresAt: new Date("2027-01-01T00:00:00Z"),
+    });
+
+    await signInWithOAuth(
+      deps,
+      {
+        provider: "FACEBOOK",
+        providerId: "facebook-8",
+        email: "link-reset@example.com",
+        name: "Linked Customer",
+        avatarUrl: null,
+      },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    expect(users.resetIssues.has(user.id)).toBe(false);
+  });
+
+  it("keeps the stored provider pair when another provider signs in", async () => {
+    const { deps, users } = createTestDependencies();
+    const user = seedUser(users, {
+      email: "keep-provider@example.com",
+      authProvider: "GOOGLE",
+      providerId: "google-42",
+    });
+
+    await signInWithOAuth(
+      deps,
+      {
+        provider: "FACEBOOK",
+        providerId: "facebook-99",
+        email: "keep-provider@example.com",
+        name: "Keep Provider",
+        avatarUrl: null,
+      },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    expect(users.oauthLogins.get(user.id)?.providerId).toBe("google-42");
+  });
+
+  it("leaves the provider id alone when a different provider signs in", async () => {
+    const { deps, users } = createTestDependencies();
+    const user = seedUser(users, {
+      email: "null-provider@example.com",
+      authProvider: "GOOGLE",
+      providerId: null,
+    });
+
+    await signInWithOAuth(
+      deps,
+      {
+        provider: "FACEBOOK",
+        providerId: "facebook-77",
+        email: "null-provider@example.com",
+        name: "Null Provider",
+        avatarUrl: null,
+      },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    // The account keeps GOOGLE, so storing a Facebook id would mismatch.
+    expect(users.oauthLogins.get(user.id)?.providerId).toBeNull();
   });
 });
 
@@ -393,5 +756,28 @@ describe("logoutSession", () => {
 
     await expect(logoutSession(deps, "unknown-token")).resolves.toBeUndefined();
     await expect(logoutSession(deps, null)).resolves.toBeUndefined();
+  });
+
+  it("revokes the successor chain when signing out with a rotated token", async () => {
+    const { deps, users, sessions, clock } = createTestDependencies();
+    seedUser(users, { email: "chain@example.com" });
+    const first = await loginUser(
+      deps,
+      { email: "chain@example.com", password: "correct horse" },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    clock.advance(1_000);
+    const second = await refreshSession(deps, first.refreshToken);
+    expect(sessions.activeCount()).toBe(1);
+
+    // Sign out with the stale predecessor token; the live successor must die.
+    await logoutSession(deps, first.refreshToken);
+
+    expect(sessions.activeCount()).toBe(0);
+    await expectAuthError(
+      refreshSession(deps, second.refreshToken),
+      "INVALID_SESSION",
+    );
   });
 });

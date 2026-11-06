@@ -1,4 +1,4 @@
-import type { UserRole } from "../types.js";
+import type { OAuthProviderName, UserRole } from "../types.js";
 
 /** Claims carried by a signed access token. */
 export interface AccessTokenClaims {
@@ -14,6 +14,11 @@ export interface OAuthStateClaims {
   nonce: string;
   /** Relative post sign in path. */
   next: string;
+  /**
+   * Provider the state was issued for. The callback verifies this so a state
+   * minted for one provider cannot be replayed against the other.
+   */
+  provider: OAuthProviderName;
 }
 
 /**
@@ -29,7 +34,7 @@ export interface TokenService {
   verifyAccessToken(token: string): Promise<AccessTokenClaims>;
   /** Generates a fresh opaque token (base64url, 32 random bytes). */
   generateOpaqueToken(): string;
-  /** Returns the SHA 256 hex hash of an opaque token. */
+  /** Returns the HMAC-SHA256 hex digest of an opaque token. */
   hashOpaqueToken(token: string): string;
   /** Signs a 10 minute OAuth state value. */
   signOAuthState(claims: OAuthStateClaims): Promise<string>;

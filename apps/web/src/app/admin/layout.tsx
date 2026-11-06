@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { sanitizeNextPath } from "@crochet-peakz/shared";
 import { Header } from "@/components/header";
 import { Container } from "@/components/container";
 import { RequireRole } from "@/components/auth/require-role";
 import { getSessionUser } from "@/lib/auth/session";
 
-/** Where a caller without a session is sent, and where they return from. */
-const SIGN_IN_URL = `/login?next=${encodeURIComponent("/admin")}`;
+/** Where a caller without a session lands when no request path is available. */
+const DEFAULT_RETURN_PATH = "/admin";
 
 /**
  * The admin shell reads the request session, so it must render on every
@@ -41,13 +43,18 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  const user = await getSessionUser();
+  // The proxy already asked the API and rewrote the cookie header, so its
+  // answer is trusted here and no second `/me` call is made. A render that did
+  // not come through the proxy falls back to reading the session itself.
+  const guardedRole = await readGuardedRole();
+  const role = guardedRole ?? (await getSessionUser())?.role ?? null;
 
-  if (!user) {
-    redirect(SIGN_IN_URL);
+  if (role === null) {
+    const returnTo = await signInReturnPath();
+    redirect(`/login?next=${encodeURIComponent(returnTo)}`);
   }
 
-  if (user.role !== "ADMIN") {
+  if (role !== "ADMIN") {
     redirect("/");
   }
 
@@ -64,4 +71,37 @@ export default async function AdminLayout({
       </main>
     </div>
   );
+}
+
+/**
+ * Reads the role the request proxy already proved.
+ *
+ * @returns The verified role, or null when the render did not come through the
+ *   proxy and the layout has to ask the API itself.
+ */
+async function readGuardedRole(): Promise<string | null> {
+  try {
+    const requestHeaders = await headers();
+    return requestHeaders.get("x-auth-role");
+  } catch {
+    // Outside a request scope (unit tests) there is nothing to trust.
+    return null;
+  }
+}
+
+/**
+ * Reads the path the request proxy recorded, so a layout only redirect returns
+ * the caller to the admin screen they asked for rather than the admin root.
+ */
+async function signInReturnPath(): Promise<string> {
+  try {
+    const requestHeaders = await headers();
+    return sanitizeNextPath(
+      requestHeaders.get("x-auth-return-to"),
+      DEFAULT_RETURN_PATH,
+    );
+  } catch {
+    // Outside a request scope (unit tests) the admin root is the safe fallback.
+    return DEFAULT_RETURN_PATH;
+  }
 }

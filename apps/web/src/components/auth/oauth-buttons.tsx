@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-/** Google brand mark. */
+/**
+ * Google brand mark.
+ *
+ * The official Google colors are hardcoded on purpose: `design.md` exempts
+ * third party brand marks from the token only color rule so the marks are not
+ * misrepresented.
+ */
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
@@ -25,7 +31,12 @@ function GoogleIcon() {
   );
 }
 
-/** Facebook brand mark. */
+/**
+ * Facebook brand mark.
+ *
+ * Like the Google mark, the official brand color is hardcoded under the
+ * `design.md` brand mark exemption from the token only color rule.
+ */
 function FacebookIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">

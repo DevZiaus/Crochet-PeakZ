@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { AuthEmail } from "../../domain/ports/email-sender.js";
 
 /** The two transactional auth messages. */
@@ -83,8 +84,20 @@ export function composeAuthEmail(
       footer: template.footer,
     }),
     text: `${template.subject}: ${email.url}`,
-    idempotencyKey: `${template.keyPrefix}/${email.to}`,
+    idempotencyKey: keyFor(template.keyPrefix, email.to, email.url),
   };
+}
+
+/**
+ * Builds a fixed length idempotency key from the prefix, recipient, and action
+ * link. Recipient and URL are hashed together so the key stays bounded even
+ * for a 255 character address, never touching Resend's 256 character cap.
+ */
+function keyFor(prefix: string, recipient: string, url: string): string {
+  const recipientHash = createHash("sha256").update(recipient).digest("hex");
+  const linkHash = createHash("sha256").update(url).digest("hex");
+
+  return `${prefix}/${recipientHash}/${linkHash.slice(0, 32)}`;
 }
 
 /**

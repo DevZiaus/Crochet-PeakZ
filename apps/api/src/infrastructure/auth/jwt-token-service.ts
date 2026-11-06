@@ -4,6 +4,8 @@ import {
   ACCESS_TOKEN_AUDIENCE,
   ACCESS_TOKEN_ISSUER,
   ACCESS_TOKEN_TTL_SECONDS,
+  OAUTH_STATE_AUDIENCE,
+  OAUTH_STATE_ISSUER,
   OAUTH_STATE_TTL_SECONDS,
 } from "../../domain/auth-constants.js";
 import type {
@@ -74,8 +76,14 @@ export class JwtTokenService implements TokenService {
 
   /** @inheritdoc */
   async signOAuthState(claims: OAuthStateClaims): Promise<string> {
-    return new SignJWT({ nonce: claims.nonce, next: claims.next })
+    return new SignJWT({
+      nonce: claims.nonce,
+      next: claims.next,
+      provider: claims.provider,
+    })
       .setProtectedHeader({ alg: "HS256" })
+      .setIssuer(OAUTH_STATE_ISSUER)
+      .setAudience(OAUTH_STATE_AUDIENCE)
       .setIssuedAt()
       .setExpirationTime(`${OAUTH_STATE_TTL_SECONDS}s`)
       .sign(this.jwtSecret);
@@ -83,15 +91,23 @@ export class JwtTokenService implements TokenService {
 
   /** @inheritdoc */
   async verifyOAuthState(token: string): Promise<OAuthStateClaims> {
-    const { payload } = await jwtVerify(token, this.jwtSecret);
+    const { payload } = await jwtVerify(token, this.jwtSecret, {
+      issuer: OAUTH_STATE_ISSUER,
+      audience: OAUTH_STATE_AUDIENCE,
+    });
     const nonce = payload["nonce"];
     const next = payload["next"];
+    const provider = payload["provider"];
 
-    if (typeof nonce !== "string" || typeof next !== "string") {
+    if (
+      typeof nonce !== "string" ||
+      typeof next !== "string" ||
+      (provider !== "google" && provider !== "facebook")
+    ) {
       throw new Error("OAuth state is missing required claims.");
     }
 
-    return { nonce, next };
+    return { nonce, next, provider };
   }
 }
 

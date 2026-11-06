@@ -34,10 +34,20 @@ environment variables:
 
 ```bash
 cp .env.docker.example .env
-# edit POSTGRES_PASSWORD and any future application secrets
+# The API refuses to start on placeholder or short secrets, so generate real
+# values and paste them in (each command prints a fresh value):
+openssl rand -hex 32   # JWT_SECRET
+openssl rand -hex 32   # JWT_REFRESH_SECRET (must differ from JWT_SECRET)
+openssl rand -hex 32   # PROXY_SHARED_SECRET
+openssl rand -hex 32   # POSTGRES_PASSWORD
+# Then fill in the real RESEND_API_KEY, EMAIL_FROM, and the four OAuth values.
+# OAuth variables are required even when you only use email and password sign in.
 
 docker compose up -d --build
 ```
+
+The API validates every auth variable at startup, so a placeholder in any of
+those fields, not just `POSTGRES_PASSWORD`, makes it exit immediately.
 
 That starts:
 
@@ -64,6 +74,18 @@ curl http://localhost:3000/health
 
 Stop the stack with `docker compose down`. Add `-v` only when you intentionally
 want to delete the database volume.
+
+The web and API ports are published on loopback only. The auth proxy trusts the
+client address headers that an edge proxy adds, and the raw API trusts the
+header the web proxy sends, so do not expose port 3000 or port 4000 to another
+machine directly. For public traffic, run the Caddy profile or put Nginx in
+front and do not publish either port beyond loopback. Keep exactly one trusted
+edge proxy in front of the web app: the app reads the last `X-Forwarded-For`
+hop as the client address, so a CDN before Caddy would make every client share
+the CDN address. With no edge proxy at all (the API or web port reachable
+directly), every rate limit bucket collapses to one unknown client, so the auth
+limits become per instance global instead of per client. Put a proxy in front
+when you want per client limits.
 
 ## One origin with a reverse proxy
 

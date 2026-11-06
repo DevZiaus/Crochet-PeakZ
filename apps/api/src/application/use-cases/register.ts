@@ -1,4 +1,5 @@
 import { VERIFICATION_TTL_MS } from "../../domain/auth-constants.js";
+import type { User } from "../../domain/entities/user.js";
 import { EmailAlreadyExistsError } from "../../domain/errors.js";
 import type { AuthUserDto } from "../../domain/types.js";
 import type { AuthDependencies } from "../dependencies.js";
@@ -28,7 +29,7 @@ export async function registerUser(
 ): Promise<AuthUserDto> {
   const passwordHash = await deps.passwords.hash(input.password);
 
-  let user;
+  let user: User;
   try {
     user = await deps.users.createLocal({
       name: input.name,

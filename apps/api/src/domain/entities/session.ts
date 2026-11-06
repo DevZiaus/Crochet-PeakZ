@@ -46,7 +46,7 @@ export class Session {
     return this.state.userId;
   }
 
-  /** Stored SHA 256 hash of the raw token. */
+  /** Stored HMAC-SHA256 digest of the raw token. */
   get tokenHash(): string {
     return this.state.tokenHash;
   }
@@ -54,6 +54,11 @@ export class Session {
   /** When the session stops being valid. */
   get expiresAt(): Date {
     return this.state.expiresAt;
+  }
+
+  /** When the session row was created. */
+  get createdAt(): Date {
+    return this.state.createdAt;
   }
 
   /** Device string captured at sign in. */
@@ -96,6 +101,16 @@ export class Session {
   }
 
   /**
+   * Whether the session can still be used to refresh.
+   *
+   * @param now Current time.
+   * @returns True when the row is neither revoked nor expired.
+   */
+  isActive(now: Date): boolean {
+    return !this.isRevoked() && !this.isExpired(now);
+  }
+
+  /**
    * Whether a revoked token is being presented inside the concurrent refresh
    * window, which must not be treated as reuse.
    *
@@ -106,6 +121,7 @@ export class Session {
    * @returns True inside the 10 second grace window after rotation.
    */
   isWithinRotationGrace(now: Date): boolean {
+    // Rotated at `revokedAt`; the grace runs until revokedAt + ROTATION_GRACE_MS.
     return (
       this.state.revokedAt !== null &&
       this.state.replacedByTokenId !== null &&
@@ -117,10 +133,19 @@ export class Session {
    * Whether presenting this token again is reuse that must revoke the account's
    * sessions.
    *
+   * Reuse means a rotated token (one that has a successor) replayed outside the
+   * grace window. A row revoked by sign out or a password reset has no
+   * successor, so replaying it is a plain invalid session, never a reason to
+   * revoke every other session on the account.
+   *
    * @param now Current time.
-   * @returns True for a revoked token outside the rotation grace window.
+   * @returns True for a rotated token outside the rotation grace window.
    */
   isReuse(now: Date): boolean {
-    return this.isRevoked() && !this.isWithinRotationGrace(now);
+    return (
+      this.isRevoked() &&
+      this.state.replacedByTokenId !== null &&
+      !this.isWithinRotationGrace(now)
+    );
   }
 }

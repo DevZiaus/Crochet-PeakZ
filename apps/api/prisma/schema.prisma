@@ -40,6 +40,8 @@ model User {
   reviews                    Review[]
 
   @@index([providerId])
+  @@index([emailVerificationToken])
+  @@index([passwordResetToken])
   @@map("users")
 }
 

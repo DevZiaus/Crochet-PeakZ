@@ -78,8 +78,8 @@ describe("createProxyGuard", () => {
   });
 
   it("refuses a truncated proxy secret without crashing the comparison", async () => {
-    // A length mismatch must be caught before the constant time compare runs,
-    // which throws when the two buffers differ in size.
+    // A length mismatch must be handled without throwing and without leaking
+    // the secret's length through timing.
     const error = await run(
       guard,
       makeRequest({ headers: { "x-proxy-secret": "proxy" } }),

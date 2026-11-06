@@ -134,6 +134,7 @@ export type OAuthProvider = (typeof OAuthProvider)[keyof typeof OAuthProvider];
 export const OAUTH_ERROR_CODES = [
   "access_denied",
   "email_missing",
+  "email_unverified",
   "provider_error",
   "link_failed",
 ] as const;

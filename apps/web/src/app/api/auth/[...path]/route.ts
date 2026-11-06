@@ -1,18 +1,102 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getWebAuthEnv } from "@/lib/auth/web-env";
-
-/** The access cookie the proxy replaces on a successful refresh. */
-const ACCESS_COOKIE = "cp_access";
-
-/** The long lived session cookie that proves a refresh is possible. */
-const REFRESH_COOKIE = "cp_refresh";
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  readCookie,
+  readSetCookie,
+  writeCookie,
+} from "@/lib/auth/cookies";
+import { readClientIp } from "@/lib/auth/client-ip";
 
 /** Forces request time evaluation on every call. */
 export const dynamic = "force-dynamic";
 
+/** How long an upstream auth call may take before the proxy gives up. */
+const AUTH_FETCH_TIMEOUT_MS = 5_000;
+
+/** The API's JSON limit. The proxy stops reading at the same boundary. */
+const MAX_AUTH_BODY_BYTES = 1024 * 1024;
+
+/**
+ * The only API paths this proxy will call.
+ *
+ * The catch all route must not become an open relay that adds the shared
+ * secret to any path a caller invents.
+ */
+const ALLOWED_AUTH_PATHS = new Set([
+  "register",
+  "verify-email",
+  "resend-verification",
+  "login",
+  "refresh",
+  "logout",
+  "me",
+  "forgot-password",
+  "reset-password",
+  "google",
+  "google/callback",
+  "facebook",
+  "facebook/callback",
+]);
+
 /** Next.js route context with the catch all auth path. */
 interface RouteContext {
   params: Promise<{ path: string[] }>;
+}
+
+/**
+ * Reads an auth request body without buffering more than the API accepts.
+ *
+ * A declared `Content-Length` above the limit is refused before any byte is
+ * read. A chunked body has no declared length, so the read stops as soon as
+ * the running total passes the same boundary.
+ *
+ * @param request Incoming browser request.
+ * @returns The body bytes, or a refusal when the body is too large.
+ */
+async function readLimitedBody(
+  request: NextRequest,
+): Promise<{ ok: true; body: ArrayBuffer | undefined } | { ok: false }> {
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_AUTH_BODY_BYTES) {
+    return { ok: false };
+  }
+
+  if (!request.body) {
+    return { ok: true, body: undefined };
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    total += value.byteLength;
+    if (total > MAX_AUTH_BODY_BYTES) {
+      await reader.cancel();
+      return { ok: false };
+    }
+    chunks.push(value);
+  }
+
+  if (total === 0) {
+    return { ok: true, body: undefined };
+  }
+
+  const buffer = new ArrayBuffer(total);
+  const view = new Uint8Array(buffer);
+  let offset = 0;
+  for (const chunk of chunks) {
+    view.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return { ok: true, body: buffer };
 }
 
 /**
@@ -58,7 +142,32 @@ async function proxyAuthRequest(
   const { path } = await context.params;
   const targetPath = path.join("/");
   const method = request.method;
-  const isWrite = method !== "GET" && method !== "HEAD";
+
+  if (method !== "GET" && method !== "POST") {
+    return NextResponse.json(
+      {
+        error: {
+          message: "Method not allowed.",
+          statusCode: 405,
+        },
+      },
+      { status: 405 },
+    );
+  }
+
+  const isWrite = method === "POST";
+
+  if (!ALLOWED_AUTH_PATHS.has(targetPath)) {
+    return NextResponse.json(
+      {
+        error: {
+          message: "Unknown auth endpoint.",
+          statusCode: 404,
+        },
+      },
+      { status: 404 },
+    );
+  }
 
   if (isWrite) {
     const origin = request.headers.get("origin");
@@ -75,12 +184,24 @@ async function proxyAuthRequest(
     }
   }
 
-  const body = isWrite ? await request.arrayBuffer() : undefined;
+  let body: ArrayBuffer | undefined;
+  if (isWrite) {
+    const read = await readLimitedBody(request);
+    if (!read.ok) {
+      return NextResponse.json(
+        {
+          error: {
+            message: "The request body is too large.",
+            statusCode: 413,
+          },
+        },
+        { status: 413 },
+      );
+    }
+    body = read.body;
+  }
   const originalCookie = request.headers.get("cookie") ?? "";
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = readClientIp(request.headers);
 
   const target = `${env.apiInternalUrl}/auth/${targetPath}${request.nextUrl.search}`;
 
@@ -91,9 +212,15 @@ async function proxyAuthRequest(
       body: body && body.byteLength > 0 ? body : undefined,
       redirect: "manual",
       cache: "no-store",
+      signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),
     });
 
-  let response = await send(originalCookie);
+  let response: Response;
+  try {
+    response = await send(originalCookie);
+  } catch {
+    return upstreamUnavailable();
+  }
 
   let refreshSetCookies: string[] = [];
   const carriedRefresh = readCookie(originalCookie, REFRESH_COOKIE);
@@ -106,18 +233,24 @@ async function proxyAuthRequest(
     !isRefreshCall &&
     !isLoginCall
   ) {
-    const refreshResponse = await fetch(`${env.apiInternalUrl}/auth/refresh`, {
-      method: "POST",
-      headers: buildHeaders(env, {
-        cookie: originalCookie,
-        ip,
-        isWrite: true,
+    let refreshResponse: Response;
+    try {
+      refreshResponse = await fetch(`${env.apiInternalUrl}/auth/refresh`, {
         method: "POST",
-        request,
-      }),
-      redirect: "manual",
-      cache: "no-store",
-    });
+        headers: buildHeaders(env, {
+          cookie: originalCookie,
+          ip,
+          isWrite: true,
+          method: "POST",
+          request,
+        }),
+        redirect: "manual",
+        cache: "no-store",
+        signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),
+      });
+    } catch {
+      return upstreamUnavailable();
+    }
 
     if (refreshResponse.status === 200) {
       refreshSetCookies = getSetCookies(refreshResponse.headers);
@@ -129,7 +262,13 @@ async function proxyAuthRequest(
           ACCESS_COOKIE,
           nextAccess,
         );
-        response = await send(replayCookie);
+        try {
+          response = await send(replayCookie);
+        } catch {
+          // The refresh already revoked the old token, so the browser must
+          // still receive the rotated pair even though the replay failed.
+          return upstreamUnavailable(refreshSetCookies);
+        }
       }
     } else {
       // A failed refresh means the session is gone. Relay the refresh cookie
@@ -139,6 +278,23 @@ async function proxyAuthRequest(
   }
 
   return relay(response, refreshSetCookies);
+}
+
+/** The answer when the API cannot be reached or times out. */
+function upstreamUnavailable(setCookies: string[] = []): NextResponse {
+  const headers = new Headers();
+  for (const cookie of setCookies) {
+    headers.append("set-cookie", cookie);
+  }
+  return NextResponse.json(
+    {
+      error: {
+        message: "The auth service did not answer. Try again.",
+        statusCode: 502,
+      },
+    },
+    { status: 502, headers },
+  );
 }
 
 /** Builds the upstream request headers for one call. */
@@ -197,7 +353,6 @@ async function relay(
     "content-type",
     "location",
     "retry-after",
-    "cache-control",
     "x-robots-tag",
   ]) {
     const value = response.headers.get(name);
@@ -206,6 +361,8 @@ async function relay(
     }
   }
 
+  // Auth responses are per customer, so the proxy always answers no-store
+  // rather than relaying whatever the API set.
   headers.set("cache-control", "no-store");
 
   const setCookies = [...getSetCookies(response.headers), ...extraSetCookies];
@@ -222,39 +379,4 @@ async function relay(
 /** Reads every Set-Cookie value from a response. */
 function getSetCookies(headers: Headers): string[] {
   return headers.getSetCookie();
-}
-
-/** Reads one cookie value from a raw Cookie header. */
-function readCookie(header: string, name: string): string | undefined {
-  for (const part of header.split(";")) {
-    const [key, ...rest] = part.trim().split("=");
-    if (key === name) {
-      return rest.join("=");
-    }
-  }
-  return undefined;
-}
-
-/** Reads one cookie value from a list of Set-Cookie headers. */
-function readSetCookie(setCookies: string[], name: string): string | undefined {
-  for (const cookie of setCookies) {
-    const first = cookie.split(";")[0] ?? "";
-    const [key, ...rest] = first.split("=");
-    if (key?.trim() === name) {
-      return rest.join("=");
-    }
-  }
-  return undefined;
-}
-
-/** Returns the Cookie header with one value replaced or appended. */
-function writeCookie(header: string, name: string, value: string): string {
-  const parts = header
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0)
-    .filter((part) => part.split("=")[0] !== name);
-
-  parts.push(`${name}=${value}`);
-  return parts.join("; ");
 }

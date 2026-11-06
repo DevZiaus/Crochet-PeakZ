@@ -7,6 +7,7 @@ import type { AuthEmail, EmailSender } from "../domain/ports/email-sender.js";
 import type { PasswordHasher } from "../domain/ports/password-hasher.js";
 import type {
   CreateSessionInput,
+  RotateSessionInput,
   SessionRepository,
 } from "../domain/ports/session-repository.js";
 import type {
@@ -138,7 +139,7 @@ export class InMemoryUserRepository implements UserRepository {
   readonly oauthLogins = new Map<
     string,
     {
-      providerId: string;
+      providerId: string | null;
       avatarUrl: string | null;
       emailVerified: true;
       clearPassword: boolean;
@@ -149,22 +150,66 @@ export class InMemoryUserRepository implements UserRepository {
   readonly verified = new Set<string>();
   /** New password hashes applied by a completed reset, keyed by user id. */
   readonly resetPasswords = new Map<string, string>();
+  /**
+   * Session repository to revoke through when a reset completes, so the fake
+   * mirrors the single transaction the Prisma repository performs.
+   */
+  private sessions?: SessionRepository;
 
   /** Seeds an account. */
   seed(user: User): void {
     this.users.set(user.id, user);
   }
 
-  /** @inheritdoc */
-  async findByEmail(email: string): Promise<User | null> {
-    return (
-      [...this.users.values()].find((user) => user.email === email) ?? null
+  /** Wires the session repository a completed reset revokes through. */
+  attachSessions(sessions: SessionRepository): void {
+    this.sessions = sessions;
+  }
+
+  /**
+   * Builds the entity a read should see.
+   *
+   * The fake keeps one stored entity per account, but use cases must never
+   * mutate it by reference. A read reconstitutes a fresh entity and overlays
+   * the fields the repository persists in separate maps, so callers can hold
+   * different snapshots of the same account and a read always reflects the
+   * last committed state.
+   */
+  private view(user: User): User {
+    const login = this.loginStates.get(user.id);
+    const oauth = this.oauthLogins.get(user.id);
+    return User.reconstitute(
+      makeUserSnapshot({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        passwordHash: user.passwordHash,
+        role: user.role,
+        authProvider: user.authProvider,
+        providerId: oauth?.providerId ?? user.providerId,
+        avatarUrl: oauth?.avatarUrl ?? user.avatarUrl,
+        emailVerified: this.verified.has(user.id) ? true : user.emailVerified,
+        emailVerificationExpiresAt: user.emailVerificationExpiresAt,
+        emailVerificationSentAt: user.emailVerificationSentAt,
+        passwordResetExpiresAt: user.passwordResetExpiresAt,
+        failedLoginAttempts:
+          login?.failedLoginAttempts ?? user.failedLoginAttempts,
+        lockedUntil: login?.lockedUntil ?? user.lockedUntil,
+        lastLoginAt: login?.lastLoginAt ?? null,
+      }),
     );
   }
 
   /** @inheritdoc */
+  async findByEmail(email: string): Promise<User | null> {
+    const found = [...this.users.values()].find((user) => user.email === email);
+    return found ? this.view(found) : null;
+  }
+
+  /** @inheritdoc */
   async findById(id: string): Promise<User | null> {
-    return this.users.get(id) ?? null;
+    const found = this.users.get(id);
+    return found ? this.view(found) : null;
   }
 
   /** @inheritdoc */
@@ -176,7 +221,7 @@ export class InMemoryUserRepository implements UserRepository {
           return null;
         }
         return User.reconstitute({
-          ...snapshotFrom(user),
+          ...snapshotFrom(this.view(user)),
           emailVerificationExpiresAt: issue.expiresAt,
           emailVerificationSentAt: issue.sentAt,
         });
@@ -194,7 +239,7 @@ export class InMemoryUserRepository implements UserRepository {
           return null;
         }
         return User.reconstitute({
-          ...snapshotFrom(user),
+          ...snapshotFrom(this.view(user)),
           passwordResetExpiresAt: issue.expiresAt,
         });
       }
@@ -248,9 +293,14 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   /** @inheritdoc */
-  async saveVerified(userId: string): Promise<void> {
+  async saveVerified(userId: string, tokenHash: string): Promise<boolean> {
+    const issue = this.verificationIssues.get(userId);
+    if (!issue || issue.tokenHash !== tokenHash) {
+      return false;
+    }
     this.verified.add(userId);
     this.verificationIssues.delete(userId);
+    return true;
   }
 
   /** @inheritdoc */
@@ -262,10 +312,21 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   /** @inheritdoc */
-  async savePasswordReset(userId: string, passwordHash: string): Promise<void> {
-    this.resetPasswords.set(userId, passwordHash);
-    this.verified.add(userId);
-    this.resetIssues.delete(userId);
+  async completePasswordReset(input: {
+    userId: string;
+    passwordHash: string;
+    tokenHash: string;
+    now: Date;
+  }): Promise<boolean> {
+    const issue = this.resetIssues.get(input.userId);
+    if (!issue || issue.tokenHash !== input.tokenHash) {
+      return false;
+    }
+    this.resetPasswords.set(input.userId, input.passwordHash);
+    this.verified.add(input.userId);
+    this.resetIssues.delete(input.userId);
+    await this.sessions?.revokeAllForUser(input.userId, input.now);
+    return true;
   }
 
   /** @inheritdoc */
@@ -281,10 +342,59 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   /** @inheritdoc */
+  async saveSuccessfulLogin(
+    userId: string,
+    state: {
+      failedLoginAttempts: number;
+      lockedUntil: Date | null;
+      lastLoginAt: Date;
+    },
+    expectedFailedLoginAttempts: number,
+  ): Promise<boolean> {
+    const current =
+      this.loginStates.get(userId)?.failedLoginAttempts ??
+      this.users.get(userId)?.failedLoginAttempts ??
+      0;
+
+    if (current !== expectedFailedLoginAttempts) {
+      // A parallel failure committed first. Keep its count and lock, and only
+      // stamp the sign in time.
+      this.loginStates.set(userId, {
+        failedLoginAttempts: current,
+        lockedUntil: this.loginStates.get(userId)?.lockedUntil ?? null,
+        lastLoginAt: state.lastLoginAt,
+      });
+      return false;
+    }
+
+    this.loginStates.set(userId, state);
+    return true;
+  }
+
+  /** @inheritdoc */
+  async saveFailedLogin(
+    userId: string,
+    state: { failedLoginAttempts: number; lockedUntil: Date | null },
+    expectedFailedLoginAttempts: number,
+  ): Promise<boolean> {
+    const current =
+      this.loginStates.get(userId)?.failedLoginAttempts ??
+      this.users.get(userId)?.failedLoginAttempts ??
+      0;
+
+    if (current !== expectedFailedLoginAttempts) {
+      return false;
+    }
+
+    this.loginStates.set(userId, state);
+    return true;
+  }
+
+  /** @inheritdoc */
   async saveOAuthLogin(
     userId: string,
     state: {
-      providerId: string;
+      providerId: string | null;
       avatarUrl: string | null;
       emailVerified: true;
       clearPassword: boolean;
@@ -292,6 +402,9 @@ export class InMemoryUserRepository implements UserRepository {
     },
   ): Promise<void> {
     this.oauthLogins.set(userId, state);
+    this.verificationIssues.delete(userId);
+    this.resetIssues.delete(userId);
+    this.verified.add(userId);
   }
 }
 
@@ -311,7 +424,7 @@ export class InMemorySessionRepository implements SessionRepository {
       ipAddress: session.ipAddress,
       revokedAt: session.revokedAt,
       replacedByTokenId: session.replacedByTokenId,
-      createdAt: session.expiresAt,
+      createdAt: session.createdAt,
     });
   }
 
@@ -340,6 +453,12 @@ export class InMemorySessionRepository implements SessionRepository {
   }
 
   /** @inheritdoc */
+  async findById(id: string): Promise<Session | null> {
+    const row = this.sessions.get(id);
+    return row ? Session.reconstitute(row) : null;
+  }
+
+  /** @inheritdoc */
   async findByTokenHash(tokenHash: string): Promise<Session | null> {
     const row = [...this.sessions.values()].find(
       (session) => session.tokenHash === tokenHash,
@@ -348,22 +467,38 @@ export class InMemorySessionRepository implements SessionRepository {
   }
 
   /** @inheritdoc */
-  async markRotated(
-    id: string,
-    state: { revokedAt: Date; replacedByTokenId: string },
-  ): Promise<void> {
+  async rotate(id: string, input: RotateSessionInput): Promise<Session | null> {
     const row = this.sessions.get(id);
-    if (row) {
-      row.revokedAt = state.revokedAt;
-      row.replacedByTokenId = state.replacedByTokenId;
+    if (!row || row.revokedAt !== null) {
+      return null;
     }
+
+    // Claim the predecessor before yielding so two callers cannot both win.
+    row.revokedAt = input.revokedAt;
+    const successor = await this.create(input);
+    row.replacedByTokenId = successor.id;
+    return successor;
   }
 
   /** @inheritdoc */
-  async revoke(id: string, now: Date): Promise<void> {
-    const row = this.sessions.get(id);
-    if (row) {
-      row.revokedAt = now;
+  async revokeChain(id: string, now: Date): Promise<void> {
+    let currentId: string | null = id;
+    const visited = new Set<string>();
+
+    while (currentId !== null && !visited.has(currentId)) {
+      visited.add(currentId);
+
+      const row = this.sessions.get(currentId);
+      if (!row) {
+        return;
+      }
+
+      // Keep an existing revoke time so sign out never extends the grace window.
+      if (row.revokedAt === null) {
+        row.revokedAt = now;
+      }
+
+      currentId = row.replacedByTokenId;
     }
   }
 
@@ -411,13 +546,17 @@ export class FakeTokenService implements TokenService {
 
   /** @inheritdoc */
   async signOAuthState(claims: OAuthStateClaims): Promise<string> {
-    return `state:${claims.nonce}:${claims.next}`;
+    return `state:${claims.provider}:${claims.nonce}:${claims.next}`;
   }
 
   /** @inheritdoc */
   async verifyOAuthState(token: string): Promise<OAuthStateClaims> {
-    const [, nonce = "", next = "/"] = token.split(":");
-    return { nonce, next };
+    const [, provider = "google", nonce = "", next = "/"] = token.split(":");
+    return {
+      nonce,
+      next,
+      provider: provider === "facebook" ? "facebook" : "google",
+    };
   }
 }
 
@@ -455,6 +594,10 @@ export function createTestDependencies(
   const tokens = new FakeTokenService();
   const emails = new RecordingEmailSender();
   const clock = createTestClock(new Date("2026-01-01T00:00:00Z"));
+
+  // A completed password reset revokes sessions inside one transaction in
+  // production; the fake needs the same link so its behaviour matches.
+  users.attachSessions(sessions);
 
   return {
     users,

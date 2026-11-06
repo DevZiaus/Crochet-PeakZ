@@ -206,9 +206,24 @@ function parseWebAppUrl(value: string | undefined): string {
   return parsed.origin;
 }
 
+/*
+ * An address with a local part, an "@", and a dotted domain. Used only to
+ * reject obviously malformed senders such as `foo@` or `Crochet PeakZ`; the
+ * address is not otherwise reinterpreted.
+ */
+const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function parseEmailFrom(value: string | undefined): string {
   const raw = value?.trim();
-  if (!raw || !raw.includes("@") || PLACEHOLDER_PATTERN.test(raw)) {
+  // Accept a bare address or the `Name <address>` form, and validate the
+  // address itself rather than only the presence of an "@".
+  const address = /<([^>]+)>/.exec(raw ?? "")?.[1]?.trim() ?? raw ?? "";
+
+  if (
+    !raw ||
+    PLACEHOLDER_PATTERN.test(raw) ||
+    !EMAIL_ADDRESS_PATTERN.test(address)
+  ) {
     throw new Error(
       "Missing required environment variable: EMAIL_FROM. " +
         "Set it to a verified sender such as Crochet PeakZ <hello@example.com>.",

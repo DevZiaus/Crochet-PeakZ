@@ -39,6 +39,10 @@ export function createRequireAuth(tokens: TokenService): RequestHandler {
  * Anonymous callers get 401. A signed in CUSTOMER, or an admin whose role was
  * removed, gets 403 on the next request even with an unexpired access token.
  *
+ * Note: no production route mounts this yet. The admin area is guarded in the
+ * web layer (`apps/web`), and this middleware is exercised by tests only, so it
+ * is not live protection until a backend admin route attaches it.
+ *
  * @param users Account repository.
  * @returns Express middleware.
  */
@@ -70,9 +74,12 @@ export function createRequireAdmin(users: UserRepository): RequestHandler {
 /**
  * Reads one cookie value from a raw `Cookie` header.
  *
+ * A malformed percent sequence throws, so decode failures are treated as an
+ * absent cookie rather than leaking a 500.
+ *
  * @param header Raw cookie header.
  * @param name Cookie name.
- * @returns Decoded value, or undefined when absent.
+ * @returns Decoded value, or undefined when absent or malformed.
  */
 export function readCookie(
   header: string | undefined,
@@ -82,11 +89,15 @@ export function readCookie(
     return undefined;
   }
 
-  for (const part of header.split(";")) {
-    const [key, ...rest] = part.trim().split("=");
-    if (key === name) {
-      return decodeURIComponent(rest.join("="));
+  try {
+    for (const part of header.split(";")) {
+      const [key, ...rest] = part.trim().split("=");
+      if (key === name) {
+        return decodeURIComponent(rest.join("="));
+      }
     }
+  } catch {
+    return undefined;
   }
 
   return undefined;

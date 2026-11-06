@@ -38,6 +38,21 @@ export const ACCESS_TOKEN_ISSUER = "crochet-peakz";
 /** Access token audience claim. */
 export const ACCESS_TOKEN_AUDIENCE = "crochet-peakz-web";
 
+/** OAuth state issuer claim. */
+export const OAUTH_STATE_ISSUER = "crochet-peakz";
+
+/** OAuth state audience claim, which keeps it distinct from access tokens. */
+export const OAUTH_STATE_AUDIENCE = "crochet-peakz-oauth";
+
+/**
+ * A cost 12 bcrypt hash of a value no caller can supply.
+ *
+ * Unknown and locked accounts verify against this so every failed sign in
+ * spends the same bcrypt work. The plain value is `dummy-password-not-used`.
+ */
+export const DUMMY_PASSWORD_HASH =
+  "$2b$12$ai.AQTdhzvrKoVCiEpC03.z/1ShInYDRNMlJlOgKZB5Rsgj15fqjK";
+
 /** Name of the access token cookie. */
 export const ACCESS_COOKIE_NAME = "cp_access";
 

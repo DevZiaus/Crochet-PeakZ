@@ -23,7 +23,11 @@ export type AuthEmailTransport = (
 export interface ResendEmailSenderOptions {
   apiKey: string;
   from: string;
-  /** Log the auth link to the console when Resend is not configured to send. */
+  /**
+   * Log the auth link to the console. Enabled only outside production, where a
+   * developer can follow the link without a mailbox. Never enabled in
+   * production, so a raw token is never logged there.
+   */
   logLinks: boolean;
   /** Replaces the Resend call, used by tests and local mail capture. */
   transport?: AuthEmailTransport | undefined;

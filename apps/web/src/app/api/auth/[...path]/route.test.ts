@@ -135,6 +135,73 @@ describe("auth proxy refresh and replay", () => {
     );
   });
 
+  it("relays the rotated cookies when the replay fails after a refresh", async () => {
+    let originalSent = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+
+        if (url.endsWith("/auth/refresh")) {
+          const headers = new Headers();
+          headers.append(
+            "set-cookie",
+            "cp_access=new-access; Max-Age=900; Path=/; HttpOnly; SameSite=Lax",
+          );
+          headers.append(
+            "set-cookie",
+            "cp_refresh=new-refresh; Max-Age=2592000; Path=/; HttpOnly; SameSite=Lax",
+          );
+          return Promise.resolve(
+            new Response(JSON.stringify({ id: "user-1" }), {
+              status: 200,
+              headers,
+            }),
+          );
+        }
+
+        if (!originalSent) {
+          originalSent = true;
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                error: { message: "Sign in to continue.", statusCode: 401 },
+              }),
+              { status: 401, headers: { "content-type": "application/json" } },
+            ),
+          );
+        }
+
+        return Promise.reject(
+          new DOMException("The operation timed out.", "TimeoutError"),
+        );
+      }),
+    );
+
+    const request = new NextRequest("http://web.test/api/auth/me", {
+      headers: { cookie: "cp_access=old-access; cp_refresh=old-refresh" },
+    });
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ["me"] }),
+    });
+
+    // The refresh already revoked the old token, so the browser must still
+    // receive the rotated pair even though the replay failed.
+    expect(response.status).toBe(502);
+    expect(response.headers.getSetCookie()).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("cp_access=new-access"),
+        expect.stringContaining("cp_refresh=new-refresh"),
+      ]),
+    );
+  });
+
   it("refreshes an expired access token when both cookies are present", async () => {
     const request = new NextRequest("http://web.test/api/auth/me", {
       headers: { cookie: "cp_access=old-access; cp_refresh=old-refresh" },
@@ -173,6 +240,33 @@ describe("auth proxy refresh and replay", () => {
     );
   });
 
+  it("forwards the last X-Forwarded-For hop, the address the edge added", async () => {
+    const request = new NextRequest("http://web.test/api/auth/me", {
+      headers: {
+        cookie: "cp_access=new-access",
+        "x-forwarded-for": "1.2.3.4, 5.6.7.8",
+      },
+    });
+
+    await GET(request, { params: Promise.resolve({ path: ["me"] }) });
+
+    expect(new Headers(calls[0]?.init?.headers).get("x-forwarded-for")).toBe(
+      "5.6.7.8",
+    );
+  });
+
+  it("falls back to X-Real-IP when X-Forwarded-For is absent", async () => {
+    const request = new NextRequest("http://web.test/api/auth/me", {
+      headers: { cookie: "cp_access=new-access", "x-real-ip": "9.9.9.9" },
+    });
+
+    await GET(request, { params: Promise.resolve({ path: ["me"] }) });
+
+    expect(new Headers(calls[0]?.init?.headers).get("x-forwarded-for")).toBe(
+      "9.9.9.9",
+    );
+  });
+
   it("does not refresh a failed login", async () => {
     const request = new NextRequest("http://web.test/api/auth/login", {
       method: "POST",
@@ -189,6 +283,91 @@ describe("auth proxy refresh and replay", () => {
     expect(response.status).toBe(401);
     expect(calls).toHaveLength(1);
     expect(response.headers.getSetCookie()).toEqual([]);
+  });
+});
+
+describe("auth proxy allowlist and upstream failures", () => {
+  it("refuses a path outside the auth surface without calling the API", async () => {
+    const request = new NextRequest("http://web.test/api/auth/admin", {
+      headers: { cookie: "cp_access=new-access" },
+    });
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ["admin"] }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: { message: "Unknown auth endpoint.", statusCode: 404 },
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("refuses a method that is neither GET nor POST without calling the API", async () => {
+    const request = new NextRequest("http://web.test/api/auth/me", {
+      method: "OPTIONS",
+      headers: { cookie: "cp_access=new-access" },
+    });
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ["me"] }),
+    });
+
+    expect(response.status).toBe(405);
+    expect(await response.json()).toEqual({
+      error: { message: "Method not allowed.", statusCode: 405 },
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("refuses a body larger than the API accepts without calling the API", async () => {
+    const request = new NextRequest("http://web.test/api/auth/login", {
+      method: "POST",
+      headers: {
+        origin: "http://web.test",
+        "content-type": "application/json",
+      },
+      body: "x".repeat(1024 * 1024 + 1),
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ["login"] }),
+    });
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      error: {
+        message: "The request body is too large.",
+        statusCode: 413,
+      },
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("answers 502 when the API times out", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.reject(
+          new DOMException("The operation timed out.", "TimeoutError"),
+        ),
+      ),
+    );
+    const request = new NextRequest("http://web.test/api/auth/me", {
+      headers: { cookie: "cp_access=new-access" },
+    });
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ["me"] }),
+    });
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      error: {
+        message: "The auth service did not answer. Try again.",
+        statusCode: 502,
+      },
+    });
   });
 });
 

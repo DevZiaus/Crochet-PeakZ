@@ -597,6 +597,30 @@ test.describe("admin area", () => {
     ).toBeVisible({ timeout: 20_000 });
   });
 
+  test("silently refreshes an expired access cookie on reload (AC-5, AC-10)", async ({
+    page,
+    context,
+  }) => {
+    await signIn(page, ADMIN, "/admin");
+    await expect(
+      page.getByRole("heading", { name: "Store dashboard" }),
+    ).toBeVisible({ timeout: 20_000 });
+
+    // An expired access cookie disappears; the long lived refresh cookie stays.
+    await context.clearCookies({ name: "cp_access" });
+    await page.reload();
+
+    await expect(page).toHaveURL(/\/admin/, { timeout: 20_000 });
+    await expect(
+      page.getByRole("heading", { name: "Store dashboard" }),
+    ).toBeVisible({ timeout: 20_000 });
+
+    // The browser received a fresh pair, not only the render.
+    await expect
+      .poll(async () => (await context.cookies()).map((cookie) => cookie.name))
+      .toContain("cp_access");
+  });
+
   test("removes access when the role changes in the database (AC-10)", async ({
     page,
     authDb,

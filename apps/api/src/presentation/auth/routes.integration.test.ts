@@ -193,10 +193,34 @@ describeWithDatabase("auth routes over HTTP", () => {
     });
   }
 
+  /**
+   * Posts a raw string body so a malformed JSON request can be sent.
+   *
+   * The JSON `post` helper always serializes a valid body, which is exactly
+   * what a body parser rejection test must avoid.
+   *
+   * @param path Route path after `/api/auth`.
+   * @param body Raw request body.
+   * @returns The response, redirects left unfollowed.
+   */
+  async function postRaw(path: string, body: string): Promise<Response> {
+    return fetch(`${apiUrl}/api/auth/${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-proxy-secret": PROXY_SECRET,
+        origin: WEB_APP_URL,
+        "x-forwarded-for": nextIp(),
+      },
+      body,
+      redirect: "manual",
+    });
+  }
+
   /** Calls a route with GET. */
   async function get(
     path: string,
-    options: { cookie?: string; withSecret?: boolean } = {},
+    options: { cookie?: string; withSecret?: boolean; ip?: string } = {},
   ): Promise<Response> {
     const headers: Record<string, string> = {};
     if (options.withSecret !== false) {
@@ -205,7 +229,7 @@ describeWithDatabase("auth routes over HTTP", () => {
     if (options.cookie) {
       headers["cookie"] = options.cookie;
     }
-    headers["x-forwarded-for"] = nextIp();
+    headers["x-forwarded-for"] = options.ip ?? nextIp();
 
     return fetch(`${apiUrl}/api/auth/${path}`, {
       headers,
@@ -450,6 +474,17 @@ describeWithDatabase("auth routes over HTTP", () => {
       expect(body).not.toHaveProperty("accessToken");
       expect(body).not.toHaveProperty("refreshToken");
     });
+
+    it("answers 400, not 500, for a malformed JSON body", async () => {
+      const response = await postRaw("login", "{not json");
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as {
+        error: { message: string; statusCode: number };
+      };
+      expect(body.error.statusCode).toBe(400);
+      expect(body.error.message).toBe("The request could not be read.");
+    });
   });
 
   describe("GET /me", () => {
@@ -483,6 +518,12 @@ describeWithDatabase("auth routes over HTTP", () => {
 
       expect(response.status).toBe(401);
     });
+
+    it("answers 401, not 500, for a malformed percent sequence", async () => {
+      const response = await get("me", { cookie: "cp_access=%E0%A4%A" });
+
+      expect(response.status).toBe(401);
+    });
   });
 
   describe("POST /refresh", () => {
@@ -502,22 +543,51 @@ describeWithDatabase("auth routes over HTTP", () => {
       expect(rotated?.toLowerCase()).toContain("httponly");
     });
 
-    it("clears both cookies and answers 401 when no refresh token is sent", async () => {
+    it("answers 401 without a Set-Cookie when nothing is sent", async () => {
       const response = await post("refresh", {});
 
       expect(response.status).toBe(401);
+      expect(response.headers.getSetCookie()).toHaveLength(0);
+    });
+
+    it("clears a lingering access cookie when the refresh cookie is absent", async () => {
+      const response = await post("refresh", {}, { cookie: "cp_access=stale" });
+
+      expect(response.status).toBe(401);
       const cookies = response.headers.getSetCookie();
-      expect(cookies.some((value) => value.includes("cp_access="))).toBe(true);
+      expect(cookies.some((value) => value.startsWith("cp_access="))).toBe(
+        true,
+      );
       expect(
         cookies.every((value) => /Max-Age=0|Expires=Thu/i.test(value)),
       ).toBe(true);
     });
 
-    it("refuses an unknown refresh token (AC-6)", async () => {
+    it("refuses an unknown refresh token and clears cookies (AC-6)", async () => {
       const response = await post(
         "refresh",
         {},
         { cookie: "cp_refresh=never-issued" },
+      );
+
+      expect(response.status).toBe(401);
+      const cookies = response.headers.getSetCookie();
+      expect(cookies.some((value) => value.startsWith("cp_access="))).toBe(
+        true,
+      );
+      expect(cookies.some((value) => value.startsWith("cp_refresh="))).toBe(
+        true,
+      );
+      expect(
+        cookies.every((value) => /Max-Age=0|Expires=Thu/i.test(value)),
+      ).toBe(true);
+    });
+
+    it("answers 401, not 500, for a malformed refresh cookie", async () => {
+      const response = await post(
+        "refresh",
+        {},
+        { cookie: "cp_refresh=%E0%A4%A" },
       );
 
       expect(response.status).toBe(401);
@@ -546,6 +616,16 @@ describeWithDatabase("auth routes over HTTP", () => {
 
     it("is idempotent without a session cookie", async () => {
       const response = await post("logout", {});
+
+      expect(response.status).toBe(204);
+    });
+
+    it("answers 204, not 500, for a malformed refresh cookie", async () => {
+      const response = await post(
+        "logout",
+        {},
+        { cookie: "cp_refresh=%E0%A4%A" },
+      );
 
       expect(response.status).toBe(204);
     });
@@ -680,6 +760,58 @@ describeWithDatabase("auth routes over HTTP", () => {
       expect(statuses[60]).toBe(429);
     });
 
+    it("answers 429 for verification after ten requests (AC-12)", async () => {
+      const ip = "198.51.100.48";
+      const statuses: number[] = [];
+      let limited: Response | null = null;
+
+      for (let attempt = 0; attempt < 11; attempt += 1) {
+        const response = await post(
+          "verify-email",
+          { token: "never-issued" },
+          { ip },
+        );
+        statuses.push(response.status);
+        if (response.status === 429) {
+          limited = response;
+        }
+      }
+
+      expect(statuses.slice(0, 10).every((status) => status === 400)).toBe(
+        true,
+      );
+      expect(limited).not.toBeNull();
+      const retryAfter = Number(limited?.headers.get("retry-after"));
+      expect(Number.isInteger(retryAfter)).toBe(true);
+      expect(retryAfter).toBeGreaterThan(0);
+    });
+
+    it("answers 429 for password reset after ten requests (AC-12)", async () => {
+      const ip = "198.51.100.49";
+      const statuses: number[] = [];
+      let limited: Response | null = null;
+
+      for (let attempt = 0; attempt < 11; attempt += 1) {
+        const response = await post(
+          "reset-password",
+          { token: "never-issued", password: PASSWORD },
+          { ip },
+        );
+        statuses.push(response.status);
+        if (response.status === 429) {
+          limited = response;
+        }
+      }
+
+      expect(statuses.slice(0, 10).every((status) => status === 400)).toBe(
+        true,
+      );
+      expect(limited).not.toBeNull();
+      const retryAfter = Number(limited?.headers.get("retry-after"));
+      expect(Number.isInteger(retryAfter)).toBe(true);
+      expect(retryAfter).toBeGreaterThan(0);
+    });
+
     it("allows one resend per account per minute and sets Retry-After (AC-3, AC-12)", async () => {
       const email = uniqueEmail("resend-throttle");
       const registered = await post("register", {
@@ -702,6 +834,64 @@ describeWithDatabase("auth routes over HTTP", () => {
       const retryAfter = Number(second.headers.get("retry-after"));
       expect(Number.isInteger(retryAfter)).toBe(true);
       expect(retryAfter).toBeGreaterThan(0);
+    });
+
+    it("throttles repeated resends for an unknown address too (AC-3, AC-12)", async () => {
+      const email = uniqueEmail("resend-unknown-throttle");
+
+      const first = await post("resend-verification", { email });
+      const second = await post("resend-verification", { email });
+
+      expect(first.status).toBe(202);
+      expect(second.status).toBe(429);
+      const retryAfter = Number(second.headers.get("retry-after"));
+      expect(Number.isInteger(retryAfter)).toBe(true);
+      expect(retryAfter).toBeGreaterThan(0);
+    });
+
+    it("throttles sign out after sixty requests (AC-12)", async () => {
+      const ip = "198.51.100.46";
+
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        const response = await post("logout", {}, { ip });
+        expect(response.status).toBe(204);
+      }
+
+      const limited = await post("logout", {}, { ip });
+      expect(limited.status).toBe(429);
+      expect(limited.headers.get("retry-after")).not.toBeNull();
+    });
+
+    it("throttles unauthenticated probes of /me (AC-12)", async () => {
+      const ip = "198.51.100.48";
+
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        const response = await get("me", {
+          cookie: "cp_access=not.a.token",
+          ip,
+        });
+        expect(response.status).toBe(401);
+      }
+
+      const limited = await get("me", {
+        cookie: "cp_access=not.a.token",
+        ip,
+      });
+      expect(limited.status).toBe(429);
+      expect(limited.headers.get("retry-after")).not.toBeNull();
+    });
+
+    it("throttles the OAuth entry point after sixty requests (AC-12)", async () => {
+      const ip = "198.51.100.47";
+
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        const response = await get("google", { ip });
+        expect(response.status).toBe(302);
+      }
+
+      const limited = await get("google", { ip });
+      expect(limited.status).toBe(429);
+      expect(limited.headers.get("retry-after")).not.toBeNull();
     });
 
     it("keeps rate limit buckets per client address", async () => {

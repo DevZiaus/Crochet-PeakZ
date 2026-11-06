@@ -16,9 +16,8 @@ export async function resetPassword(
   rawToken: string,
   password: string,
 ): Promise<void> {
-  const user = await deps.users.findByPasswordResetTokenHash(
-    deps.tokens.hashOpaqueToken(rawToken),
-  );
+  const tokenHash = deps.tokens.hashOpaqueToken(rawToken);
+  const user = await deps.users.findByPasswordResetTokenHash(tokenHash);
 
   if (!user) {
     throw new AuthError(
@@ -38,6 +37,20 @@ export async function resetPassword(
 
   const passwordHash = await deps.passwords.hash(password);
 
-  await deps.users.savePasswordReset(user.id, passwordHash);
-  await deps.sessions.revokeAllForUser(user.id, now);
+  // One guarded transaction consumes the token, stores the new hash, and
+  // revokes every active session. A lost race (the token was already redeemed)
+  // reports the same invalid link a second use would.
+  const consumed = await deps.users.completePasswordReset({
+    userId: user.id,
+    passwordHash,
+    tokenHash,
+    now,
+  });
+
+  if (!consumed) {
+    throw new AuthError(
+      "INVALID_LINK",
+      "This reset link is invalid or has already been used.",
+    );
+  }
 }

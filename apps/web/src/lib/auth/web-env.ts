@@ -34,7 +34,7 @@ export function getWebAuthEnv(): WebAuthEnv {
       (isProduction ? "" : "http://localhost:4000/api"),
   );
   const proxySharedSecret = process.env["PROXY_SHARED_SECRET"]?.trim();
-  const webAppUrl = requireUrl(
+  const webAppUrl = requireOrigin(
     "WEB_APP_URL",
     process.env["WEB_APP_URL"] ?? (isProduction ? "" : "http://localhost:3000"),
   );
@@ -56,6 +56,24 @@ function requireUrl(name: string, value: string): string {
       throw new Error("protocol");
     }
     return value.replace(/\/$/, "");
+  } catch {
+    throw new Error(`${name} must be an absolute http(s) URL.`);
+  }
+}
+
+/**
+ * Validates a public origin and drops any path, query, or trailing slash.
+ *
+ * The Origin header is compared against this value, so `https://shop.test/`
+ * and `https://shop.test/store` must both become `https://shop.test`.
+ */
+function requireOrigin(name: string, value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error("protocol");
+    }
+    return parsed.origin;
   } catch {
     throw new Error(`${name} must be an absolute http(s) URL.`);
   }
