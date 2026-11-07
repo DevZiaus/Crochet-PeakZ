@@ -20,6 +20,9 @@ The API is deployment agnostic: it reads `HOST` and `PORT` from the environment,
 # Dev server (hot reload)
 npm run dev --workspace=@crochet-peakz/api
 
+# Test (Vitest; integration tests need a running PostgreSQL)
+npm run test --workspace=@crochet-peakz/api
+
 # Local OAuth mock provider for a manual browser run
 npm run dev:mock-oauth --workspace=@crochet-peakz/api
 
@@ -43,30 +46,37 @@ npm run db:studio --workspace=@crochet-peakz/api
 
 ## Key files
 
-| File                                              | Owns                                                                              |
-| ------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/index.ts`                                    | Composition root: env + database setup, Express app, listen, graceful shutdown    |
-| `src/app.ts`                                      | Express app factory shared by `index.ts` and integration tests                    |
-| `src/config/env.ts`                               | Environment parsing and validation (`HOST`, `PORT`, `CORS_ORIGIN`, `TRUST_PROXY`) |
-| `src/infrastructure/database/prisma.ts`           | Prisma client + `@prisma/adapter-pg` factory, health check, disconnect helper     |
-| `src/generated/prisma/`                           | Generated Prisma Client (gitignored; recreated by `prisma generate`)              |
-| `prisma/schema.prisma`                            | Database schema (PostgreSQL, single `DATABASE_URL`)                               |
-| `prisma.config.ts`                                | Prisma CLI config: datasource URL, schema path, migrations path, and seed command |
-| `prisma/seed.ts`                                  | Seed script for realistic local data (users, categories, products, settings)      |
-| `src/presentation/routes/health.routes.ts`        | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)           |
-| `src/presentation/middleware/errorHandler.ts`     | Centralized error handler and `AppError` class                                    |
-| `src/presentation/auth/oauth.integration.test.ts` | Full OAuth round trip against the local mock provider                             |
-| `src/test-support/mock-oauth-provider.ts`         | In-process authorize, token, and profile provider for tests                       |
-| `scripts/mock-oauth-provider.ts`                  | Manual mock provider started by `npm run dev:mock-oauth`                          |
-| `tsconfig.json`                                   | Typecheck config: `src` + `scripts` + `prisma`, no emit                           |
-| `tsconfig.build.json`                             | Build config: emits `src` to `dist/` only                                         |
-| `.env` / `.env.example`                           | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)    |
+| File                                              | Owns                                                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `src/index.ts`                                    | Composition root: env + database setup, Express app, listen, graceful shutdown       |
+| `src/app.ts`                                      | Express app factory shared by `index.ts` and integration tests                       |
+| `src/domain/entities/`                            | `User` and `Session` entities with the auth invariants                               |
+| `src/application/use-cases/`                      | Auth use cases: register, login, refresh, verify, reset, OAuth, me, and logout       |
+| `src/infrastructure/auth/`                        | bcrypt password hasher and `jose` access token service                               |
+| `src/infrastructure/email/`                       | Resend sender and the auth email templates                                           |
+| `src/infrastructure/oauth/`                       | Passport Google and Facebook strategies                                              |
+| `src/presentation/auth/`                          | Auth routes, middleware, cookies, proxy guard, and throttling                        |
+| `src/config/env.ts`                               | Environment parsing and validation (runtime, auth, OAuth, email, and proxy settings) |
+| `src/infrastructure/database/prisma.ts`           | Prisma client + `@prisma/adapter-pg` factory, health check, disconnect helper        |
+| `src/generated/prisma/`                           | Generated Prisma Client (gitignored; recreated by `prisma generate`)                 |
+| `prisma/schema.prisma`                            | Database schema (PostgreSQL, single `DATABASE_URL`)                                  |
+| `prisma.config.ts`                                | Prisma CLI config: datasource URL, schema path, migrations path, and seed command    |
+| `prisma/seed.ts`                                  | Seed script for realistic local data (users, categories, products, settings)         |
+| `src/presentation/routes/health.routes.ts`        | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)              |
+| `src/presentation/middleware/errorHandler.ts`     | Centralized error handler and `AppError` class                                       |
+| `src/presentation/auth/oauth.integration.test.ts` | Full OAuth round trip against the local mock provider                                |
+| `src/test-support/mock-oauth-provider.ts`         | In-process authorize, token, and profile provider for tests                          |
+| `scripts/mock-oauth-provider.ts`                  | Manual mock provider started by `npm run dev:mock-oauth`                             |
+| `tsconfig.json`                                   | Typecheck config: `src` + `scripts` + `prisma`, no emit                              |
+| `tsconfig.build.json`                             | Build config: emits `src` to `dist/` only                                            |
+| `.env` / `.env.example`                           | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)       |
 
 ## Conventions
 
 - **Clean Architecture layers**: `domain/` → `application/` → `infrastructure/` → `presentation/`. Dependencies flow inward. Domain has zero external imports.
 - **Error handling**: throw `AppError(statusCode, message)` for expected errors; the centralized `errorHandler` middleware catches all and returns consistent JSON.
 - **Env validation**: `loadEnv()` in `src/config/env.ts` runs at startup and throws on invalid values. Add new variables there and document them in `.env.example` and `docs/deployment.md`.
+- **Auth boundary**: all auth routes mount under `/api/auth`, require the proxy shared secret, and reject state changing requests whose `Origin` does not match `WEB_APP_URL`. Auth logic stays in the Clean Architecture layers; presentation only translates HTTP.
 - **Route mounting**: all routers mount under `/api` (e.g. `app.use("/api", createHealthRouter(...))`).
 - **Health probes**: keep `/api/health` dependency-free (liveness) and back `/api/health/ready` with a real dependency check.
 - **Module system**: ESM (`"type": "module"`, `module: NodeNext`, `moduleResolution: NodeNext`). `tsx` runs TypeScript in dev; `tsc -p tsconfig.build.json` emits `dist/index.js` for production.

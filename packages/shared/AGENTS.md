@@ -38,6 +38,8 @@ Root scripts (`npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint
 | `src/index.ts`            | Barrel export: re-exports all public types, schemas, and constants                             |
 | `src/types/index.ts`      | Domain types and enums mirroring the Prisma data model (Currency, UserRole, ProductType, etc.) |
 | `src/schemas/index.ts`    | Zod validation schemas for enums and domain entities                                           |
+| `src/schemas/auth.ts`     | Auth request schemas and the `AuthUser` DTO schema                                             |
+| `src/auth/next-path.ts`   | Relative post sign in redirect validator shared by the web app and tests                       |
 | `src/constants/index.ts`  | Shared constants (`CURRENCIES`, `ORDER_STATUSES`, `PRODUCT_TYPES`) and display metadata        |
 | `tsconfig.json`           | Base config: typecheck only (`noEmit`)                                                         |
 | `tsconfig.build.json`     | Emits `src` to `dist/`, excluding tests                                                        |
@@ -48,6 +50,7 @@ Root scripts (`npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint
 - **Named exports only.** The barrel `src/index.ts` re-exports everything; consumers import from `@crochet-peakz/shared` directly.
 - **Relative imports use `.js` extensions** (e.g. `from "../types/index.js"`), required by Node ESM output.
 - **Add new exports to the barrel.** Any new type, schema, or constant must be re-exported from `src/index.ts` to be available to consumers.
+- **Auth contracts**: auth schemas and the `AuthUser` DTO live in `src/schemas/auth.ts`; both workspaces import them from the barrel.
 - **Rebuild after changing source** when running a consumer that uses the compiled output (`npm run build:shared` at the repo root). The root dev script watches and rebuilds automatically.
 
 ## Related specs

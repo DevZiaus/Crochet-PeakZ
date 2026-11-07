@@ -37,18 +37,24 @@ npm run test --workspace=@crochet-peakz/web
 
 ## Key files
 
-| File                                | Owns                                                                           |
-| ----------------------------------- | ------------------------------------------------------------------------------ |
-| `src/app/layout.tsx`                | Root layout: HTML shell, fonts, metadata                                       |
-| `src/app/page.tsx`                  | Home page (scaffold placeholder, imports from shared to verify workspace link) |
-| `src/app/health/route.ts`           | `/health` liveness probe for containers and reverse proxies                    |
-| `src/app/globals.css`               | Design tokens (light + `[data-theme="dark"]`), Tailwind imports                |
-| `design.md`                         | Design system reference: tokens, type scale, component APIs, a11y rules        |
-| `src/components/ui/`                | Shadcn UI primitives (Button, Input, Dialog, and the rest)                     |
-| `src/components/`                   | Composed components built on the primitives                                    |
-| `next.config.ts`                    | Standalone output, monorepo tracing root, image allowlist                      |
-| `eslint.config.mjs`                 | ESLint config (Next.js preset)                                                 |
-| `.env.local` / `.env.local.example` | Build-time `NEXT_PUBLIC_*` variables                                           |
+| File                                  | Owns                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/app/layout.tsx`                  | Root layout: HTML shell, fonts, metadata                                                         |
+| `src/app/page.tsx`                    | Home page (scaffold placeholder, imports from shared to verify workspace link)                   |
+| `src/app/health/route.ts`             | `/health` liveness probe for containers and reverse proxies                                      |
+| `src/app/(auth)/`                     | Six auth screens: sign in, register, verify email, forgot password, reset password, OAuth result |
+| `src/app/api/auth/[...path]/route.ts` | Same origin auth proxy: cookie relay, one time refresh, and replay                               |
+| `src/app/admin/`                      | Admin layout with the server side role guard                                                     |
+| `src/components/auth/`                | Auth forms, OAuth buttons, password input, header menu, and route guards                         |
+| `src/lib/auth/`                       | Server session helper, client session hook, cookies, and the auth API wrapper                    |
+| `src/proxy.ts`                        | Route guard, auth refresh, and security headers                                                  |
+| `src/app/globals.css`                 | Design tokens (light + `[data-theme="dark"]`), Tailwind imports                                  |
+| `design.md`                           | Design system reference: tokens, type scale, component APIs, a11y rules                          |
+| `src/components/ui/`                  | Shadcn UI primitives (Button, Input, Dialog, and the rest)                                       |
+| `src/components/`                     | Composed components built on the primitives                                                      |
+| `next.config.ts`                      | Standalone output, monorepo tracing root, image allowlist                                        |
+| `eslint.config.mjs`                   | ESLint config (Next.js preset)                                                                   |
+| `.env.local` / `.env.local.example`   | Build-time `NEXT_PUBLIC_*` variables                                                             |
 
 ## Conventions
 
@@ -58,6 +64,9 @@ npm run test --workspace=@crochet-peakz/web
 - **Shared package**: import types, schemas, and constants from `@crochet-peakz/shared`. It resolves to compiled JavaScript in `packages/shared/dist`; root scripts build it first.
 - **Design system**: build all UI to `design.md` (tokens, type scale, component APIs, accessibility rules); token values live in CSS (`src/app/globals.css`). Primitives live in `src/components/ui/`, composed components in `src/components/`; a composed component imports from `ui/`, never the reverse. Every color resolves to a token, never a raw hex or Tailwind default.
 - **Radix imports**: import primitives from the umbrella `radix-ui` package (`import { Dialog } from "radix-ui"`), never from individual `@radix-ui/react-*` packages. The umbrella is the only Radix runtime dependency.
+- **Auth calls**: the browser never calls the API directly. Auth requests go through `/api/auth/*` route handlers, which forward cookies and the proxy secret, refresh once on a 401, and replay. Server components read the session through `src/lib/auth/session.ts`.
+- **Auth screens**: the six screens live under `(auth)`, follow `design.md`, and set `robots: { index: false }`; the proxy adds an `X-Robots-Tag` header.
+- **Route protection**: `src/proxy.ts` sends signed out visitors to `/login?next=<path>`, and the admin layout checks the role on the server before rendering.
 - **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
 

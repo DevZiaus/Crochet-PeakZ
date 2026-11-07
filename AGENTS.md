@@ -48,6 +48,9 @@ npm run format:check
 
 # Test
 npm run test
+
+# End to end tests (Playwright; starts its own servers and needs a seeded database)
+npx playwright test
 ```
 
 ## Specs
@@ -105,7 +108,7 @@ _Choices recorded here. `/develop tooling` installs them._
 - **Pre commit**: Husky + lint-staged (lint + format + typecheck on every commit)
 - **Testing**: Vitest (unit/integration), React Testing Library (components), Playwright (E2E)
 - **Auth test isolation**: never call live Google, Facebook, or Resend from tests. OAuth tests use the local mock provider in `apps/api/src/test-support/mock-oauth-provider.ts`; email tests assert the envelope handed to the Resend transport. Manual steps are in `README.md` and `docs/deployment.md`.
-- **CI**: GitHub Actions (lint, typecheck, test on push)
+- **CI**: GitHub Actions (lint, typecheck, test, and Playwright E2E against PostgreSQL on pull requests)
 
 ## Git
 
@@ -134,10 +137,15 @@ Installed for customer auth (spec 0005):
 - [auth-implementation-patterns](.agents/skills/auth-implementation-patterns/): JWT, session, OAuth2, and role based access patterns
 - [resend](.agents/skills/resend/): Resend SDK and API conventions for transactional email
 - [email-best-practices](.agents/skills/email-best-practices/): email deliverability, SPF/DKIM/DMARC, and template guidance
+- [react-email](.agents/skills/react-email/): React components for HTML email templates
+- [resend-cli](.agents/skills/resend-cli/): terminal commands for the Resend platform
+- [agent-email-inbox](.agents/skills/agent-email-inbox/): safe handling for inbound email that triggers actions
 
 MCP servers: resend (`https://mcp.resend.com/mcp`, OAuth sign in required; used to inspect verification and reset mail in development)
 
 Declined: Vitest · React Testing Library · Radix UI · Sonner (offered 2026-10-24, no Agent Skill installed)
+
+Declined for customer auth (spec 0005): jose · passport · Playwright (offered 2026-11-08, no Agent Skill installed)
 
 ## Context files
 
