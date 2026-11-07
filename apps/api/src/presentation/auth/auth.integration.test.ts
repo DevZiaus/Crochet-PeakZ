@@ -64,7 +64,6 @@ describeWithDatabase("auth against PostgreSQL", () => {
       emails: new RecordingEmailSender(),
       clock,
       webAppUrl: "https://shop.example.com",
-      isProduction: false,
     };
   });
 

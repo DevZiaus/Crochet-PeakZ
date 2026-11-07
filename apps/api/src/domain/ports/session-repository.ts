@@ -41,6 +41,14 @@ export interface SessionRepository {
    * only the presented row, otherwise the live successor stays usable. The
    * write never rewrites a revoke timestamp that is already set, so it cannot
    * extend a rotation's replay grace window.
+   *
+   * A token replayed inside the rotation grace window creates a second live
+   * successor so both concurrent clients keep working. That branch is not
+   * linked through `replacedByTokenId`, so a sign out from the predecessor
+   * cannot reach it. This is an accepted tradeoff: the branch is revoked by a
+   * sign out from its own token, by a password reset (which revokes every
+   * session), or by reuse detection. Linking it would need a schema change that
+   * lets a chain hold more than one successor.
    */
   revokeChain(id: string, now: Date): Promise<void>;
   /** Revokes every active session for an account. */

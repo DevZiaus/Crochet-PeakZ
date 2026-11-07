@@ -17,6 +17,18 @@ export interface WebAuthEnv {
 
 let cached: WebAuthEnv | undefined;
 
+/** Minimum secret length the API also enforces at startup. */
+const MIN_PROXY_SECRET_LENGTH = 16;
+
+/**
+ * Values that still look like samples.
+ *
+ * Kept in step with the API's placeholder check so the web tier cannot start
+ * with a secret the API would refuse.
+ */
+const PLACEHOLDER_PATTERN =
+  /change[-_ ]?me|placeholder|your[-_ ]?(secret|key|value)|^\.+$/i;
+
 /**
  * Reads and validates the server side auth variables.
  *
@@ -42,6 +54,18 @@ export function getWebAuthEnv(): WebAuthEnv {
   if (!proxySharedSecret) {
     throw new Error(
       "Missing PROXY_SHARED_SECRET. Set it in apps/web/.env.local to the same value as the API.",
+    );
+  }
+
+  if (proxySharedSecret.length < MIN_PROXY_SECRET_LENGTH) {
+    throw new Error(
+      `PROXY_SHARED_SECRET must be at least ${String(MIN_PROXY_SECRET_LENGTH)} characters long. Use the same value as the API.`,
+    );
+  }
+
+  if (PLACEHOLDER_PATTERN.test(proxySharedSecret)) {
+    throw new Error(
+      "PROXY_SHARED_SECRET is still set to a placeholder value. Use the same real secret as the API.",
     );
   }
 

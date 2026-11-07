@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 import { GET, POST } from "./route";
 
 process.env.API_INTERNAL_URL = "http://api.test/api";
-process.env.PROXY_SHARED_SECRET = "test-secret";
+process.env.PROXY_SHARED_SECRET = "test-secret-0123456789";
 process.env.WEB_APP_URL = "http://web.test";
 
 interface FetchCall {
@@ -127,6 +127,7 @@ describe("auth proxy refresh and replay", () => {
       "/api/auth/me",
     ]);
     expect(cookieOf(calls[2]?.init)).toContain("cp_access=new-access");
+    expect(cookieOf(calls[2]?.init)).toContain("cp_refresh=new-refresh");
     expect(response.headers.getSetCookie()).toEqual(
       expect.arrayContaining([
         expect.stringContaining("cp_access=new-access"),

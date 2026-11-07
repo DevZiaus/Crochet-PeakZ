@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/form-field";
 import { FormAlert } from "@/components/auth/form-alert";
 import { PasswordInput } from "@/components/auth/password-input";
-import { postAuthJson, type AuthApiError } from "@/lib/auth/api";
+import { firstIssueMessage, postAuthJson } from "@/lib/auth/api";
 
 type ResetState =
   | { kind: "form" }
@@ -16,23 +16,6 @@ type ResetState =
   | { kind: "expired" }
   | { kind: "invalid" }
   | { kind: "done" };
-
-/** Reads the first field issue from a validation error. */
-function firstIssueMessage(error: AuthApiError): string {
-  const issues: unknown = error.details?.["issues"];
-  if (Array.isArray(issues)) {
-    const first: unknown = issues[0];
-    if (
-      typeof first === "object" &&
-      first !== null &&
-      "message" in first &&
-      typeof (first as { message?: unknown }).message === "string"
-    ) {
-      return (first as { message: string }).message;
-    }
-  }
-  return error.message;
-}
 
 /**
  * Password reset form.

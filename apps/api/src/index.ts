@@ -102,7 +102,6 @@ async function main(): Promise<void> {
       }),
       clock: systemClock,
       webAppUrl: env.webAppUrl,
-      isProduction: env.nodeEnv === "production",
     };
 
     return createAuthRouter({

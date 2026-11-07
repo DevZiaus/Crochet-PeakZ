@@ -99,6 +99,22 @@ describe("loadEnv startup validation", () => {
       loadEnv({ ...baseEnv, EMAIL_FROM: "Crochet PeakZ <hello@example.com>" }),
     ).not.toThrow();
   });
+
+  it("accepts a localhost sender outside production", () => {
+    expect(() =>
+      loadEnv({ ...baseEnv, EMAIL_FROM: "Crochet PeakZ <hello@localhost>" }),
+    ).not.toThrow();
+  });
+
+  it("refuses a localhost sender in production", () => {
+    expect(() =>
+      loadEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        EMAIL_FROM: "hello@localhost",
+      }),
+    ).toThrow(/EMAIL_FROM/);
+  });
 });
 
 describe("loadEnv OAuth endpoint overrides", () => {

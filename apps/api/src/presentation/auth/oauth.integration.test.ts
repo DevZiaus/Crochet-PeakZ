@@ -79,7 +79,6 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
       emails: new RecordingEmailSender(),
       clock,
       webAppUrl: WEB_APP_URL,
-      isProduction: false,
     };
 
     provider = await startMockOAuthProvider();

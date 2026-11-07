@@ -21,8 +21,6 @@ export interface AuthDependencies {
   clock: Clock;
   /** Public web origin used in links and redirects, without a trailing slash. */
   webAppUrl: string;
-  /** Whether cookies should carry the Secure attribute. */
-  isProduction: boolean;
 }
 
 /** The result of a successful sign in or refresh. */

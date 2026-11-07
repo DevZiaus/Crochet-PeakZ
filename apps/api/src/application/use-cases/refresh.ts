@@ -141,6 +141,12 @@ async function issueFromGrace(
 /**
  * Issues a fresh pair for a concurrent refresh inside the grace window,
  * copying the device trail from the rotated row.
+ *
+ * The new row is a second live successor of the rotation. Signing out from the
+ * predecessor only follows `replacedByTokenId`, so it cannot reach this branch.
+ * That is an accepted tradeoff documented on `SessionRepository.revokeChain`.
+ * A password reset or reuse detection still revokes every session for the
+ * account, and signing out with this row's own token revokes it.
  */
 async function issueFromChain(
   deps: AuthDependencies,

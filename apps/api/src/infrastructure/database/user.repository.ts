@@ -77,19 +77,26 @@ export class PrismaUserRepository implements UserRepository {
 
   /** @inheritdoc */
   async createOAuth(input: CreateOAuthUserInput): Promise<User> {
-    const row = await this.prisma.user.create({
-      data: {
-        name: input.name,
-        email: input.email,
-        authProvider: input.provider,
-        providerId: input.providerId,
-        avatarUrl: input.avatarUrl,
-        emailVerified: true,
-        role: PrismaUserRole.CUSTOMER,
-        lastLoginAt: input.lastLoginAt,
-      },
-    });
-    return toDomain(row);
+    try {
+      const row = await this.prisma.user.create({
+        data: {
+          name: input.name,
+          email: input.email,
+          authProvider: input.provider,
+          providerId: input.providerId,
+          avatarUrl: input.avatarUrl,
+          emailVerified: true,
+          role: PrismaUserRole.CUSTOMER,
+          lastLoginAt: input.lastLoginAt,
+        },
+      });
+      return toDomain(row);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new EmailAlreadyExistsError();
+      }
+      throw error;
+    }
   }
 
   /** @inheritdoc */
@@ -173,25 +180,6 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /** @inheritdoc */
-  async saveLoginState(
-    userId: string,
-    state: {
-      failedLoginAttempts: number;
-      lockedUntil: Date | null;
-      lastLoginAt?: Date;
-    },
-  ): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        failedLoginAttempts: state.failedLoginAttempts,
-        lockedUntil: state.lockedUntil,
-        ...(state.lastLoginAt ? { lastLoginAt: state.lastLoginAt } : {}),
-      },
-    });
-  }
-
-  /** @inheritdoc */
   async saveSuccessfulLogin(
     userId: string,
     state: {
@@ -243,6 +231,40 @@ export class PrismaUserRepository implements UserRepository {
       },
     });
     return result.count === 1;
+  }
+
+  /** @inheritdoc */
+  async incrementFailedLogin(userId: string, now: Date): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      // Lock the row so a burst of fallback writes serialises here instead of
+      // overwriting each other's increment. A guarded compare and swap write
+      // waits on the same row lock and rechecks its condition afterwards.
+      const locked = await transaction.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "users" WHERE "id" = ${userId} FOR UPDATE
+      `;
+
+      if (locked.length === 0) {
+        return;
+      }
+
+      const row = await transaction.user.findUnique({ where: { id: userId } });
+      if (!row) {
+        return;
+      }
+
+      // The entity owns the rule: an expired lock starts a fresh window, and
+      // the fifth failure sets the next lock.
+      const user = toDomain(row);
+      user.recordFailedLogin(now);
+
+      await transaction.user.update({
+        where: { id: userId },
+        data: {
+          failedLoginAttempts: user.failedLoginAttempts,
+          lockedUntil: user.lockedUntil,
+        },
+      });
+    });
   }
 
   /** @inheritdoc */

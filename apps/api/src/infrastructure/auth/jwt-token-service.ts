@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 import {
   ACCESS_TOKEN_AUDIENCE,
@@ -109,17 +109,4 @@ export class JwtTokenService implements TokenService {
 
     return { nonce, next, provider };
   }
-}
-
-/**
- * Returns the plain SHA 256 hex digest of a value.
- *
- * Exposed for repository level tooling and tests; auth tokens use the keyed
- * digest above.
- *
- * @param value Input string.
- * @returns Lowercase hex digest.
- */
-export function sha256Hex(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
 }

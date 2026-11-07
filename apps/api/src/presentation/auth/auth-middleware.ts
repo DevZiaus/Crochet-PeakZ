@@ -43,6 +43,9 @@ export function createRequireAuth(tokens: TokenService): RequestHandler {
  * web layer (`apps/web`), and this middleware is exercised by tests only, so it
  * is not live protection until a backend admin route attaches it.
  *
+ * TODO(admin-api): attach this to the first backend admin route before that
+ * route ships. Until then, web route guards are the only enforcement.
+ *
  * @param users Account repository.
  * @returns Express middleware.
  */

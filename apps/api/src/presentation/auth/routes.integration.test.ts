@@ -70,7 +70,6 @@ describeWithDatabase("auth routes over HTTP", () => {
       emails: new RecordingEmailSender(),
       clock: { now: () => new Date() },
       webAppUrl: WEB_APP_URL,
-      isProduction: false,
     };
 
     const provider = await startMockOAuthProvider();

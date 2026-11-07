@@ -13,9 +13,8 @@ export interface LoginInput {
  * How many times a failed sign in write is retried after losing a race.
  *
  * Sign in is throttled at the edge, so a burst has few writers at once. If
- * every round still loses to a parallel attempt the increment is dropped for
- * this request; the bound keeps that loss to the odd attempt rather than
- * letting the count slip far below the lock threshold.
+ * every round still loses to a parallel attempt, one unconditional atomic
+ * write records the failure, so the count can never be dropped.
  */
 const FAILED_LOGIN_WRITE_ATTEMPTS = 5;
 
@@ -25,7 +24,8 @@ const FAILED_LOGIN_WRITE_ATTEMPTS = 5;
  * Reads the account, applies the domain lock rule, then writes with a compare
  * and swap on the failure counter. When another attempt moved the counter
  * first, the write is refused and the account is re-read, so a burst of
- * attempts still reaches the lock threshold on time.
+ * attempts still reaches the lock threshold on time. A burst that keeps
+ * winning the guard falls back to one atomic write.
  *
  * @param deps Injected auth dependencies.
  * @param userId Account that failed to sign in.
@@ -60,6 +60,10 @@ async function recordFailedLogin(
       return;
     }
   }
+
+  // The guard never landed. Apply the rule again inside one atomic repository
+  // write, so a burst of failures cannot silently lose this attempt.
+  await deps.users.incrementFailedLogin(userId, now);
 }
 
 /**

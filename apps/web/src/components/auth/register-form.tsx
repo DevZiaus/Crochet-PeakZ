@@ -16,24 +16,7 @@ import { Divider } from "@/components/divider";
 import { FormAlert } from "@/components/auth/form-alert";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { PasswordInput } from "@/components/auth/password-input";
-import { detailNumber, postAuthJson, type AuthApiError } from "@/lib/auth/api";
-
-/** Reads the first field issue from a validation error. */
-function firstIssueMessage(error: AuthApiError): string {
-  const issues: unknown = error.details?.["issues"];
-  if (Array.isArray(issues)) {
-    const first: unknown = issues[0];
-    if (
-      typeof first === "object" &&
-      first !== null &&
-      "message" in first &&
-      typeof (first as { message?: unknown }).message === "string"
-    ) {
-      return (first as { message: string }).message;
-    }
-  }
-  return error.message;
-}
+import { detailNumber, firstIssueMessage, postAuthJson } from "@/lib/auth/api";
 
 /**
  * Account creation form.

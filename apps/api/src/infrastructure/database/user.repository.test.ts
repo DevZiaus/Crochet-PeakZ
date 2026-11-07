@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { config as loadDotEnv } from "dotenv";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { User } from "../../domain/entities/user.js";
+import { LOCK_DURATION_MS } from "../../domain/auth-constants.js";
 import { EmailAlreadyExistsError } from "../../domain/errors.js";
 import { createDatabase, type Database } from "./prisma.js";
 import { PrismaUserRepository } from "./user.repository.js";
@@ -136,6 +137,24 @@ describeWithDatabase("PrismaUserRepository", () => {
       expect(row.emailVerified).toBe(true);
       expect(row.passwordHash).toBeNull();
       expect(row.lastLoginAt?.toISOString()).toBe(signedInAt.toISOString());
+    });
+
+    it("translates a duplicate email into EmailAlreadyExistsError", async () => {
+      const email = uniqueEmail("repo-oauth-duplicate");
+      const input = {
+        name: "OAuth Duplicate",
+        email,
+        provider: "GOOGLE" as const,
+        providerId: "google-sub-dup",
+        avatarUrl: null,
+        lastLoginAt: new Date("2026-02-03T04:05:06.000Z"),
+      };
+
+      await repository.createOAuth(input);
+
+      await expect(repository.createOAuth(input)).rejects.toBeInstanceOf(
+        EmailAlreadyExistsError,
+      );
     });
   });
 
@@ -261,9 +280,12 @@ describeWithDatabase("PrismaUserRepository", () => {
         tokenHash: "hash:apply",
         expiresAt: new Date("2026-03-01T00:00:00.000Z"),
       });
-      await repository.saveLoginState(user.id, {
-        failedLoginAttempts: 4,
-        lockedUntil: new Date("2026-04-01T00:00:00.000Z"),
+      await database.client.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: 4,
+          lockedUntil: new Date("2026-04-01T00:00:00.000Z"),
+        },
       });
 
       const consumed = await repository.completePasswordReset({
@@ -299,71 +321,6 @@ describeWithDatabase("PrismaUserRepository", () => {
     });
   });
 
-  describe("saveLoginState", () => {
-    it("stores the failure count and the lock", async () => {
-      const email = uniqueEmail("repo-lock");
-      const user = await repository.createLocal({
-        name: "Locked",
-        email,
-        passwordHash: "hashed:x",
-      });
-      const lockedUntil = new Date("2026-05-01T10:00:00.000Z");
-
-      await repository.saveLoginState(user.id, {
-        failedLoginAttempts: 5,
-        lockedUntil,
-      });
-
-      const row = await database.client.user.findUniqueOrThrow({
-        where: { id: user.id },
-      });
-      expect(row.failedLoginAttempts).toBe(5);
-      expect(row.lockedUntil?.toISOString()).toBe(lockedUntil.toISOString());
-    });
-
-    it("leaves lastLoginAt untouched when the state omits it", async () => {
-      const email = uniqueEmail("repo-keep-login-time");
-      const user = await repository.createLocal({
-        name: "Keep Time",
-        email,
-        passwordHash: "hashed:x",
-      });
-
-      await repository.saveLoginState(user.id, {
-        failedLoginAttempts: 1,
-        lockedUntil: null,
-      });
-
-      const row = await database.client.user.findUniqueOrThrow({
-        where: { id: user.id },
-      });
-      expect(row.lastLoginAt).toBeNull();
-    });
-
-    it("records the sign in time and clears the lock on success", async () => {
-      const email = uniqueEmail("repo-set-login-time");
-      const user = await repository.createLocal({
-        name: "Set Time",
-        email,
-        passwordHash: "hashed:x",
-      });
-      const lastLoginAt = new Date("2026-06-01T12:00:00.000Z");
-
-      await repository.saveLoginState(user.id, {
-        failedLoginAttempts: 0,
-        lockedUntil: null,
-        lastLoginAt,
-      });
-
-      const row = await database.client.user.findUniqueOrThrow({
-        where: { id: user.id },
-      });
-      expect(row.lastLoginAt?.toISOString()).toBe(lastLoginAt.toISOString());
-      expect(row.failedLoginAttempts).toBe(0);
-      expect(row.lockedUntil).toBeNull();
-    });
-  });
-
   describe("saveSuccessfulLogin", () => {
     it("clears the counter and lock when the count still matches", async () => {
       const email = uniqueEmail("repo-success-match");
@@ -372,9 +329,9 @@ describeWithDatabase("PrismaUserRepository", () => {
         email,
         passwordHash: "hashed:x",
       });
-      await repository.saveLoginState(user.id, {
-        failedLoginAttempts: 3,
-        lockedUntil: null,
+      await database.client.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 3, lockedUntil: null },
       });
       const lastLoginAt = new Date("2026-08-01T12:00:00.000Z");
 
@@ -401,9 +358,9 @@ describeWithDatabase("PrismaUserRepository", () => {
         email,
         passwordHash: "hashed:x",
       });
-      await repository.saveLoginState(user.id, {
-        failedLoginAttempts: 4,
-        lockedUntil: null,
+      await database.client.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 4, lockedUntil: null },
       });
       const lastLoginAt = new Date("2026-08-02T12:00:00.000Z");
 
@@ -454,9 +411,9 @@ describeWithDatabase("PrismaUserRepository", () => {
         email,
         passwordHash: "hashed:x",
       });
-      await repository.saveLoginState(user.id, {
-        failedLoginAttempts: 1,
-        lockedUntil: null,
+      await database.client.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 1, lockedUntil: null },
       });
 
       await expect(
@@ -496,6 +453,57 @@ describeWithDatabase("PrismaUserRepository", () => {
       ]);
 
       expect(results.filter(Boolean)).toHaveLength(1);
+    });
+  });
+
+  describe("incrementFailedLogin", () => {
+    it("counts five parallel failures without dropping one", async () => {
+      const email = uniqueEmail("repo-increment-race");
+      const user = await repository.createLocal({
+        name: "Increment Race",
+        email,
+        passwordHash: "hashed:x",
+      });
+      const now = new Date("2026-07-01T10:00:00.000Z");
+
+      await Promise.all(
+        Array.from({ length: 5 }, () =>
+          repository.incrementFailedLogin(user.id, now),
+        ),
+      );
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(row.failedLoginAttempts).toBe(5);
+      expect(row.lockedUntil?.toISOString()).toBe(
+        new Date(now.getTime() + LOCK_DURATION_MS).toISOString(),
+      );
+    });
+
+    it("starts a fresh window after the previous lock expired", async () => {
+      const email = uniqueEmail("repo-increment-expired");
+      const user = await repository.createLocal({
+        name: "Increment Expired",
+        email,
+        passwordHash: "hashed:x",
+      });
+      const now = new Date("2026-07-02T10:00:00.000Z");
+      await database.client.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: 5,
+          lockedUntil: new Date(now.getTime() - 1_000),
+        },
+      });
+
+      await repository.incrementFailedLogin(user.id, now);
+
+      const row = await database.client.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(row.failedLoginAttempts).toBe(1);
+      expect(row.lockedUntil).toBeNull();
     });
   });
 

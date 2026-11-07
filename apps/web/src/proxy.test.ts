@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 process.env.API_INTERNAL_URL = "http://api.test/api";
-process.env.PROXY_SHARED_SECRET = "test-secret";
+process.env.PROXY_SHARED_SECRET = "test-secret-0123456789";
 process.env.WEB_APP_URL = "http://web.test";
 
 interface FetchCall {
@@ -236,7 +236,7 @@ describe("admin guard", () => {
     const refresh = calls.find((call) => call.url.endsWith("/auth/refresh"));
     const refreshHeaders = new Headers(refresh?.init?.headers);
     expect(refreshHeaders.get("origin")).toBe("http://web.test");
-    expect(refreshHeaders.get("x-proxy-secret")).toBe("test-secret");
+    expect(refreshHeaders.get("x-proxy-secret")).toBe("test-secret-0123456789");
     expect(refreshHeaders.get("cookie")).toContain("cp_refresh=live-refresh");
     expect(refreshHeaders.get("x-forwarded-for")).toBe(forwardedFor);
     for (const call of calls) {
@@ -307,7 +307,7 @@ describe("admin guard", () => {
 
     const headers = new Headers(calls[0]?.init?.headers);
     expect(headers.get("cookie")).toBe("cp_access=admin-token");
-    expect(headers.get("x-proxy-secret")).toBe("test-secret");
+    expect(headers.get("x-proxy-secret")).toBe("test-secret-0123456789");
   });
 
   it("never caches the role answer", async () => {

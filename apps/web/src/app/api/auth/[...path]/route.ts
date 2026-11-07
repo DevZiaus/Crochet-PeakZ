@@ -255,13 +255,19 @@ async function proxyAuthRequest(
     if (refreshResponse.status === 200) {
       refreshSetCookies = getSetCookies(refreshResponse.headers);
       const nextAccess = readSetCookie(refreshSetCookies, ACCESS_COOKIE);
+      const nextRefresh = readSetCookie(refreshSetCookies, REFRESH_COOKIE);
 
       if (nextAccess) {
-        const replayCookie = writeCookie(
+        let replayCookie = writeCookie(
           originalCookie,
           ACCESS_COOKIE,
           nextAccess,
         );
+        if (nextRefresh) {
+          // The refresh rotated both tokens. Replay with the new pair so the
+          // API does not see the now revoked refresh token on the retry.
+          replayCookie = writeCookie(replayCookie, REFRESH_COOKIE, nextRefresh);
+        }
         try {
           response = await send(replayCookie);
         } catch {

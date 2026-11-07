@@ -135,7 +135,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
       ...(facebookEndpoints ? { endpoints: facebookEndpoints } : {}),
     },
     resendApiKey: parseCredential(source, "RESEND_API_KEY"),
-    emailFrom: parseEmailFrom(source["EMAIL_FROM"]),
+    emailFrom: parseEmailFrom(source["EMAIL_FROM"], nodeEnv),
   };
 }
 
@@ -213,7 +213,10 @@ function parseWebAppUrl(value: string | undefined): string {
  */
 const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function parseEmailFrom(value: string | undefined): string {
+/** Loopback domains accepted only outside production. */
+const LOCAL_EMAIL_DOMAINS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+function parseEmailFrom(value: string | undefined, nodeEnv: NodeEnv): string {
   const raw = value?.trim();
   // Accept a bare address or the `Name <address>` form, and validate the
   // address itself rather than only the presence of an "@".
@@ -222,14 +225,32 @@ function parseEmailFrom(value: string | undefined): string {
   if (
     !raw ||
     PLACEHOLDER_PATTERN.test(raw) ||
-    !EMAIL_ADDRESS_PATTERN.test(address)
+    !(
+      EMAIL_ADDRESS_PATTERN.test(address) ||
+      (nodeEnv !== "production" && isLocalEmailAddress(address))
+    )
   ) {
     throw new Error(
       "Missing required environment variable: EMAIL_FROM. " +
-        "Set it to a verified sender such as Crochet PeakZ <hello@example.com>.",
+        "Set it to a verified sender such as Crochet PeakZ <hello@example.com>. " +
+        "A localhost sender is allowed outside production.",
     );
   }
   return raw;
+}
+
+/**
+ * Whether the address uses a loopback domain.
+ *
+ * @param address Bare email address.
+ * @returns True for localhost and loopback IP domains.
+ */
+function isLocalEmailAddress(address: string): boolean {
+  const at = address.lastIndexOf("@");
+  if (at === -1) {
+    return false;
+  }
+  return LOCAL_EMAIL_DOMAINS.has(address.slice(at + 1).toLowerCase());
 }
 
 /** Environment variable names for one provider's three endpoints. */

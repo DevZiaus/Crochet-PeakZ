@@ -1,5 +1,6 @@
 import type { AuthDependencies, AuthResult } from "../dependencies.js";
 import type { SessionContext } from "../errors.js";
+import { EmailAlreadyExistsError } from "../../domain/errors.js";
 import type { OAuthProfile } from "../../domain/types.js";
 import { issueSession } from "./issue-session.js";
 
@@ -11,6 +12,10 @@ import { issueSession } from "./issue-session.js";
  * signed in. Linking to an existing unverified local account verifies it and
  * clears its stored password. The account keeps the provider it was created
  * with.
+ *
+ * When two first sign ins for the same new address race, the loser sees the
+ * unique constraint, re-reads the winner, and continues as an existing account
+ * instead of failing the callback.
  *
  * @param deps Injected auth dependencies.
  * @param profile Profile proved by the provider.
@@ -24,36 +29,49 @@ export async function signInWithOAuth(
 ): Promise<AuthResult> {
   const email = profile.email.trim().toLowerCase();
   const now = deps.clock.now();
-  const existing = await deps.users.findByEmail(email);
+  let user = await deps.users.findByEmail(email);
 
-  if (!existing) {
-    const user = await deps.users.createOAuth({
-      name: profile.name,
-      email,
-      provider: profile.provider,
-      providerId: profile.providerId,
-      avatarUrl: profile.avatarUrl,
-      lastLoginAt: now,
-    });
+  if (!user) {
+    try {
+      user = await deps.users.createOAuth({
+        name: profile.name,
+        email,
+        provider: profile.provider,
+        providerId: profile.providerId,
+        avatarUrl: profile.avatarUrl,
+        lastLoginAt: now,
+      });
 
-    return issueSession(deps, user, context);
+      return await issueSession(deps, user, context);
+    } catch (error) {
+      if (!(error instanceof EmailAlreadyExistsError)) {
+        throw error;
+      }
+
+      // A parallel first sign in inserted the address between the read and the
+      // create. Continue with the account that won so both callbacks succeed.
+      user = await deps.users.findByEmail(email);
+      if (!user) {
+        throw error;
+      }
+    }
   }
 
   // Keep the stored provider pair whenever the signing in provider differs,
   // even when the stored id is null, so the record never mixes one provider's
   // name with another's id. A same provider sign in refreshes the stored id.
-  const sameProvider = existing.authProvider === profile.provider;
+  const sameProvider = user.authProvider === profile.provider;
   const keepProvider = !sameProvider;
 
-  await deps.users.saveOAuthLogin(existing.id, {
-    providerId: keepProvider ? existing.providerId : profile.providerId,
-    avatarUrl: existing.avatarUrl ?? profile.avatarUrl,
+  await deps.users.saveOAuthLogin(user.id, {
+    providerId: keepProvider ? user.providerId : profile.providerId,
+    avatarUrl: user.avatarUrl ?? profile.avatarUrl,
     emailVerified: true,
-    clearPassword: existing.shouldClearPasswordOnLink(),
+    clearPassword: user.shouldClearPasswordOnLink(),
     lastLoginAt: now,
   });
 
-  existing.applyProviderLogin(profile.avatarUrl);
+  user.applyProviderLogin(profile.avatarUrl);
 
-  return issueSession(deps, existing, context);
+  return issueSession(deps, user, context);
 }

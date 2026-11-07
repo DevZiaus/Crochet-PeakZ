@@ -115,3 +115,25 @@ export function detailNumber(
   const value = error.details?.[key];
   return typeof value === "number" ? value : undefined;
 }
+
+/**
+ * Reads the first field issue message from a validation error.
+ *
+ * @param error API error.
+ * @returns The first issue message, or the general error message.
+ */
+export function firstIssueMessage(error: AuthApiError): string {
+  const issues: unknown = error.details?.["issues"];
+  if (Array.isArray(issues)) {
+    const first: unknown = issues[0];
+    if (
+      typeof first === "object" &&
+      first !== null &&
+      "message" in first &&
+      typeof (first as { message?: unknown }).message === "string"
+    ) {
+      return (first as { message: string }).message;
+    }
+  }
+  return error.message;
+}

@@ -46,13 +46,3 @@ export interface AuthUserDto {
   avatarUrl: string | null;
   emailVerified: boolean;
 }
-
-/** A signed pair of tokens handed to the presentation layer. */
-export interface IssuedTokens {
-  /** Short lived signed access token. */
-  accessToken: string;
-  /** Raw opaque refresh token (only its hash is stored). */
-  refreshToken: string;
-  /** Raw refresh token lifetime in milliseconds. */
-  refreshTtlMs: number;
-}

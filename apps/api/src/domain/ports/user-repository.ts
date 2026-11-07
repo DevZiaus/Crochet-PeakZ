@@ -49,7 +49,12 @@ export interface UserRepository {
   findByPasswordResetTokenHash(tokenHash: string): Promise<User | null>;
   /** Creates a local account. Throws `EmailAlreadyExistsError` on a duplicate. */
   createLocal(input: CreateLocalUserInput): Promise<User>;
-  /** Creates an account from a verified provider profile. */
+  /**
+   * Creates an account from a verified provider profile.
+   *
+   * Throws `EmailAlreadyExistsError` when a concurrent first sign in already
+   * created the address, so the use case can continue with the winning row.
+   */
   createOAuth(input: CreateOAuthUserInput): Promise<User>;
   /** Stores a new verification link and its send time. */
   saveVerificationIssue(
@@ -90,16 +95,6 @@ export interface UserRepository {
     tokenHash: string;
     now: Date;
   }): Promise<boolean>;
-  /** Persists the sign in lock state and failure counter. */
-  saveLoginState(
-    userId: string,
-    state: {
-      failedLoginAttempts: number;
-      lockedUntil: Date | null;
-      /** Omit to leave the existing last sign in value untouched. */
-      lastLoginAt?: Date;
-    },
-  ): Promise<void>;
   /**
    * Records a successful sign in.
    *
@@ -140,6 +135,18 @@ export interface UserRepository {
     state: { failedLoginAttempts: number; lockedUntil: Date | null },
     expectedFailedLoginAttempts: number,
   ): Promise<boolean>;
+  /**
+   * Records one failed sign in atomically, without a compare and swap.
+   *
+   * Used only after the guarded write loses repeatedly to parallel attempts.
+   * The repository locks the account row while it applies the domain lock rule,
+   * so the increment is never lost and the lock still starts on time. A missing
+   * or already locked account is left unchanged.
+   *
+   * @param userId Account id.
+   * @param now Current time, used to decide an expired lock and the new lock end.
+   */
+  incrementFailedLogin(userId: string, now: Date): Promise<void>;
   /**
    * Applies fields learned from a provider on an OAuth sign in.
    *

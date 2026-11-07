@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VERIFICATION_TTL_MS } from "../../domain/auth-constants.js";
 import { User } from "../../domain/entities/user.js";
+import { EmailAlreadyExistsError } from "../../domain/errors.js";
 import type { AuthUserDto } from "../../domain/types.js";
 import { AuthError } from "../errors.js";
 import { forgotPassword } from "./forgot-password.js";
@@ -95,6 +96,65 @@ class RacingSuccessRepository extends InMemoryUserRepository {
       state,
       expectedFailedLoginAttempts,
     );
+  }
+}
+
+/**
+ * Repository whose guarded failed login write always loses, so the use case
+ * must fall back to the unconditional atomic path.
+ */
+class AlwaysRacingUserRepository extends InMemoryUserRepository {
+  override saveFailedLogin(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+}
+
+/**
+ * Repository that inserts a competing OAuth account just after the use case
+ * reads a missing email, reproducing two simultaneous first sign ins.
+ */
+class RacingOAuthRepository extends InMemoryUserRepository {
+  private firstLookup = true;
+
+  override async findByEmail(email: string): Promise<User | null> {
+    const found = await super.findByEmail(email);
+    if (this.firstLookup && !found) {
+      this.firstLookup = false;
+      await super.createOAuth({
+        name: "Parallel Winner",
+        email,
+        provider: "GOOGLE",
+        providerId: "google-race",
+        avatarUrl: null,
+        lastLoginAt: new Date("2026-01-01T00:00:00Z"),
+      });
+      return null;
+    }
+    return found;
+  }
+}
+
+/**
+ * Repository whose OAuth create fails with an error that is not a duplicate
+ * email, standing in for a real database failure.
+ */
+class FailingOAuthRepository extends InMemoryUserRepository {
+  override createOAuth(): Promise<User> {
+    return Promise.reject(new Error("database unavailable"));
+  }
+}
+
+/**
+ * Repository that reports a duplicate email on create but then cannot find the
+ * winning account, so the use case must keep surfacing the original failure.
+ */
+class VanishingOAuthRepository extends InMemoryUserRepository {
+  override createOAuth(): Promise<User> {
+    return Promise.reject(new EmailAlreadyExistsError());
+  }
+
+  override findByEmail(): Promise<User | null> {
+    return Promise.resolve(null);
   }
 }
 
@@ -295,6 +355,24 @@ describe("loginUser", () => {
     // The competing write counted one failure and the retry added this attempt
     // on top, so the counter is two rather than one.
     expect(users.loginStates.get(user.id)?.failedLoginAttempts).toBe(2);
+  });
+
+  it("falls back to an atomic write when every guarded attempt loses", async () => {
+    const users = new AlwaysRacingUserRepository();
+    const { deps } = createTestDependencies({ users });
+    const user = seedUser(users, { email: "always-race@example.com" });
+
+    await expectAuthError(
+      loginUser(
+        deps,
+        { email: "always-race@example.com", password: "wrong" },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "INVALID_CREDENTIALS",
+    );
+
+    // Five refused compare and swap writes still leave the failure counted.
+    expect(users.loginStates.get(user.id)?.failedLoginAttempts).toBe(1);
   });
 
   it("keeps a parallel failure count instead of erasing it on success", async () => {
@@ -635,6 +713,65 @@ describe("signInWithOAuth", () => {
     expect(result.user.avatarUrl).toBe("https://images.example.com/avatar.png");
     expect(users.users.size).toBe(1);
     expect(sessions.activeCount()).toBe(1);
+  });
+
+  it("continues as the existing account when a parallel first sign in wins", async () => {
+    const users = new RacingOAuthRepository();
+    const { deps, sessions } = createTestDependencies({ users });
+
+    const result = await signInWithOAuth(
+      deps,
+      {
+        provider: "GOOGLE",
+        providerId: "google-race",
+        email: "race-oauth@example.com",
+        name: "Racing Customer",
+        avatarUrl: null,
+      },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    expect(result.user.email).toBe("race-oauth@example.com");
+    expect(users.users.size).toBe(1);
+    expect(sessions.activeCount()).toBe(1);
+  });
+
+  it("surfaces a create failure that is not a duplicate email", async () => {
+    const users = new FailingOAuthRepository();
+    const { deps } = createTestDependencies({ users });
+
+    await expect(
+      signInWithOAuth(
+        deps,
+        {
+          provider: "GOOGLE",
+          providerId: "google-error",
+          email: "error-oauth@example.com",
+          name: "Error Customer",
+          avatarUrl: null,
+        },
+        { deviceInfo: null, ipAddress: null },
+      ),
+    ).rejects.toThrow("database unavailable");
+  });
+
+  it("keeps the duplicate error when the winning account cannot be re-read", async () => {
+    const users = new VanishingOAuthRepository();
+    const { deps } = createTestDependencies({ users });
+
+    await expect(
+      signInWithOAuth(
+        deps,
+        {
+          provider: "GOOGLE",
+          providerId: "google-vanish",
+          email: "vanish-oauth@example.com",
+          name: "Vanishing Customer",
+          avatarUrl: null,
+        },
+        { deviceInfo: null, ipAddress: null },
+      ),
+    ).rejects.toBeInstanceOf(EmailAlreadyExistsError);
   });
 
   it("links an unverified local account by clearing its password", async () => {

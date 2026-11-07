@@ -267,6 +267,9 @@ export class InMemoryUserRepository implements UserRepository {
 
   /** @inheritdoc */
   async createOAuth(input: CreateOAuthUserInput): Promise<User> {
+    if (await this.findByEmail(input.email)) {
+      throw new EmailAlreadyExistsError();
+    }
     const user = User.reconstitute(
       makeUserSnapshot({
         id: `user-${this.users.size + 1}`,
@@ -330,18 +333,6 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   /** @inheritdoc */
-  async saveLoginState(
-    userId: string,
-    state: {
-      failedLoginAttempts: number;
-      lockedUntil: Date | null;
-      lastLoginAt?: Date;
-    },
-  ): Promise<void> {
-    this.loginStates.set(userId, state);
-  }
-
-  /** @inheritdoc */
   async saveSuccessfulLogin(
     userId: string,
     state: {
@@ -388,6 +379,20 @@ export class InMemoryUserRepository implements UserRepository {
 
     this.loginStates.set(userId, state);
     return true;
+  }
+
+  /** @inheritdoc */
+  async incrementFailedLogin(userId: string, now: Date): Promise<void> {
+    const user = await this.findById(userId);
+    if (!user) {
+      return;
+    }
+
+    user.recordFailedLogin(now);
+    this.loginStates.set(userId, {
+      failedLoginAttempts: user.failedLoginAttempts,
+      lockedUntil: user.lockedUntil,
+    });
   }
 
   /** @inheritdoc */
@@ -613,7 +618,6 @@ export function createTestDependencies(
       emails,
       clock,
       webAppUrl: "https://shop.example.com",
-      isProduction: false,
       ...overrides,
     },
   };
