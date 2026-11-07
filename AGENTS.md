@@ -104,6 +104,7 @@ _Choices recorded here. `/develop tooling` installs them._
 - **Formatter**: Prettier
 - **Pre commit**: Husky + lint-staged (lint + format + typecheck on every commit)
 - **Testing**: Vitest (unit/integration), React Testing Library (components), Playwright (E2E)
+- **Auth test isolation**: never call live Google, Facebook, or Resend from tests. OAuth tests use the local mock provider in `apps/api/src/test-support/mock-oauth-provider.ts`; email tests assert the envelope handed to the Resend transport. Manual steps are in `README.md` and `docs/deployment.md`.
 - **CI**: GitHub Actions (lint, typecheck, test on push)
 
 ## Git
@@ -111,6 +112,10 @@ _Choices recorded here. `/develop tooling` installs them._
 - integration: on
 - branch prefix: feat/
 - commit: per-milestone
+
+## Personal notes
+
+- `nextStep.txt` is the repository owner's own file for tracking what to do next and for other notes. It is deliberately tracked in git. Never edit, overwrite, truncate, move, or delete it; only the owner changes that file. Treat it as read only input when you need context.
 
 ## Agent skills
 
@@ -124,7 +129,15 @@ _Choices recorded here. `/develop tooling` installs them._
 - [document](.agents/skills/document/): workflow skill, writes human facing prose
 - [sync](.agents/skills/sync/): workflow skill, keeps durable knowledge current
 
-Declined: Vitest · React Testing Library · Radix UI · Sonner (offered 2026-10-24, no Agent Skill installed) · MCP servers: none found
+Installed for customer auth (spec 0005):
+
+- [auth-implementation-patterns](.agents/skills/auth-implementation-patterns/): JWT, session, OAuth2, and role based access patterns
+- [resend](.agents/skills/resend/): Resend SDK and API conventions for transactional email
+- [email-best-practices](.agents/skills/email-best-practices/): email deliverability, SPF/DKIM/DMARC, and template guidance
+
+MCP servers: resend (`https://mcp.resend.com/mcp`, OAuth sign in required; used to inspect verification and reset mail in development)
+
+Declined: Vitest · React Testing Library · Radix UI · Sonner (offered 2026-10-24, no Agent Skill installed)
 
 ## Context files
 

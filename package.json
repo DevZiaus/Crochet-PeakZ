@@ -14,8 +14,10 @@
     "heroku-postbuild": "npm run build:shared && npm run build --workspace=@crochet-peakz/api",
     "start:api": "npm run start --workspace=@crochet-peakz/api",
     "start:web": "npm run start --workspace=@crochet-peakz/web",
-    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
-    "lint": "npm run build:shared && npm run lint --workspaces --if-present",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present && npm run typecheck:e2e",
+    "typecheck:e2e": "tsc -p e2e/tsconfig.json",
+    "lint": "npm run build:shared && npm run lint --workspaces --if-present && npm run lint:e2e",
+    "lint:e2e": "eslint --config eslint.config.mjs e2e playwright.config.ts",
     "test": "npm run build:shared && npm run test --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -46,6 +48,10 @@
       "prettier --write"
     ],
     "packages/**/*.{ts,tsx,mts,js,mjs}": [
+      "eslint --config eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "e2e/**/*.{ts,tsx,mts,js,mjs}": [
       "eslint --config eslint.config.mjs --fix",
       "prettier --write"
     ],

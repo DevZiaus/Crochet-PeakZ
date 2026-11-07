@@ -15,7 +15,7 @@ Warm, artisanal, and premium. The visual personality blends the handcrafted feel
 
 Every page and component must:
 
-1. Use only design token CSS custom properties for colors, never raw hex values or Tailwind default colors.
+1. Use only design token CSS custom properties for colors, never raw hex values or Tailwind default colors. Third party brand marks are the one exemption: their official colors (for example the Google and Facebook marks in `oauth-buttons.tsx`) stay hardcoded so the marks are not misrepresented.
 2. Meet WCAG 2.1 AA contrast (4.5:1 normal text, 3:1 large text) in both light and dark themes.
 3. Render correctly in both light and dark modes without any per feature effort (tokens switch automatically via `next-themes`).
 4. Honor `prefers-reduced-motion: reduce` on all animations and transitions.

@@ -19,6 +19,11 @@ export {
   DiscountType,
   AddressType,
   CommissionStatus,
+  AuthProvider,
+  OAuthProvider,
+  OAUTH_ERROR_CODES,
+  type OAuthErrorCode,
+  type AuthUser,
 } from "./types/index.js";
 export {
   currencySchema,
@@ -31,4 +36,24 @@ export {
   addressTypeSchema,
   commissionStatusSchema,
 } from "./schemas/index.js";
+export {
+  PASSWORD_MIN_BYTES,
+  PASSWORD_MAX_BYTES,
+  utf8ByteLength,
+  passwordSchema,
+  normalizeEmail,
+  authEmailSchema,
+  authNameSchema,
+  registerSchema,
+  loginSchema,
+  tokenSchema,
+  resendVerificationSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  authUserSchema,
+  type RegisterInput,
+  type LoginInput,
+  type ResetPasswordInput,
+} from "./schemas/auth.js";
+export { sanitizeNextPath, resolvePostSignInPath } from "./auth/next-path.js";
 export { CURRENCIES, ORDER_STATUSES } from "./constants/index.js";

@@ -11,27 +11,37 @@ datasource db {
 
 /// A store account: customers and admins. Local email and password or OAuth.
 model User {
-  id                     String             @id @default(uuid(7))
-  name                   String             @db.VarChar(255)
-  email                  String             @unique @db.VarChar(255)
-  passwordHash           String?            @map("password_hash") @db.VarChar(255)
-  phone                  String?            @db.VarChar(50)
-  role                   UserRole           @default(CUSTOMER)
-  authProvider           String             @default("local") @map("auth_provider") @db.VarChar(50)
-  providerId             String?            @map("provider_id") @db.VarChar(255)
-  avatarUrl              String?            @map("avatar_url")
-  emailVerified          Boolean            @default(false) @map("email_verified")
-  emailVerificationToken String?            @map("email_verification_token") @db.VarChar(255)
-  createdAt              DateTime           @default(now()) @map("created_at")
-  updatedAt              DateTime           @updatedAt @map("updated_at")
-  addresses              Address[]
-  blogPosts              BlogPost[]
-  commissions            CustomCommission[]
-  digitalDownloads       DigitalDownload[]
-  orders                 Order[]
-  refreshTokens          RefreshToken[]
-  reviews                Review[]
+  id                         String             @id @default(uuid(7))
+  name                       String             @db.VarChar(255)
+  email                      String             @unique @db.VarChar(255)
+  passwordHash               String?            @map("password_hash") @db.VarChar(255)
+  phone                      String?            @db.VarChar(50)
+  role                       UserRole           @default(CUSTOMER)
+  authProvider               AuthProvider       @default(LOCAL) @map("auth_provider")
+  providerId                 String?            @map("provider_id") @db.VarChar(255)
+  avatarUrl                  String?            @map("avatar_url")
+  emailVerified              Boolean            @default(false) @map("email_verified")
+  emailVerificationToken     String?            @map("email_verification_token") @db.VarChar(255)
+  emailVerificationExpiresAt DateTime?          @map("email_verification_expires_at")
+  emailVerificationSentAt    DateTime?          @map("email_verification_sent_at")
+  passwordResetToken         String?            @map("password_reset_token") @db.VarChar(255)
+  passwordResetExpiresAt     DateTime?          @map("password_reset_expires_at")
+  failedLoginAttempts        Int                @default(0) @map("failed_login_attempts")
+  lockedUntil                DateTime?          @map("locked_until")
+  lastLoginAt                DateTime?          @map("last_login_at")
+  createdAt                  DateTime           @default(now()) @map("created_at")
+  updatedAt                  DateTime           @updatedAt @map("updated_at")
+  addresses                  Address[]
+  blogPosts                  BlogPost[]
+  commissions                CustomCommission[]
+  digitalDownloads           DigitalDownload[]
+  orders                     Order[]
+  refreshTokens              RefreshToken[]
+  reviews                    Review[]
 
+  @@index([providerId])
+  @@index([emailVerificationToken])
+  @@index([passwordResetToken])
   @@map("users")
 }
 
@@ -59,16 +69,32 @@ model Address {
 
 /// A hashed refresh token issued to a user session. Stores only the hash.
 model RefreshToken {
-  id         String   @id @default(uuid(7))
-  userId     String   @map("user_id")
-  tokenHash  String   @unique @map("token_hash") @db.VarChar(255)
-  expiresAt  DateTime @map("expires_at")
-  deviceInfo String?  @map("device_info") @db.VarChar(255)
-  createdAt  DateTime @default(now()) @map("created_at")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String         @id @default(uuid(7))
+  userId            String         @map("user_id")
+  tokenHash         String         @unique @map("token_hash") @db.VarChar(255)
+  expiresAt         DateTime       @map("expires_at")
+  deviceInfo        String?        @map("device_info") @db.VarChar(255)
+  ipAddress         String?        @map("ip_address") @db.VarChar(45)
+  revokedAt         DateTime?      @map("revoked_at")
+  replacedByTokenId String?        @map("replaced_by_token_id")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy        RefreshToken?  @relation("TokenRotation", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replaces          RefreshToken[] @relation("TokenRotation")
 
   @@index([userId])
+  @@index([replacedByTokenId])
   @@map("refresh_tokens")
+}
+
+/// How an account was first created. Never rewritten when an OAuth provider
+/// links to an existing local account.
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  FACEBOOK
+
+  @@map("auth_provider")
 }
 
 /// A product category. Supports one level of nesting via parentId.

@@ -41,6 +41,62 @@ npm run lint
 npm run test
 ```
 
+Auth tests never call live Google, Facebook, or Resend:
+
+- The API OAuth integration suite runs the real Passport, router, PostgreSQL,
+  JWT, and cookie layers against a local mock provider
+  (`apps/api/src/presentation/auth/oauth.integration.test.ts`). No provider
+  login page, CAPTCHA, or account is involved.
+- The email tests assert the exact envelope handed to the Resend transport,
+  including the `EMAIL_FROM` sender, without sending anything.
+- For a manual browser run, start the mock provider, copy the six URLs it
+  prints, and start the dev stack with them:
+
+  ```bash
+  npm run dev:mock-oauth --workspace=@crochet-peakz/api
+  GOOGLE_AUTH_URL=... GOOGLE_TOKEN_URL=... GOOGLE_USERINFO_URL=... \
+    FACEBOOK_AUTH_URL=... FACEBOOK_TOKEN_URL=... FACEBOOK_PROFILE_URL=... \
+    npm run dev
+  ```
+
+  The mock provider addresses are documented in
+  [docs/deployment.md](docs/deployment.md).
+
+### End to end (Playwright)
+
+The browser suite in `e2e/` drives a real browser against the real web app and
+the real API, through the Next.js proxy. It needs PostgreSQL, the seeded
+accounts, and both servers running (`npm run dev`). `webServer` reuses servers
+that are already up.
+
+```bash
+npx playwright test                    # both projects
+npx playwright test --project=desktop  # one project
+```
+
+Three things worth knowing before you add a test:
+
+- **Every test gets its own client IP.** AC-12 throttles sign in at ten requests
+  per fifteen minutes and register at five per hour, per client IP. A shared
+  address would spend its budget partway through the suite and then fail on
+  limits it never meant to test. The `clientIp` fixture sets a random
+  `X-Forwarded-For` per test, so the suite does not need a fresh API process
+  between runs. The limits themselves are asserted in
+  `apps/api/src/presentation/auth/routes.integration.test.ts`, which passes an
+  address explicitly.
+- **The home page mounts no site header.** It is still the scaffold, so the
+  account menu and the signed out header can only be observed on `/verify-email`
+  or `/admin`. Assertions that expect a header on `/` cannot pass.
+- Playwright artifacts land in `/tmp/crochet-peakz-playwright`, outside the
+  repository on purpose: the dev servers watch the repo root, so a trace written
+  inside it triggers a rebuild that reloads the page under test.
+
+`e2e/tsconfig.json` puts the harness under `npm run typecheck` and `npm run lint`
+alongside the workspaces. It is a separate project because the harness sits
+outside every workspace; without it Playwright's esbuild transform strips types
+without checking them, so a type error would reach CI only as a runtime failure.
+`npm run typecheck:e2e` and `npm run lint:e2e` run just this part.
+
 ## Deployment
 
 The app is platform agnostic and runs on any Node.js or Docker host, including

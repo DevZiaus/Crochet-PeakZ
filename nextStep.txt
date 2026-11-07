@@ -1,3 +1,1 @@
- /check review design system & UI foundation
-
- The 7 minor and 11 nit findings are untouched. No other call site uses the manual dialog overlay pair; the pattern now exists only inside ui/dialog.tsx.
+/check verify customer auth

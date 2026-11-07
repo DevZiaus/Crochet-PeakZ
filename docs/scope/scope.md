@@ -9,40 +9,40 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                            | Phase      | Status  |
-| --- | ---------------------------------- | ---------- | ------- |
-| 1   | Stack & architecture               | Foundation | done    |
-| 2   | Coding standards & tooling         | Foundation | done    |
-| 3   | Data model                         | Foundation | done    |
-| 4   | Design system & UI foundation      | Foundation | done    |
-| 5   | Customer auth                      | Slice 1    | planned |
-| 6   | Product catalog storefront         | Slice 1    | planned |
-| 7   | Currency switcher                  | Slice 1    | planned |
-| 8   | Shopping cart                      | Slice 1    | planned |
-| 9   | Checkout & Stripe payment          | Slice 1    | planned |
-| 10  | Order confirmation & tracking      | Slice 1    | planned |
-| 11  | PayPal integration                 | Slice 2    | planned |
-| 12  | SSLCommerz & COD                   | Slice 2    | planned |
-| 13  | Shipping engine                    | Slice 2    | planned |
-| 14  | Digital product catalog & delivery | Slice 3    | planned |
-| 15  | Custom commission request flow     | Slice 4    | planned |
-| 16  | Admin commission review & quoting  | Slice 4    | planned |
-| 17  | Admin dashboard & analytics        | Slice 5    | planned |
-| 18  | Product management (admin)         | Slice 5    | planned |
-| 19  | Order management (admin)           | Slice 5    | planned |
-| 20  | Payment gateway & store settings   | Slice 5    | planned |
-| 21  | Coupon & discount system           | Slice 5    | planned |
-| 22  | Customer dashboard & order history | Slice 6    | planned |
-| 23  | Address book management            | Slice 6    | planned |
-| 24  | Reviews & ratings                  | Slice 6    | planned |
-| 25  | Blog CMS                           | Slice 7    | planned |
-| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned |
-| 27  | Transactional email system         | Slice 7    | planned |
-| 28  | SEO                                | Slice 8    | planned |
-| 29  | Cookie consent & legal pages       | Slice 8    | planned |
-| 30  | Accessibility                      | Slice 8    | planned |
-| 31  | Error monitoring                   | Slice 8    | planned |
-| 32  | Internationalization               | Slice 8    | planned |
+| #   | Feature                            | Phase      | Status      |
+| --- | ---------------------------------- | ---------- | ----------- |
+| 1   | Stack & architecture               | Foundation | done        |
+| 2   | Coding standards & tooling         | Foundation | done        |
+| 3   | Data model                         | Foundation | done        |
+| 4   | Design system & UI foundation      | Foundation | done        |
+| 5   | Customer auth                      | Slice 1    | in-progress |
+| 6   | Product catalog storefront         | Slice 1    | planned     |
+| 7   | Currency switcher                  | Slice 1    | planned     |
+| 8   | Shopping cart                      | Slice 1    | planned     |
+| 9   | Checkout & Stripe payment          | Slice 1    | planned     |
+| 10  | Order confirmation & tracking      | Slice 1    | planned     |
+| 11  | PayPal integration                 | Slice 2    | planned     |
+| 12  | SSLCommerz & COD                   | Slice 2    | planned     |
+| 13  | Shipping engine                    | Slice 2    | planned     |
+| 14  | Digital product catalog & delivery | Slice 3    | planned     |
+| 15  | Custom commission request flow     | Slice 4    | planned     |
+| 16  | Admin commission review & quoting  | Slice 4    | planned     |
+| 17  | Admin dashboard & analytics        | Slice 5    | planned     |
+| 18  | Product management (admin)         | Slice 5    | planned     |
+| 19  | Order management (admin)           | Slice 5    | planned     |
+| 20  | Payment gateway & store settings   | Slice 5    | planned     |
+| 21  | Coupon & discount system           | Slice 5    | planned     |
+| 22  | Customer dashboard & order history | Slice 6    | planned     |
+| 23  | Address book management            | Slice 6    | planned     |
+| 24  | Reviews & ratings                  | Slice 6    | planned     |
+| 25  | Blog CMS                           | Slice 7    | planned     |
+| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned     |
+| 27  | Transactional email system         | Slice 7    | planned     |
+| 28  | SEO                                | Slice 8    | planned     |
+| 29  | Cookie consent & legal pages       | Slice 8    | planned     |
+| 30  | Accessibility                      | Slice 8    | planned     |
+| 31  | Error monitoring                   | Slice 8    | planned     |
+| 32  | Internationalization               | Slice 8    | planned     |
 
 ## Foundations
 
@@ -110,13 +110,23 @@ Visual language, layout primitives, and base components (with Tailwind CSS, Radi
 
 The thinnest real thread through the entire stack: a customer signs in, browses standard crochet products, views a product with variants, adds to cart, checks out with Stripe, and sees their order confirmed. Real auth, real DB, real payment, real UI.
 
-### 5. Customer auth · needs a decision
+### 5. Customer auth · in-progress
 
 Mandatory account creation (no guest checkout). Local email/password auth with verification, plus Google and Facebook OAuth 2.0. JWT with HttpOnly secure cookies. Role based access (CUSTOMER, ADMIN).
 
 **Done when:** a user can register, verify email, sign in (local + Google + Facebook), and access protected routes; admin role guard works; sessions persist across page reloads.
 
-- [ ] Design it (spec): `/architect customer auth`
+- [x] Design it (spec): [0005](../specs/0005-customer-auth/index.md)
+- [x] Build it: `/develop customer auth`
+  - [x] Foundation: migration, shared schemas, env validation (AC-1, AC-5, AC-6, AC-15)
+  - [x] Password sessions end to end: domain, use cases, adapters, proxy, sign in and register screens, header menu, layout guard (AC-1, AC-4, AC-5, AC-7, AC-11, AC-14)
+  - [x] Email verification and password reset (AC-2, AC-3, AC-9)
+  - [x] Google and Facebook sign in (AC-8)
+  - [x] Admin guard, accessibility, noindex, and tests (AC-10, AC-12, AC-13)
+- [x] Verify it: `/check verify customer auth`
+- [x] Test it: `/test customer auth`
+- [x] Review it (fresh model): `/check review customer auth`
+- [x] Document it: `/document customer auth`
 
 ### 6. Product catalog storefront · needs a decision
 
@@ -374,6 +384,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Notifications center**: in app notification feed for order updates · needs a decision
 - **Admin user management**: admin CRUD for customer accounts · needs a decision
 - **Refund processing**: automated refund flows through payment gateways · needs a decision · GA
+- **Multi factor authentication**: a second factor for admin and high value actions · needs a decision · from spec 0005
 
 ## Legend
 

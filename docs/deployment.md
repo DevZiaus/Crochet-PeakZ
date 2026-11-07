@@ -7,8 +7,10 @@ reference self-hosted deployment.
 
 ```
 Browser ──► reverse proxy (optional) ──► web (Next.js, :3000)
-                   │
-                   └──► /api/* ────────► api (Express, :4000) ──► PostgreSQL
+                   │                         └──► /api/auth/* ──► api (Express, :4000)
+                   └──► other /api/* ──────────────────────────► api (Express, :4000)
+
+api ──► PostgreSQL
 ```
 
 ## Portability contract
@@ -32,10 +34,20 @@ environment variables:
 
 ```bash
 cp .env.docker.example .env
-# edit POSTGRES_PASSWORD and any future application secrets
+# The API refuses to start on placeholder or short secrets, so generate real
+# values and paste them in (each command prints a fresh value):
+openssl rand -hex 32   # JWT_SECRET
+openssl rand -hex 32   # JWT_REFRESH_SECRET (must differ from JWT_SECRET)
+openssl rand -hex 32   # PROXY_SHARED_SECRET
+openssl rand -hex 32   # POSTGRES_PASSWORD
+# Then fill in the real RESEND_API_KEY, EMAIL_FROM, and the four OAuth values.
+# OAuth variables are required even when you only use email and password sign in.
 
 docker compose up -d --build
 ```
+
+The API validates every auth variable at startup, so a placeholder in any of
+those fields, not just `POSTGRES_PASSWORD`, makes it exit immediately.
 
 That starts:
 
@@ -63,6 +75,18 @@ curl http://localhost:3000/health
 Stop the stack with `docker compose down`. Add `-v` only when you intentionally
 want to delete the database volume.
 
+The web and API ports are published on loopback only. The auth proxy trusts the
+client address headers that an edge proxy adds, and the raw API trusts the
+header the web proxy sends, so do not expose port 3000 or port 4000 to another
+machine directly. For public traffic, run the Caddy profile or put Nginx in
+front and do not publish either port beyond loopback. Keep exactly one trusted
+edge proxy in front of the web app: the app reads the last `X-Forwarded-For`
+hop as the client address, so a CDN before Caddy would make every client share
+the CDN address. With no edge proxy at all (the API or web port reachable
+directly), every rate limit bucket collapses to one unknown client, so the auth
+limits become per instance global instead of per client. Put a proxy in front
+when you want per client limits.
+
 ## One origin with a reverse proxy
 
 Using one origin avoids CORS and keeps auth cookies first-party. Rebuild the web
@@ -76,12 +100,20 @@ CORS_ORIGIN=https://shop.example.com
 TRUST_PROXY=1
 DOMAIN=shop.example.com
 
+# Customer auth: the same secret on both services, and the public origin the
+# browser uses. The web container reaches the API over the compose network.
+API_INTERNAL_URL=http://api:4000/api
+PROXY_SHARED_SECRET=<same value as the API>
+WEB_APP_URL=https://shop.example.com
+
 docker compose --profile proxy up -d --build
 ```
 
 The optional Caddy service in `docker-compose.yml` terminates TLS, sends
-`/api/*` to the API, and everything else to the web server. `deploy/Caddyfile`
-is the configuration. For Nginx, start from `deploy/nginx.conf.example`.
+`/api/auth/*` to the web server so the Next.js auth proxy can add the shared
+secret, sends other `/api/*` requests to the API, and sends everything else to
+the web server. `deploy/Caddyfile` is the configuration. For Nginx, start from
+`deploy/nginx.conf.example`.
 
 If the web and API are on different origins, set `NEXT_PUBLIC_API_URL` to the
 absolute API URL and list the web origin in `CORS_ORIGIN`:
@@ -144,8 +176,8 @@ the standalone artifact, copy `apps/web/.next/static` and `apps/web/public` into
 `node apps/web/.next/standalone/apps/web/server.js`.
 
 Run the web and API as separate processes behind Nginx, Caddy, or another
-reverse proxy. The proxy should send `/api/*` to port 4000 and everything else
-to port 3000.
+reverse proxy. The proxy should send `/api/auth/*` to port 3000, other `/api/*`
+requests to port 4000, and everything else to port 3000.
 
 ## Environment variables
 
@@ -161,8 +193,59 @@ to port 3000.
 | `TRUST_PROXY`    | no       | `false`                 | Express `trust proxy`; use `1` behind one proxy |
 | `RUN_MIGRATIONS` | no       | `false`                 | Docker entrypoint runs `prisma migrate deploy`  |
 
-Future feature secrets (JWT, OAuth, Cloudinary, payment gateways, email) are
-documented in `.env.example` and `apps/api/.env.example`.
+### Customer auth (API, required)
+
+These are validated at startup; the API refuses to start when one is missing,
+shorter than its minimum, or still looks like a sample value.
+
+| Variable               | Purpose                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `JWT_SECRET`           | HS256 access token and OAuth state secret, at least 32 characters        |
+| `JWT_REFRESH_SECRET`   | Refresh token hash key, at least 32 characters, different from the above |
+| `PROXY_SHARED_SECRET`  | Shared secret the web proxy must send on every auth request, 16+ chars   |
+| `WEB_APP_URL`          | Public web origin used in email links, OAuth callbacks, and redirects    |
+| `GOOGLE_CLIENT_ID`     | Google OAuth 2.0 client id                                               |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 client secret                                           |
+| `FACEBOOK_APP_ID`      | Facebook app id                                                          |
+| `FACEBOOK_APP_SECRET`  | Facebook app secret                                                      |
+| `RESEND_API_KEY`       | Resend API key for verification and reset mail                           |
+| `EMAIL_FROM`           | Verified sender, for example `Crochet PeakZ <hello@example.com>`         |
+
+Register these redirect URIs in each provider's app settings. They point at the
+web origin, which proxies the callback to the API:
+
+- Google: `<WEB_APP_URL>/api/auth/google/callback`
+- Facebook: `<WEB_APP_URL>/api/auth/facebook/callback`
+
+Locally that is `http://localhost:3000/api/auth/google/callback` and
+`http://localhost:3000/api/auth/facebook/callback`. Use the public web origin
+in every deployed environment, not the API host.
+
+#### Test-only OAuth endpoint overrides
+
+These are unset in production and rejected when `NODE_ENV=production`. They
+point the provider redirect, token exchange, and profile call at a local mock
+so automated tests never load a live Google or Facebook login page.
+
+| Variable                                                          | Purpose                                    |
+| ----------------------------------------------------------------- | ------------------------------------------ |
+| `GOOGLE_AUTH_URL`, `GOOGLE_TOKEN_URL`, `GOOGLE_USERINFO_URL`      | Google authorization, token, and profile   |
+| `FACEBOOK_AUTH_URL`, `FACEBOOK_TOKEN_URL`, `FACEBOOK_PROFILE_URL` | Facebook authorization, token, and profile |
+
+`apps/api/src/presentation/auth/oauth.integration.test.ts` starts the mock from
+`apps/api/src/test-support/mock-oauth-provider.ts` and drives the entire round
+trip through the real auth router and PostgreSQL. To run the same flow manually
+through the web app, start the mock provider and copy the six values it prints:
+
+```bash
+npm run dev:mock-oauth --workspace=@crochet-peakz/api
+```
+
+Set `MOCK_GOOGLE_EMAIL` or `MOCK_FACEBOOK_EMAIL` to change the fixture account
+the mock returns.
+
+Other feature secrets (Cloudinary, payment gateways, monitoring) are documented
+in `apps/api/.env.example`.
 
 ### Build time (web)
 
@@ -172,6 +255,20 @@ documented in `.env.example` and `apps/api/.env.example`.
 
 `NEXT_PUBLIC_*` values are baked into the client bundle. Changing one requires a
 new web build; it is not a runtime setting.
+
+### Auth proxy (web runtime)
+
+Read by the Next.js server on each auth request, never sent to the browser.
+
+| Variable              | Purpose                                                            |
+| --------------------- | ------------------------------------------------------------------ |
+| `API_INTERNAL_URL`    | API base URL including `/api`, reached from the web server         |
+| `PROXY_SHARED_SECRET` | Must equal the API value; the API rejects auth calls without it    |
+| `WEB_APP_URL`         | Public origin of this web app, used for the proxy's `Origin` check |
+
+`NEXT_PUBLIC_API_URL` is only for browser calls to non-auth endpoints. The auth
+screens always talk to the web origin (`/api/auth/*`), and the web server
+forwards them to `API_INTERNAL_URL` with the shared secret.
 
 ## Health checks
 

@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  push:
   pull_request:
   workflow_dispatch:
 
@@ -16,12 +15,28 @@ jobs:
   checks:
     name: Lint, test, build, and typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
-      # Prisma only needs a syntactically valid URL to generate the client.
+      # The API integration tests run against a real PostgreSQL, so the job
+      # starts the service below and applies the migrations before testing.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       NEXT_PUBLIC_API_URL: http://localhost:4000/api
       NEXT_TELEMETRY_DISABLED: "1"
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -40,6 +55,9 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate --workspace=@crochet-peakz/api
 
+      - name: Apply database migrations
+        run: npm run db:deploy --workspace=@crochet-peakz/api
+
       - name: Lint
         run: npm run lint
 
@@ -56,3 +74,31 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      # The browser suite starts its own servers through `webServer` (which
+      # builds before starting) and proves the auth screens end to end through
+      # the Next.js proxy. Chromium covers both the desktop and mobile projects.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Seed database
+        run: npm run db:seed --workspace=@crochet-peakz/api
+
+      - name: End to end tests
+        env:
+          # Distinct, non-placeholder values the API validates at startup. The
+          # proxy secret is shared with the web app below.
+          JWT_SECRET: ci-access-token-secret-0123456789abcdef
+          JWT_REFRESH_SECRET: ci-refresh-token-secret-0123456789abcdef
+          PROXY_SHARED_SECRET: ci-proxy-shared-secret-0123456789
+          WEB_APP_URL: http://localhost:3000
+          API_INTERNAL_URL: http://localhost:4000/api
+          EMAIL_FROM: "Crochet PeakZ <hello@example.com>"
+          # A fake key. The development fallback logs the auth link instead of
+          # throwing when Resend rejects the send, so no email leaves CI.
+          RESEND_API_KEY: re_ci_key
+          GOOGLE_CLIENT_ID: ci-google-client-id
+          GOOGLE_CLIENT_SECRET: ci-google-client-secret
+          FACEBOOK_APP_ID: ci-facebook-app-id
+          FACEBOOK_APP_SECRET: ci-facebook-app-secret
+        run: npx playwright test

@@ -32,8 +32,21 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       TRUST_PROXY: ${TRUST_PROXY:-false}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      # Customer auth (all required; the API fails fast when one is missing).
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-}
+      WEB_APP_URL: ${WEB_APP_URL:-http://localhost:3000}
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
     ports:
-      - "${API_PORT:-4000}:4000"
+      # The raw API trusts X-Forwarded-For from the web proxy. Keep the direct
+      # port on loopback so a caller cannot reach it and forge that header.
+      - "127.0.0.1:${API_PORT:-4000}:4000"
     depends_on:
       db:
         condition: service_healthy
@@ -51,8 +64,15 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: 3000
+      # Customer auth proxy. API_INTERNAL_URL uses the compose service name.
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:4000/api}
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:-}
+      WEB_APP_URL: ${WEB_APP_URL:-http://localhost:3000}
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      # The auth proxy trusts the client address headers added by the edge
+      # proxy. Keep the direct port on loopback so those headers cannot be
+      # forged from another machine; use the proxy profile for public traffic.
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
       api:
         condition: service_healthy

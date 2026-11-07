@@ -1,0 +1,43 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const originalEnv = { ...process.env };
+
+afterEach(() => {
+  vi.resetModules();
+  process.env = { ...originalEnv };
+});
+
+describe("register", () => {
+  it("validates the auth env when the node server starts", async () => {
+    process.env = { ...originalEnv, NEXT_RUNTIME: "nodejs" };
+    delete process.env["NEXT_PHASE"];
+    delete process.env["PROXY_SHARED_SECRET"];
+
+    const { register } = await import("./instrumentation");
+
+    await expect(register()).rejects.toThrow("Missing PROXY_SHARED_SECRET");
+  });
+
+  it("stays quiet during the build phase", async () => {
+    process.env = {
+      ...originalEnv,
+      NEXT_RUNTIME: "nodejs",
+      NEXT_PHASE: "phase-production-build",
+    };
+    delete process.env["PROXY_SHARED_SECRET"];
+
+    const { register } = await import("./instrumentation");
+
+    await expect(register()).resolves.toBeUndefined();
+  });
+
+  it("stays quiet outside the node runtime", async () => {
+    process.env = { ...originalEnv, NEXT_RUNTIME: "edge" };
+    delete process.env["NEXT_PHASE"];
+    delete process.env["PROXY_SHARED_SECRET"];
+
+    const { register } = await import("./instrumentation");
+
+    await expect(register()).resolves.toBeUndefined();
+  });
+});

@@ -1,0 +1,14 @@
+{
+  // The end to end harness is outside every workspace, so without this file
+  // `npm run typecheck` and `npm run lint` skip it. Playwright compiles the
+  // specs with esbuild while running them, which strips types without checking
+  // them, so a type error here would otherwise reach CI only as a runtime
+  // failure. The root scripts and the lint-staged config point at this project.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts", "../playwright.config.ts"],
+  "exclude": ["../node_modules"]
+}

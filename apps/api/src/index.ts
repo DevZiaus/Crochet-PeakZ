@@ -1,51 +1,23 @@
 import dotenv from "dotenv";
+import type { Router } from "express";
 import type { Server } from "node:http";
-import express from "express";
-import cors from "cors";
-import { loadEnv, type ApiEnv } from "./config/env.js";
+import { createApp } from "./app.js";
+import { loadEnv } from "./config/env.js";
 import {
   createDatabase,
   type Database,
 } from "./infrastructure/database/prisma.js";
-import { createHealthRouter } from "./presentation/routes/health.routes.js";
-import { errorHandler } from "./presentation/middleware/errorHandler.js";
+import { PrismaUserRepository } from "./infrastructure/database/user.repository.js";
+import { PrismaSessionRepository } from "./infrastructure/database/session.repository.js";
+import { BcryptPasswordHasher } from "./infrastructure/auth/bcrypt-password-hasher.js";
+import { JwtTokenService } from "./infrastructure/auth/jwt-token-service.js";
+import { ResendEmailSender } from "./infrastructure/email/resend-email-sender.js";
+import { createOAuthAuthenticator } from "./infrastructure/oauth/passport.js";
+import { systemClock } from "./domain/ports/clock.js";
+import type { AuthDependencies } from "./application/dependencies.js";
+import { createAuthRouter } from "./presentation/auth/auth.routes.js";
 
 dotenv.config({ quiet: true });
-
-/**
- * Creates and configures the Express application.
- *
- * @param env Validated runtime configuration.
- * @param checkDatabase Readiness probe for PostgreSQL.
- * @returns Configured Express application.
- */
-export function createApp(
-  env: ApiEnv,
-  checkDatabase: () => Promise<boolean>,
-): express.Application {
-  const app = express();
-
-  app.disable("x-powered-by");
-
-  if (env.trustProxy !== false) {
-    app.set("trust proxy", env.trustProxy);
-  }
-
-  app.use(
-    cors({
-      origin: env.corsOrigins,
-      credentials: true,
-    }),
-  );
-  app.use(express.json({ limit: "1mb" }));
-
-  app.use("/api", createHealthRouter({ checkDatabase }));
-
-  // Error handler (must be last)
-  app.use(errorHandler);
-
-  return app;
-}
 
 /**
  * Registers SIGTERM/SIGINT handlers so containers and process managers can
@@ -107,7 +79,43 @@ async function main(): Promise<void> {
     console.warn("[DB]", error instanceof Error ? error.message : error);
   }
 
-  const app = createApp(env, database.checkHealth);
+  const authRouter = buildAuthRouter();
+  const app = createApp(env, database.checkHealth, authRouter);
+
+  /**
+   * Builds the auth dependencies from the validated environment and the
+   * Prisma client.
+   */
+  function buildAuthRouter(): Router {
+    const auth: AuthDependencies = {
+      users: new PrismaUserRepository(database.client),
+      sessions: new PrismaSessionRepository(database.client),
+      passwords: new BcryptPasswordHasher(),
+      tokens: new JwtTokenService({
+        jwtSecret: env.jwtSecret,
+        refreshSecret: env.jwtRefreshSecret,
+      }),
+      emails: new ResendEmailSender({
+        apiKey: env.resendApiKey,
+        from: env.emailFrom,
+        logLinks: env.nodeEnv !== "production",
+      }),
+      clock: systemClock,
+      webAppUrl: env.webAppUrl,
+    };
+
+    return createAuthRouter({
+      auth,
+      proxySharedSecret: env.proxySharedSecret,
+      webAppUrl: env.webAppUrl,
+      isProduction: env.nodeEnv === "production",
+      authenticator: createOAuthAuthenticator({
+        webAppUrl: env.webAppUrl,
+        google: env.googleClient,
+        facebook: env.facebookClient,
+      }),
+    });
+  }
   const server = app.listen(env.port, env.host, () => {
     console.log(
       `[API] Crochet PeakZ API running on http://${env.host}:${env.port}`,

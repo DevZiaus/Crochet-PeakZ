@@ -8,6 +8,18 @@
 {$DOMAIN:localhost} {
 	encode zstd gzip
 
+	# Auth calls must reach the Next.js proxy so it can add the shared secret,
+	# relay cookies, and refresh an expired access token once. Caddy sorts
+	# handle blocks by path specificity, so this wins over /api/*.
+	handle /api/auth/* {
+		# Auth bodies are small JSON payloads. Cap them here as well so a large
+		# upload is rejected before it reaches the Next.js proxy.
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy web:3000
+	}
+
 	handle /api/* {
 		reverse_proxy api:4000
 	}
