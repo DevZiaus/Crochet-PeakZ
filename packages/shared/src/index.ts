@@ -57,3 +57,25 @@ export {
 } from "./schemas/auth.js";
 export { sanitizeNextPath, resolvePostSignInPath } from "./auth/next-path.js";
 export { CURRENCIES, ORDER_STATUSES } from "./constants/index.js";
+export type {
+  CatalogSort,
+  CategoryRefDto,
+  ProductSummaryDto,
+  ProductImageDto,
+  ProductVariantDto,
+  ProductDetailDto,
+  CategorySummaryDto,
+  CategoryDetailDto,
+  PaginationMetaDto,
+  CatalogProductListResponse,
+  CatalogProductDetailResponse,
+  CatalogCategoryListResponse,
+  CatalogCategoryDetailResponse,
+} from "./catalog/types.js";
+export {
+  catalogSortSchema,
+  catalogListQuerySchema,
+  type CatalogListQuery,
+} from "./catalog/schemas.js";
+export { calculateVariantPrice } from "./catalog/pricing.js";
+export { getStockLabel, getLeadTimeLabel } from "./catalog/labels.js";

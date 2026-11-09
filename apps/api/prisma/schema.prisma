@@ -142,6 +142,12 @@ model Product {
   reviews         Review[]
 
   @@index([categoryId])
+  @@index([isActive, deletedAt, createdAt])
+  @@index([categoryId, isActive, deletedAt, createdAt])
+  @@index([productType, isActive, deletedAt, createdAt])
+  @@index([isFeatured, isActive, deletedAt, createdAt])
+  @@index([priceBdt])
+  @@index([priceUsd])
   @@map("products")
 }
 
@@ -156,6 +162,7 @@ model ProductImage {
   product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
+  @@index([productId, isPrimary, displayOrder])
   @@map("product_images")
 }
 

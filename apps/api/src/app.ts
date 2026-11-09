@@ -13,12 +13,14 @@ import { errorHandler } from "./presentation/middleware/errorHandler.js";
  * @param env Validated runtime configuration.
  * @param checkDatabase Readiness probe for PostgreSQL.
  * @param authRouter Auth router, wired with its repositories and ports.
+ * @param catalogRouter Public catalog router.
  * @returns Configured Express application.
  */
 export function createApp(
   env: ApiEnv,
   checkDatabase: () => Promise<boolean>,
   authRouter?: Router,
+  catalogRouter?: Router,
 ): express.Application {
   const app = express();
 
@@ -40,6 +42,10 @@ export function createApp(
 
   if (authRouter) {
     app.use("/api/auth", authRouter);
+  }
+
+  if (catalogRouter) {
+    app.use("/api", catalogRouter);
   }
 
   // Error handler (must be last)

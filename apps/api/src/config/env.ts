@@ -60,6 +60,8 @@ export interface ApiEnv {
   resendApiKey: string;
   /** Sender address on every auth email. */
   emailFrom: string;
+  /** Cloudinary cloud name used to build public delivery URLs. */
+  cloudinaryCloudName: string;
 }
 
 const DEFAULT_PORT = 4000;
@@ -136,6 +138,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     },
     resendApiKey: parseCredential(source, "RESEND_API_KEY"),
     emailFrom: parseEmailFrom(source["EMAIL_FROM"], nodeEnv),
+    cloudinaryCloudName: parseCredential(source, "CLOUDINARY_CLOUD_NAME"),
   };
 }
 
