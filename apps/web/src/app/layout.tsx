@@ -4,6 +4,7 @@ import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { getCatalogEnv } from "@/lib/catalog/env";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -16,6 +17,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getCatalogEnv().webAppUrl),
   title: "Crochet PeakZ — Handmade Crochet Store",
   description:
     "Premium handmade crochet products, patterns, and custom commissions from Bangladesh to the world.",

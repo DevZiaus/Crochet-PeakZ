@@ -22,6 +22,9 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       NEXT_PUBLIC_API_URL: http://localhost:4000/api
       NEXT_TELEMETRY_DISABLED: "1"
+      # Required by the catalog API at startup. No image upload happens in CI,
+      # so the value only needs to pass placeholder validation.
+      CLOUDINARY_CLOUD_NAME: crochet-peakz-ci
 
     services:
       postgres:

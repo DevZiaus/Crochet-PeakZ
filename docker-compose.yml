@@ -43,6 +43,8 @@ services:
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      # Product catalog images (required; the API fails fast when it is missing).
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
     ports:
       # The raw API trusts X-Forwarded-For from the web proxy. Keep the direct
       # port on loopback so a caller cannot reach it and forge that header.

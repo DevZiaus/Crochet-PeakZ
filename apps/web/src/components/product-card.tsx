@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { CurrencyCode, ProductType } from "@crochet-peakz/shared";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { PriceDisplay } from "@/components/price-display";
+import { ProductImage } from "@/components/product-image";
 import { StarRating } from "@/components/star-rating";
 
 interface ProductCardProps {
@@ -11,8 +11,8 @@ interface ProductCardProps {
   slug: string;
   /** Product title. */
   title: string;
-  /** Primary image URL. */
-  imageUrl: string;
+  /** Primary image URL, or null when the product has no image. */
+  imageUrl: string | null;
   /** Image alt text. */
   imageAlt?: string;
   /** Price in BDT. */
@@ -91,12 +91,11 @@ function ProductCard({
     >
       {/* Image */}
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-        <Image
+        <ProductImage
           src={imageUrl}
           alt={imageAlt || title}
-          fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none"
+          className="transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none"
         />
 
         {/* Badges overlay */}
