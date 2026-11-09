@@ -40,7 +40,7 @@ export async function generateMetadata({
   searchParams,
 }: ShopPageProps): Promise<Metadata> {
   const { webAppUrl } = getCatalogEnv();
-  const title = "Shop handmade crochet | Crochet PeakZ";
+  const title = "Shop Your Love";
   const description =
     "Browse handmade crochet pieces, filter by collection, product type, and price, and find something made to be kept.";
   let canonical = `${webAppUrl}/shop`;

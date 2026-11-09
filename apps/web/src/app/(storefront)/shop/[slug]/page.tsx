@@ -67,12 +67,12 @@ export async function generateMetadata({
   } catch (error) {
     if (isCatalogNotFound(error)) {
       return {
-        title: "This piece could not be found | Crochet PeakZ",
+        title: "This piece could not be found",
         description: defaultDescription,
         robots: { index: false },
       };
     }
-    return { title: "Shop handmade crochet | Crochet PeakZ" };
+    return { title: "Shop handmade crochet" };
   }
 }
 

@@ -15,7 +15,7 @@ import { getCatalogEnv } from "@/lib/catalog/env";
  */
 export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
-  const title = "Collections | Crochet PeakZ";
+  const title = "Collections";
   const description =
     "Explore the Crochet PeakZ collections, from amigurumi to wearables and scarves.";
 

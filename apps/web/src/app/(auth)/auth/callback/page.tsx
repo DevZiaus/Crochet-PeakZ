@@ -4,7 +4,7 @@ import { OAuthCallbackClient } from "@/components/auth/oauth-callback-client";
 import { AuthFormFallback } from "@/components/auth/auth-form-fallback";
 
 export const metadata: Metadata = {
-  title: "Signing you in | Crochet PeakZ",
+  title: "Signing you in",
   description: "Completing your Crochet PeakZ sign in.",
   robots: { index: false, follow: false },
 };

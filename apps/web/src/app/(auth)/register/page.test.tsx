@@ -53,7 +53,7 @@ describe("RegisterPage", () => {
   });
 
   it("gives the screen a title naming the store", () => {
-    expect(metadata.title).toBe("Create account | Crochet PeakZ");
+    expect(metadata.title).toBe("Create account");
   });
 
   it("renders the registration form for a signed out visitor", () => {

@@ -68,7 +68,7 @@ export async function generateMetadata({
 
   try {
     const category = await fetchCatalogCategory(slug);
-    const title = `${category.name} | Crochet PeakZ`;
+    const title = category.name;
     const description =
       category.description ??
       `Handmade crochet pieces from the ${category.name} collection.`;
@@ -91,7 +91,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: "Collection not found | Crochet PeakZ",
+      title: "Collection not found",
       robots: { index: false },
     };
   }

@@ -20,12 +20,12 @@ import { getCatalogEnv } from "@/lib/catalog/env";
  */
 export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
-  const title = "Crochet PeakZ | Handmade crochet pieces";
+  const title = "Crochet PeakZ — Feel The Handmade Love";
   const description =
     "Handmade crochet amigurumi, wearables, patterns, and custom pieces from Crochet PeakZ.";
 
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical: webAppUrl },
     openGraph: {
