@@ -1,0 +1,5 @@
+next: /check review product catalog storefront
+
+Plan:
+    - Use the logo placed in apps/web/public/logo.webp/png/jpg
+    - stop checking email verified status for facebook login/register
