@@ -1,4 +1,0 @@
-/check verify product catalog storefront
-
-Plan:
-    - Use the logo placed in apps/web/public/logo.webp/png/jpg
