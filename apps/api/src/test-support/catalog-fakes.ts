@@ -84,6 +84,11 @@ export function makeProduct(
   };
 }
 
+/** Compares identifiers using PostgreSQL's plain ascending text order. */
+export function compareIds(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 /** Resolver that returns the stored value unchanged, for tests. */
 export const identityImageUrls: ImageUrlResolver = {
   resolve(publicId) {
@@ -196,27 +201,30 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   }
 
   /** @inheritdoc */
-  async getCategoryStats(categoryIds: string[]): Promise<CatalogCategoryStats> {
+  async getCategoryStatsForSubtrees(
+    categorySubtrees: string[][],
+  ): Promise<CatalogCategoryStats[]> {
     await Promise.resolve();
-    const visible = this.products
-      .filter(isVisibleProduct)
-      .filter(
-        (product) =>
-          product.categoryId !== null &&
-          categoryIds.includes(product.categoryId),
-      );
+    return categorySubtrees.map((categoryIds) => {
+      const visible = this.products
+        .filter(isVisibleProduct)
+        .filter(
+          (product) =>
+            product.categoryId !== null &&
+            categoryIds.includes(product.categoryId),
+        );
 
-    const newest = [...visible].sort((left, right) => {
-      const created = right.createdAt.getTime() - left.createdAt.getTime();
-      return created !== 0 ? created : left.id.localeCompare(right.id, "en");
-    })[0];
+      const newest = [...visible].sort((left, right) => {
+        const created = right.createdAt.getTime() - left.createdAt.getTime();
+        return created !== 0 ? created : compareIds(left.id, right.id);
+      })[0];
+      const primary = newest ? pickPrimaryImage(newest.images) : null;
 
-    const primary = newest ? pickPrimaryImage(newest.images) : null;
-
-    return {
-      productCount: visible.length,
-      coverImageUrl: primary?.imageUrl ?? null,
-      coverImageAlt: primary?.altText ?? null,
-    };
+      return {
+        productCount: visible.length,
+        coverImageUrl: primary?.imageUrl ?? null,
+        coverImageAlt: primary?.altText ?? null,
+      };
+    });
   }
 }

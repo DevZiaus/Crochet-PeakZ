@@ -35,6 +35,22 @@ describe("product JSON-LD", () => {
     });
   });
 
+  it("rounds variant offer prices the same way as displayed prices", () => {
+    const product = makeProductDetail({
+      priceBdt: 0.1,
+      variants: [makeVariant({ additionalPriceBdt: 0.2 })],
+    });
+
+    const jsonLd = buildProductJsonLd(
+      product,
+      "BDT",
+      productUrl,
+      fallbackImage,
+    );
+
+    expect(jsonLd.offers).toMatchObject({ lowPrice: 0.1, highPrice: 0.3 });
+  });
+
   it("uses a single offer and the fallback image without variants or images", () => {
     const product = makeProductDetail({ variants: [], images: [] });
 

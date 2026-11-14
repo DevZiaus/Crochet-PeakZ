@@ -74,6 +74,22 @@ describe("CatalogFilterForm", () => {
     expect(screen.getByText("Prices in USD")).toBeTruthy();
   });
 
+  it("preserves featured when applying other filters", () => {
+    const { container } = render(
+      <CatalogFilterForm
+        categories={categories}
+        state={{ ...defaultCatalogSearchState, featured: true }}
+        currency="BDT"
+        idPrefix="test"
+      />,
+    );
+
+    expect(
+      container.querySelector<HTMLInputElement>('input[name="featured"]')
+        ?.value,
+    ).toBe("true");
+  });
+
   it("keeps the sort in a hidden field and offers clear all", () => {
     const { container } = render(
       <CatalogFilterForm

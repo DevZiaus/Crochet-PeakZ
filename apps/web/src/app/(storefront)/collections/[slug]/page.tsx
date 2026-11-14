@@ -89,11 +89,14 @@ export async function generateMetadata({
         ],
       },
     };
-  } catch {
-    return {
-      title: "Collection not found",
-      robots: { index: false },
-    };
+  } catch (error) {
+    if (isCatalogNotFound(error)) {
+      return {
+        title: "Collection not found",
+        robots: { index: false },
+      };
+    }
+    return { title: "Handmade crochet collection" };
   }
 }
 

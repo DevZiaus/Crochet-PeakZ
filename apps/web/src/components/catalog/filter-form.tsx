@@ -35,6 +35,9 @@ export function CatalogFilterForm({
       {state.sort !== "newest" ? (
         <input type="hidden" name="sort" value={state.sort} />
       ) : null}
+      {state.featured === true ? (
+        <input type="hidden" name="featured" value="true" />
+      ) : null}
 
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold text-foreground">

@@ -203,7 +203,7 @@ export default async function HomePage() {
               </p>
             </div>
             <Button asChild size="lg" variant="secondary">
-              <Link href="/custom">Start a custom order</Link>
+              <Link href="/shop">Start a custom order</Link>
             </Button>
           </div>
         </Container>

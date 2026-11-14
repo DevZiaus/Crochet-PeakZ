@@ -18,6 +18,7 @@ import { getActiveCurrency } from "@/lib/catalog/currency";
 import { getCatalogEnv } from "@/lib/catalog/env";
 import {
   buildShopHref,
+  hasCatalogFilters,
   parseCatalogSearchParams,
   toCatalogListParams,
 } from "@/lib/catalog/search-params";
@@ -57,10 +58,7 @@ export async function generateMetadata({
       state.categories.length === 1 &&
       state.page === 1 &&
       state.sort === "newest" &&
-      state.types.length === 0 &&
-      state.minPrice === undefined &&
-      state.maxPrice === undefined &&
-      state.featured !== true;
+      !hasCatalogFilters({ ...state, categories: [] });
 
     canonical = isSingleCollection
       ? `${webAppUrl}/collections/${onlyCategory}`

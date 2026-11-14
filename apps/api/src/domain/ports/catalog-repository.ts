@@ -49,13 +49,16 @@ export interface CatalogRepository {
   listCategories(): Promise<CatalogCategoryRecord[]>;
 
   /**
-   * Counts visible products and picks the cover for a category subtree.
+   * Counts visible products and picks the cover for each category subtree.
    *
    * The cover is the primary image of the newest visible product in the
-   * subtree. When that product has no image, the cover is null.
+   * subtree. When that product has no image, the cover is null. Results align
+   * with the input subtree order.
    *
-   * @param categoryIds Category ids in the subtree.
-   * @returns Subtree count and cover.
+   * @param categorySubtrees Category ids for each subtree.
+   * @returns Counts and covers, aligned with the input.
    */
-  getCategoryStats(categoryIds: string[]): Promise<CatalogCategoryStats>;
+  getCategoryStatsForSubtrees(
+    categorySubtrees: string[][],
+  ): Promise<CatalogCategoryStats[]>;
 }

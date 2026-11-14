@@ -26,21 +26,26 @@ export async function getCategory(
     throw new CatalogError("CATEGORY_NOT_FOUND", "Category not found.");
   }
 
-  const stats = await dependencies.catalog.getCategoryStats(
+  const categoryChildren = listCategoryChildren(categories, category.id);
+  const subtreeStats = await dependencies.catalog.getCategoryStatsForSubtrees([
     resolveCategorySubtreeIds(categories, category.id),
-  );
-
+    ...categoryChildren.map((child) =>
+      resolveCategorySubtreeIds(categories, child.id),
+    ),
+  ]);
+  const stats = subtreeStats[0];
+  if (!stats) {
+    throw new Error("Category stats are missing for the requested category.");
+  }
   const trail = buildCategoryTrail(categories, category.id);
   const breadcrumb = trail.slice(0, -1);
-
-  const children = await Promise.all(
-    listCategoryChildren(categories, category.id).map(async (child) => {
-      const childStats = await dependencies.catalog.getCategoryStats(
-        resolveCategorySubtreeIds(categories, child.id),
-      );
-      return toCategorySummary(child, childStats, dependencies.imageUrls);
-    }),
-  );
+  const children = categoryChildren.map((child, index) => {
+    const childStats = subtreeStats[index + 1];
+    if (!childStats) {
+      throw new Error("Category stats are missing for a child category.");
+    }
+    return toCategorySummary(child, childStats, dependencies.imageUrls);
+  });
 
   return {
     data: toCategoryDetail(

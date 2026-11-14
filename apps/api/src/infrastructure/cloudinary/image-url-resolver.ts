@@ -27,6 +27,10 @@ export class CloudinaryImageUrlResolver implements ImageUrlResolver {
       return value;
     }
 
-    return `https://res.cloudinary.com/${this.cloudName}/image/upload/f_auto,q_auto/${value}`;
+    const encodedPublicId = value
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+    return `https://res.cloudinary.com/${this.cloudName}/image/upload/f_auto,q_auto/${encodedPublicId}`;
   }
 }

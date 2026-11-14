@@ -72,6 +72,7 @@ export async function generateMetadata({
         robots: { index: false },
       };
     }
+    console.error("Could not load product metadata", error);
     return { title: "Shop handmade crochet" };
   }
 }

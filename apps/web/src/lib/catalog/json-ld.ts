@@ -1,4 +1,8 @@
-import type { CurrencyCode, ProductDetailDto } from "@crochet-peakz/shared";
+import {
+  calculateVariantPrice,
+  type CurrencyCode,
+  type ProductDetailDto,
+} from "@crochet-peakz/shared";
 
 /**
  * Builds the Product JSON-LD object for a product detail page.
@@ -27,7 +31,7 @@ export function buildProductJsonLd(
   );
   const prices = [
     basePrice,
-    ...additionalPrices.map((extra) => basePrice + extra),
+    ...additionalPrices.map((extra) => calculateVariantPrice(basePrice, extra)),
   ];
   const lowPrice = Math.min(...prices);
   const highPrice = Math.max(...prices);

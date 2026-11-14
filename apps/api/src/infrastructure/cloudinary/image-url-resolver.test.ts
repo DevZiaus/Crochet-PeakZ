@@ -25,4 +25,10 @@ describe("CloudinaryImageUrlResolver", () => {
       "https://res.cloudinary.com/crochet-peakz/image/upload/f_auto,q_auto/crochet-peakz/products/bear-main",
     );
   });
+
+  it("encodes unsafe public id path characters without encoding separators", () => {
+    expect(resolver.resolve("crochet-peakz/products/bear ?#1")).toBe(
+      "https://res.cloudinary.com/crochet-peakz/image/upload/f_auto,q_auto/crochet-peakz/products/bear%20%3F%231",
+    );
+  });
 });

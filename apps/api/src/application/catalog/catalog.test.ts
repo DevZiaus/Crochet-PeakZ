@@ -285,13 +285,21 @@ describe("getProduct use case", () => {
 
 describe("listCategories use case", () => {
   it("returns subtree counts and the newest cover image", async () => {
-    const { dependencies } = createFixture();
+    const { dependencies, repository } = createFixture();
+    const originalStats =
+      repository.getCategoryStatsForSubtrees.bind(repository);
+    let statsBatchCount = 0;
+    repository.getCategoryStatsForSubtrees = async (subtrees) => {
+      statsBatchCount += 1;
+      return originalStats(subtrees);
+    };
 
     const result = await listCategories(dependencies);
 
     const wearables = result.data.find((item) => item.slug === "wearables");
     const amigurumi = result.data.find((item) => item.slug === "amigurumi");
 
+    expect(statsBatchCount).toBe(1);
     expect(wearables).toMatchObject({ productCount: 1, coverImageUrl: null });
     expect(amigurumi).toMatchObject({
       productCount: 1,

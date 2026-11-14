@@ -114,10 +114,11 @@ export function matchesDimension(
 }
 
 /**
- * Tells whether an option can be chosen without changing other dimensions.
+ * Tells whether an option can be chosen.
  *
  * An option is available when an in stock variant matches every other chosen
- * dimension plus this option.
+ * dimension plus this option. If a choice is applied without such a match,
+ * {@link chooseOption} can still resolve it by resetting later dimensions.
  *
  * @param variants Product variants in id ascending order.
  * @param selection Current selection.
@@ -132,6 +133,11 @@ export function isOptionAvailable(
   option: string | null,
 ): boolean {
   const visible = getVisibleDimensions(variants);
+  const index = visible.indexOf(dimension);
+  if (index === -1) {
+    return false;
+  }
+
   return variants.some(
     (variant) =>
       variant.inStock &&
@@ -169,19 +175,41 @@ export function chooseOption(
   }
 
   const locked = visible.slice(0, index);
-  const matchesLocked = (variant: ProductVariantDto): boolean =>
+
+  const matchesChoice = (variant: ProductVariantDto): boolean =>
+    variantValue[dimension](variant) === option;
+  const matchesEveryOtherChosenDimension = (
+    variant: ProductVariantDto,
+  ): boolean =>
+    visible.every(
+      (other) =>
+        other === dimension || matchesDimension(variant, selection, other),
+    );
+  const matchesEarlierDimensions = (variant: ProductVariantDto): boolean =>
     locked.every((lockedDimension) =>
       matchesDimension(variant, selection, lockedDimension),
     );
 
-  const matchesChoice = (variant: ProductVariantDto): boolean =>
-    matchesLocked(variant) && variantValue[dimension](variant) === option;
-
-  const inStock = variants.find(
-    (variant) => variant.inStock && matchesChoice(variant),
+  const exactInStock = variants.find(
+    (variant) =>
+      variant.inStock &&
+      matchesChoice(variant) &&
+      matchesEveryOtherChosenDimension(variant),
   );
-  const fallback = variants.find(matchesChoice);
-  const chosen = inStock ?? fallback;
+  const resetInStock = variants.find(
+    (variant) =>
+      variant.inStock &&
+      matchesChoice(variant) &&
+      matchesEarlierDimensions(variant),
+  );
+  const exactFallback = variants.find(
+    (variant) =>
+      matchesChoice(variant) && matchesEveryOtherChosenDimension(variant),
+  );
+  const resetFallback = variants.find(
+    (variant) => matchesChoice(variant) && matchesEarlierDimensions(variant),
+  );
+  const chosen = exactInStock ?? resetInStock ?? exactFallback ?? resetFallback;
   if (chosen === undefined) {
     return null;
   }

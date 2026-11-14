@@ -55,7 +55,7 @@ const footerLinks = {
   shop: [
     { label: "All Products", href: "/shop" },
     { label: "Patterns", href: "/patterns" },
-    { label: "Custom Orders", href: "/custom" },
+    { label: "Custom Orders", href: "/shop" },
     { label: "Collections", href: "/collections" },
   ],
   company: [

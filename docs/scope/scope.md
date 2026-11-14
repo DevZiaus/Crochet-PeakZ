@@ -142,9 +142,9 @@ Home page with featured products, catalog listing with filtering (category, prod
   - [x] Product detail and variants (AC-7, AC-8, AC-9, AC-10, AC-15, AC-17)
   - [x] Collections and canonical pages (AC-11, AC-12, AC-13, AC-15, AC-17)
   - [x] States, accessibility, and full test pass (AC-16, AC-17, AC-19)
-- [ ] Verify it: `/check verify product catalog storefront`
-- [ ] Test it: `/test product catalog storefront`
-- [ ] Review it (fresh model): `/check review product catalog storefront`
+- [x] Verify it: `/check verify product catalog storefront`
+- [x] Test it: `/test product catalog storefront`
+- [x] Review it (fresh model): `/check review product catalog storefront`
 - [ ] Document it: `/document product catalog storefront`
 
 ### 7. Currency switcher

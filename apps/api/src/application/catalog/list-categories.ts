@@ -14,14 +14,18 @@ export async function listCategories(
 ): Promise<CatalogCategoryListResponse> {
   const categories = await dependencies.catalog.listCategories();
 
-  const data = await Promise.all(
-    categories.map(async (category) => {
-      const stats = await dependencies.catalog.getCategoryStats(
-        resolveCategorySubtreeIds(categories, category.id),
-      );
-      return toCategorySummary(category, stats, dependencies.imageUrls);
-    }),
+  const subtrees = categories.map((category) =>
+    resolveCategorySubtreeIds(categories, category.id),
   );
+  const stats =
+    await dependencies.catalog.getCategoryStatsForSubtrees(subtrees);
+  const data = categories.map((category, index) => {
+    const categoryStats = stats[index];
+    if (!categoryStats) {
+      throw new Error("Category stats are missing for a category.");
+    }
+    return toCategorySummary(category, categoryStats, dependencies.imageUrls);
+  });
 
   return { data };
 }

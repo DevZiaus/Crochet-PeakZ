@@ -101,17 +101,17 @@ describe("catalog image ordering", () => {
     expect(pickPrimaryImage(images)?.id).toBe("a");
   });
 
-  it("orders variants by id ascending", () => {
+  it("orders variants by database id ordering, independent of locale", () => {
     const variants = [
-      makeVariant({ id: "b" }),
-      makeVariant({ id: "a" }),
-      makeVariant({ id: "c" }),
+      makeVariant({ id: "a-10" }),
+      makeVariant({ id: "a-2" }),
+      makeVariant({ id: "A-1" }),
     ];
 
     expect(orderVariants(variants).map((variant) => variant.id)).toEqual([
-      "a",
-      "b",
-      "c",
+      "A-1",
+      "a-10",
+      "a-2",
     ]);
   });
 });

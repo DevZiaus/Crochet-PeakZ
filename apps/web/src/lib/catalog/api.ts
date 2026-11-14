@@ -5,6 +5,7 @@
  * these helpers, which use `API_INTERNAL_URL`, cache each read for 60 seconds,
  * and throw a typed error the route boundaries can render.
  */
+import { unstable_cache } from "next/cache";
 import type {
   CatalogCategoryDetailResponse,
   CatalogCategoryListResponse,
@@ -62,7 +63,7 @@ export class CatalogApiError extends Error {
  * @param error Unknown thrown value.
  * @returns True when the API answered 404.
  */
-export function isCatalogNotFound(error: unknown): boolean {
+export function isCatalogNotFound(error: unknown): error is CatalogApiError {
   return error instanceof CatalogApiError && error.statusCode === 404;
 }
 
@@ -107,6 +108,47 @@ export async function fetchCatalogProducts(
 }
 
 /**
+ * Cached detail lookup. A hidden resource is stored as a value so the 60
+ * second cache window can replace a stale payload with a not found result.
+ */
+type DetailLookup<T> =
+  | { status: "found"; data: T }
+  | { status: "not-found"; message: string; code: string | undefined };
+
+/**
+ * Loads the product detail, caching a not found result as a value.
+ *
+ * A bare `fetch` revalidate cannot cache a 404, so a hidden product would keep
+ * serving its last 200 payload forever after revalidation starts answering
+ * not found. Caching the lookup result keeps the 60 second window and lets the
+ * not found result replace the previous payload.
+ */
+// Next 16 currently marks unstable_cache as unstable. Keep this usage narrow and
+// revisit it when adopting the stable cache APIs described in the Next docs.
+const loadProductDetail = unstable_cache(
+  async (slug: string): Promise<DetailLookup<ProductDetailDto>> => {
+    try {
+      const { data } = await request<CatalogProductDetailResponse>(
+        `/products/${encodeURIComponent(slug)}`,
+        "no-store",
+      );
+      return { status: "found", data };
+    } catch (error) {
+      if (isCatalogNotFound(error)) {
+        return {
+          status: "not-found",
+          message: error.message,
+          code: error.code,
+        };
+      }
+      throw error;
+    }
+  },
+  ["catalog-product-detail"],
+  { revalidate: 60 },
+);
+
+/**
  * Fetches one visible product by slug.
  *
  * @param slug Product slug.
@@ -115,10 +157,11 @@ export async function fetchCatalogProducts(
 export async function fetchCatalogProduct(
   slug: string,
 ): Promise<ProductDetailDto> {
-  const response = await request<CatalogProductDetailResponse>(
-    `/products/${encodeURIComponent(slug)}`,
-  );
-  return response.data;
+  const lookup = await loadProductDetail(slug);
+  if (lookup.status === "not-found") {
+    throw new CatalogApiError(lookup.message, 404, lookup.code);
+  }
+  return lookup.data;
 }
 
 /**
@@ -132,6 +175,35 @@ export async function fetchCatalogCategories(): Promise<CategorySummaryDto[]> {
 }
 
 /**
+ * Loads the category detail, caching a not found result as a value.
+ *
+ * Same reason as the product lookup: a 404 is not written back to the fetch
+ * cache, so a deleted category would otherwise serve its stale page forever.
+ */
+const loadCategoryDetail = unstable_cache(
+  async (slug: string): Promise<DetailLookup<CategoryDetailDto>> => {
+    try {
+      const { data } = await request<CatalogCategoryDetailResponse>(
+        `/categories/${encodeURIComponent(slug)}`,
+        "no-store",
+      );
+      return { status: "found", data };
+    } catch (error) {
+      if (isCatalogNotFound(error)) {
+        return {
+          status: "not-found",
+          message: error.message,
+          code: error.code,
+        };
+      }
+      throw error;
+    }
+  },
+  ["catalog-category-detail"],
+  { revalidate: 60 },
+);
+
+/**
  * Fetches one category with its breadcrumb and children.
  *
  * @param slug Category slug.
@@ -140,21 +212,36 @@ export async function fetchCatalogCategories(): Promise<CategorySummaryDto[]> {
 export async function fetchCatalogCategory(
   slug: string,
 ): Promise<CategoryDetailDto> {
-  const response = await request<CatalogCategoryDetailResponse>(
-    `/categories/${encodeURIComponent(slug)}`,
-  );
-  return response.data;
+  const lookup = await loadCategoryDetail(slug);
+  if (lookup.status === "not-found") {
+    throw new CatalogApiError(lookup.message, 404, lookup.code);
+  }
+  return lookup.data;
 }
 
-/** Reads a catalog response, translating failures into a typed error. */
-async function request<T>(path: string): Promise<T> {
+/**
+ * Reads a catalog response, translating failures into a typed error.
+ *
+ * @param path API path.
+ * @param cacheMode `revalidate` keeps the 60 second data cache used by list
+ * reads. `no-store` fetches fresh data for callers that cache the lookup
+ * result themselves, including not found results.
+ * @returns Parsed response body.
+ */
+async function request<T>(
+  path: string,
+  cacheMode: "revalidate" | "no-store" = "revalidate",
+): Promise<T> {
   const { apiInternalUrl } = getCatalogEnv();
   let response: Response;
 
   try {
-    response = await fetch(`${apiInternalUrl}${path}`, {
-      next: { revalidate: 60 },
-    });
+    response = await fetch(
+      `${apiInternalUrl}${path}`,
+      cacheMode === "no-store"
+        ? { cache: "no-store" }
+        : { next: { revalidate: 60 } },
+    );
   } catch {
     throw new CatalogApiError(
       "We could not reach the catalog. Please try again.",

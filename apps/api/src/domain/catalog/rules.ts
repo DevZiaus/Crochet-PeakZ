@@ -142,9 +142,7 @@ export function orderImages(
 export function orderVariants(
   variants: readonly CatalogVariantRecord[],
 ): CatalogVariantRecord[] {
-  return [...variants].sort((left, right) =>
-    left.id.localeCompare(right.id, "en"),
-  );
+  return [...variants].sort((left, right) => compareIds(left.id, right.id));
 }
 
 /**
@@ -186,5 +184,10 @@ function compareImages(
   if (left.displayOrder !== right.displayOrder) {
     return left.displayOrder - right.displayOrder;
   }
-  return left.id.localeCompare(right.id, "en");
+  return compareIds(left.id, right.id);
+}
+
+/** Compares ids with the same code point ordering as the database. */
+function compareIds(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }

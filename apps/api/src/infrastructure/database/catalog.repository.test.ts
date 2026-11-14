@@ -296,13 +296,23 @@ describeWithDatabase("PrismaCatalogRepository", () => {
   });
 
   it("counts visible subtree products and picks the newest primary image as cover", async () => {
-    const stats = await repository.getCategoryStats([
-      parentCategoryId,
-      childCategoryId,
+    const stats = await repository.getCategoryStatsForSubtrees([
+      [parentCategoryId, childCategoryId],
+      [childCategoryId],
+      [],
     ]);
 
-    expect(stats.productCount).toBe(2);
-    expect(stats.coverImageUrl).toBe(`catalog/primary-${suffix}`);
-    expect(stats.coverImageAlt).toBe("Primary");
+    expect(stats).toHaveLength(3);
+    expect(stats[0]).toEqual({
+      productCount: 2,
+      coverImageUrl: `catalog/primary-${suffix}`,
+      coverImageAlt: "Primary",
+    });
+    expect(stats[1]?.productCount).toBe(1);
+    expect(stats[2]).toEqual({
+      productCount: 0,
+      coverImageUrl: null,
+      coverImageAlt: null,
+    });
   });
 });

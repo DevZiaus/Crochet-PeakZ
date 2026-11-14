@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from "../../generated/prisma/client.js";
-import { clampPage, pickPrimaryImage } from "../../domain/catalog/rules.js";
+import { clampPage } from "../../domain/catalog/rules.js";
 import type {
   CatalogCategoryRecord,
   CatalogCategoryStats,
@@ -105,43 +105,76 @@ export class PrismaCatalogRepository implements CatalogRepository {
   }
 
   /** @inheritdoc */
-  async getCategoryStats(categoryIds: string[]): Promise<CatalogCategoryStats> {
-    if (categoryIds.length === 0) {
-      return { productCount: 0, coverImageUrl: null, coverImageAlt: null };
+  async getCategoryStatsForSubtrees(
+    categorySubtrees: string[][],
+  ): Promise<CatalogCategoryStats[]> {
+    if (categorySubtrees.length === 0) {
+      return [];
     }
 
-    const where: Prisma.ProductWhereInput = {
-      categoryId: { in: categoryIds },
-      isActive: true,
-      deletedAt: null,
-    };
-
-    const [productCount, newest] = await Promise.all([
-      this.prisma.product.count({ where }),
-      this.prisma.product.findFirst({
-        where,
-        orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-        include: { images: true },
-      }),
-    ]);
-
-    const primary = newest
-      ? pickPrimaryImage(
-          newest.images.map((image) => ({
-            id: image.id,
-            imageUrl: image.imageUrl,
-            altText: image.altText,
-            isPrimary: image.isPrimary,
-            displayOrder: image.displayOrder,
-          })),
+    const subtreeInput = categorySubtrees.map((categoryIds, subtreeIndex) => ({
+      subtreeIndex,
+      categoryIds,
+    }));
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        subtreeIndex: number;
+        productCount: bigint;
+        coverImageUrl: string | null;
+        coverImageAlt: string | null;
+      }>
+    >`WITH subtree_input AS (
+      SELECT
+        (entry->>'subtreeIndex')::int AS "subtreeIndex",
+        entry->'categoryIds' AS "categoryIds"
+      FROM jsonb_array_elements(${JSON.stringify(subtreeInput)}::jsonb) AS input(entry)
+    ), ranked_products AS (
+      SELECT
+        subtree."subtreeIndex",
+        product.id,
+        image.image_url AS "coverImageUrl",
+        image.alt_text AS "coverImageAlt",
+        row_number() OVER (
+          PARTITION BY subtree."subtreeIndex"
+          ORDER BY product.created_at DESC, product.id ASC
+        ) AS rank
+      FROM subtree_input AS subtree
+      INNER JOIN products AS product
+        ON product.category_id IN (
+          SELECT jsonb_array_elements_text(subtree."categoryIds")
         )
-      : null;
+        AND product.is_active = true
+        AND product.deleted_at IS NULL
+      LEFT JOIN LATERAL (
+        SELECT image_url, alt_text
+        FROM product_images
+        WHERE product_id = product.id
+        ORDER BY is_primary DESC, display_order ASC, id ASC
+        LIMIT 1
+      ) AS image ON true
+    ), subtree_stats AS (
+      SELECT
+        "subtreeIndex",
+        count(*) AS "productCount",
+        max("coverImageUrl") FILTER (WHERE rank = 1) AS "coverImageUrl",
+        max("coverImageAlt") FILTER (WHERE rank = 1) AS "coverImageAlt"
+      FROM ranked_products
+      GROUP BY "subtreeIndex"
+    )
+    SELECT
+      subtree."subtreeIndex",
+      coalesce(stats."productCount", 0)::bigint AS "productCount",
+      stats."coverImageUrl",
+      stats."coverImageAlt"
+    FROM subtree_input AS subtree
+    LEFT JOIN subtree_stats AS stats USING ("subtreeIndex")
+    ORDER BY subtree."subtreeIndex"`;
 
-    return {
-      productCount,
-      coverImageUrl: primary?.imageUrl ?? null,
-      coverImageAlt: primary?.altText ?? null,
-    };
+    return rows.map((row) => ({
+      productCount: Number(row.productCount),
+      coverImageUrl: row.coverImageUrl,
+      coverImageAlt: row.coverImageAlt,
+    }));
   }
 }
 
