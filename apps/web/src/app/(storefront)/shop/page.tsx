@@ -17,8 +17,8 @@ import {
 import { getActiveCurrency } from "@/lib/catalog/currency";
 import { getCatalogEnv } from "@/lib/catalog/env";
 import {
+  buildShopCanonical,
   buildShopHref,
-  hasCatalogFilters,
   parseCatalogSearchParams,
   toCatalogListParams,
 } from "@/lib/catalog/search-params";
@@ -52,17 +52,7 @@ export async function generateMetadata({
       await searchParams,
       new Set(categories.map((category) => category.slug)),
     );
-    const [onlyCategory] = state.categories;
-    const isSingleCollection =
-      onlyCategory !== undefined &&
-      state.categories.length === 1 &&
-      state.page === 1 &&
-      state.sort === "newest" &&
-      !hasCatalogFilters({ ...state, categories: [] });
-
-    canonical = isSingleCollection
-      ? `${webAppUrl}/collections/${onlyCategory}`
-      : `${webAppUrl}${buildShopHref(state)}`;
+    canonical = buildShopCanonical(state, webAppUrl);
   } catch {
     // Keep the self canonical when categories cannot be loaded.
   }
@@ -98,6 +88,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         <CatalogErrorState
           heading="We could not load the shop"
           description="Something went wrong on our side. Please try again."
+          headingLevel="h1"
         />
       </Container>
     );
@@ -119,6 +110,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         <CatalogErrorState
           heading="We could not load the shop"
           description="Something went wrong on our side. Please try again."
+          headingLevel="h1"
         />
       </Container>
     );

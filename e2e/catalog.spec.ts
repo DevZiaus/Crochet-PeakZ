@@ -226,6 +226,17 @@ test("opens a collection landing page with breadcrumbs", async ({ page }) => {
   await expect(page.locator(`main a[href="${SLUGS.bear}"]`)).toBeVisible();
 });
 
+test("normalizes collection URLs with unsupported filters", async ({
+  page,
+}) => {
+  await page.goto("/collections/amigurumi?type=STANDARD&minPrice=100");
+
+  await expect(page).toHaveURL(/\/collections\/amigurumi$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Amigurumi" }),
+  ).toBeVisible();
+});
+
 test("switches every price to the currency in the cookie", async ({
   page,
   context,

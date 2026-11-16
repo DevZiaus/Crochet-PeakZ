@@ -52,6 +52,7 @@ export default async function CollectionsPage() {
         <CatalogErrorState
           heading="We could not load the collections"
           description="Something went wrong on our side. Please try again."
+          headingLevel="h1"
         />
       </Container>
     );

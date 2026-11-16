@@ -93,7 +93,10 @@ describe("fetchCatalogProduct", () => {
       slug: "sunflower-amigurumi-bear",
       title: "Bear",
     });
-    expect(fetchMock).toHaveBeenCalledWith(detailUrl, { cache: "no-store" });
+    expect(fetchMock).toHaveBeenCalledWith(detailUrl, {
+      cache: "no-store",
+      signal: expect.any(AbortSignal) as AbortSignal,
+    });
   });
 
   it("stores a not found lookup as a cached value instead of rejecting the loader", async () => {
@@ -128,7 +131,7 @@ describe("fetchCatalogProduct", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://api.test/products/bear%20with%20a%20bow%2Flimited",
-      { cache: "no-store" },
+      { cache: "no-store", signal: expect.any(AbortSignal) as AbortSignal },
     );
   });
 
@@ -170,7 +173,10 @@ describe("fetchCatalogProducts", () => {
     expect(result).toEqual({ data: [product], meta });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://api.test/products?category=amigurumi&category=home-decor&type=STANDARD&type=CUSTOM&minPrice=500&maxPrice=2000&currency=USD&sort=price-asc&page=2&limit=12&featured=true",
-      { next: { revalidate: 60 } },
+      {
+        next: { revalidate: 60 },
+        signal: expect.any(AbortSignal) as AbortSignal,
+      },
     );
   });
 
@@ -182,7 +188,10 @@ describe("fetchCatalogProducts", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://api.test/products?currency=BDT",
-      { next: { revalidate: 60 } },
+      {
+        next: { revalidate: 60 },
+        signal: expect.any(AbortSignal) as AbortSignal,
+      },
     );
   });
 });
@@ -196,6 +205,7 @@ describe("fetchCatalogCategories", () => {
     expect(categories).toEqual([categorySummary]);
     expect(fetchMock).toHaveBeenCalledWith("http://api.test/categories", {
       next: { revalidate: 60 },
+      signal: expect.any(AbortSignal) as AbortSignal,
     });
   });
 });
@@ -209,7 +219,7 @@ describe("fetchCatalogCategory", () => {
     expect(category).toEqual(categoryDetail);
     expect(fetchMock).toHaveBeenCalledWith(
       "http://api.test/categories/amigurumi",
-      { cache: "no-store" },
+      { cache: "no-store", signal: expect.any(AbortSignal) as AbortSignal },
     );
   });
 

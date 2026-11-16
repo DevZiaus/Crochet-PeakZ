@@ -219,6 +219,9 @@ export async function fetchCatalogCategory(
   return lookup.data;
 }
 
+/** Upper bound for one catalog request, so a stalled API cannot hang a page. */
+const CATALOG_FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * Reads a catalog response, translating failures into a typed error.
  *
@@ -233,15 +236,17 @@ async function request<T>(
   cacheMode: "revalidate" | "no-store" = "revalidate",
 ): Promise<T> {
   const { apiInternalUrl } = getCatalogEnv();
+  const cacheOptions =
+    cacheMode === "no-store"
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: 60 } };
   let response: Response;
 
   try {
-    response = await fetch(
-      `${apiInternalUrl}${path}`,
-      cacheMode === "no-store"
-        ? { cache: "no-store" }
-        : { next: { revalidate: 60 } },
-    );
+    response = await fetch(`${apiInternalUrl}${path}`, {
+      ...cacheOptions,
+      signal: AbortSignal.timeout(CATALOG_FETCH_TIMEOUT_MS),
+    });
   } catch {
     throw new CatalogApiError(
       "We could not reach the catalog. Please try again.",

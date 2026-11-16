@@ -18,6 +18,7 @@ import {
 import { getActiveCurrency } from "@/lib/catalog/currency";
 import { getCatalogEnv } from "@/lib/catalog/env";
 import {
+  hasUnsupportedCollectionParams,
   parseCatalogSearchParams,
   type CatalogSearchState,
 } from "@/lib/catalog/search-params";
@@ -125,15 +126,23 @@ export default async function CollectionPage({
         <CatalogErrorState
           heading="We could not load this collection"
           description="Something went wrong on our side. Please try again."
+          headingLevel="h1"
         />
       </Container>
     );
   }
 
+  const rawSearchParams = await searchParams;
   const state = parseCatalogSearchParams(
-    await searchParams,
+    rawSearchParams,
     new Set([category.slug]),
   );
+
+  // Collection pages only support sort and page. Drop any other catalog
+  // filter instead of leaving a URL that looks filtered but is not.
+  if (hasUnsupportedCollectionParams(rawSearchParams)) {
+    redirect(buildCollectionHref(slug, state));
+  }
 
   let response;
   try {
@@ -150,6 +159,7 @@ export default async function CollectionPage({
         <CatalogErrorState
           heading="We could not load this collection"
           description="Something went wrong on our side. Please try again."
+          headingLevel="h1"
         />
       </Container>
     );

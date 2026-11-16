@@ -48,6 +48,15 @@ const sortValues: readonly CatalogSort[] = [
 const pricePattern = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/;
 const positiveIntegerPattern = /^[1-9]\d*$/;
 
+/** Catalog filters a collection page does not apply. */
+const unsupportedCollectionParamKeys = [
+  "category",
+  "type",
+  "minPrice",
+  "maxPrice",
+  "featured",
+] as const;
+
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
 /**
@@ -89,9 +98,11 @@ export function parseCatalogSearchParams(
     ? (sortValue as CatalogSort)
     : "newest";
   const pageValue = firstValue(params["page"]);
+  // Cap at the largest exact integer so an oversized value stays a plain
+  // decimal string for the strict API, which clamps it to the last page.
   const page =
     pageValue !== undefined && positiveIntegerPattern.test(pageValue)
-      ? Number(pageValue)
+      ? Math.min(Number(pageValue), Number.MAX_SAFE_INTEGER)
       : 1;
   const featured = firstValue(params["featured"]) === "true" ? true : undefined;
 
@@ -104,6 +115,26 @@ export function parseCatalogSearchParams(
     page,
     ...(featured === undefined ? {} : { featured }),
   };
+}
+
+/**
+ * Tells whether raw search parameters carry a catalog filter that a collection
+ * page does not apply.
+ *
+ * Collection pages support only `sort` and `page`. The shop parser also
+ * understands category, type, price, and featured filters. When one of those
+ * appears on a collection URL the page ignores it, so the page redirects to a
+ * normalized URL instead of leaving a link that looks filtered but is not.
+ *
+ * @param params Raw search parameters from the page.
+ * @returns True when at least one unsupported catalog parameter is present.
+ */
+export function hasUnsupportedCollectionParams(
+  params: RawSearchParams,
+): boolean {
+  return unsupportedCollectionParamKeys.some(
+    (key) => params[key] !== undefined,
+  );
 }
 
 /**
@@ -147,6 +178,34 @@ export function buildShopHref(
 
   const query = params.toString();
   return query.length > 0 ? `/shop?${query}` : "/shop";
+}
+
+/**
+ * Builds the canonical URL for a shop view.
+ *
+ * A single collection on page 1 with the default sort and no other filters
+ * canonicalises to that collection page. Every other view canonicalises to
+ * its own normalized shop URL.
+ *
+ * @param state Parsed shop state.
+ * @param webAppUrl Absolute web origin.
+ * @returns The absolute canonical URL.
+ */
+export function buildShopCanonical(
+  state: CatalogSearchState,
+  webAppUrl: string,
+): string {
+  const [onlyCategory] = state.categories;
+  const isSingleCollection =
+    onlyCategory !== undefined &&
+    state.categories.length === 1 &&
+    state.page === 1 &&
+    state.sort === "newest" &&
+    !hasCatalogFilters({ ...state, categories: [] });
+
+  return isSingleCollection
+    ? `${webAppUrl}/collections/${onlyCategory}`
+    : `${webAppUrl}${buildShopHref(state)}`;
 }
 
 /**

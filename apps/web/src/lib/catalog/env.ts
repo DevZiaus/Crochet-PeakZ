@@ -18,6 +18,12 @@ let cached: CatalogEnv | undefined;
 /**
  * Reads and validates the server side catalog variables.
  *
+ * `next build` prerenders static routes without runtime configuration, so the
+ * production defaults are skipped during that phase: a missing value fails the
+ * request loudly instead of breaking the build, as this module promises. A
+ * production server without the variables still fails at boot in
+ * `src/instrumentation.ts`.
+ *
  * @returns Validated configuration with a trailing slash removed.
  */
 export function getCatalogEnv(): CatalogEnv {
@@ -25,7 +31,8 @@ export function getCatalogEnv(): CatalogEnv {
     return cached;
   }
 
-  const isProduction = process.env.NODE_ENV === "production";
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+  const isProduction = process.env.NODE_ENV === "production" && !isBuildPhase;
   const apiInternalUrl = requireUrl(
     "API_INTERNAL_URL",
     process.env["API_INTERNAL_URL"] ??

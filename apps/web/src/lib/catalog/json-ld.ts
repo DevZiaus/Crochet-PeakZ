@@ -7,9 +7,9 @@ import {
 /**
  * Builds the Product JSON-LD object for a product detail page.
  *
- * Variants become an AggregateOffer with the base price plus every variant
- * additional price. A product without variants uses a single Offer. Ratings are
- * intentionally omitted.
+ * Variants become an AggregateOffer whose price range covers every variant
+ * total, meaning the base price plus that variant's additional price. A product
+ * without variants uses a single Offer. Ratings are intentionally omitted.
  *
  * @param product Product detail DTO.
  * @param currency Active currency, used as the offer currency.
@@ -29,10 +29,10 @@ export function buildProductJsonLd(
       ? variant.additionalPriceBdt
       : variant.additionalPriceUsd,
   );
-  const prices = [
-    basePrice,
-    ...additionalPrices.map((extra) => calculateVariantPrice(basePrice, extra)),
-  ];
+  const prices =
+    additionalPrices.length > 0
+      ? additionalPrices.map((extra) => calculateVariantPrice(basePrice, extra))
+      : [basePrice];
   const lowPrice = Math.min(...prices);
   const highPrice = Math.max(...prices);
   const availability = getAvailability(product);

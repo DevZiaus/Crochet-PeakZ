@@ -473,6 +473,8 @@ The plan follows the Tracer Bullet approach. Slice 1 proves the whole pipe from 
 - Consider server side API cache headers if the public traffic grows beyond the web tier.
 - Consider search and additional filters once the catalog grows beyond the seed set.
 - Add visual regression coverage for the product card, gallery, and collection cards when the brand photography lands.
+- Assert the JSON-LD that the product page emits, not only the builder. `apps/web/src/app/(storefront)/shop/[slug]/page.tsx` renders the `Product` structured data, and no test checks the rendered script, including price, availability, and currency.
+- Resolve the five nits from the 2026-11-16 review (`docs/reviews/2026-11-16-feat-product-catalog-storefront.md`): theme colour token, manifest capitalisation, filter step, collections comment numbering, and custom order CTA targets.
 
 ## Rationale
 

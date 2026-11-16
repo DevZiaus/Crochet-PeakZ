@@ -95,6 +95,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <CatalogErrorState
           heading="We could not load this piece"
           description="Something went wrong on our side. Please try again."
+          headingLevel="h1"
         />
       </Container>
     );

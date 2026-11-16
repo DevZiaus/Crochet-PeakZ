@@ -35,10 +35,12 @@ describe("product JSON-LD", () => {
     });
   });
 
-  it("rounds variant offer prices the same way as displayed prices", () => {
+  it("computes the aggregate range from variant totals when every variant adds cost", () => {
     const product = makeProductDetail({
-      priceBdt: 0.1,
-      variants: [makeVariant({ additionalPriceBdt: 0.2 })],
+      variants: [
+        makeVariant({ id: "a", additionalPriceBdt: 100 }),
+        makeVariant({ id: "b", additionalPriceBdt: 200 }),
+      ],
     });
 
     const jsonLd = buildProductJsonLd(
@@ -48,7 +50,26 @@ describe("product JSON-LD", () => {
       fallbackImage,
     );
 
-    expect(jsonLd.offers).toMatchObject({ lowPrice: 0.1, highPrice: 0.3 });
+    expect(jsonLd.offers).toMatchObject({ lowPrice: 1900, highPrice: 2000 });
+  });
+
+  it("rounds variant offer prices the same way as displayed prices", () => {
+    const product = makeProductDetail({
+      priceBdt: 0.1,
+      variants: [
+        makeVariant({ id: "a", additionalPriceBdt: 0.2 }),
+        makeVariant({ id: "b", additionalPriceBdt: 0.25 }),
+      ],
+    });
+
+    const jsonLd = buildProductJsonLd(
+      product,
+      "BDT",
+      productUrl,
+      fallbackImage,
+    );
+
+    expect(jsonLd.offers).toMatchObject({ lowPrice: 0.3, highPrice: 0.35 });
   });
 
   it("uses a single offer and the fallback image without variants or images", () => {

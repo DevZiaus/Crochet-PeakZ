@@ -100,6 +100,57 @@ describe("getCatalogEnv", () => {
     expect(getCatalogEnv().apiInternalUrl).toBe("https://api.first.test/api");
   });
 
+  it("falls back to the local defaults during the production build phase", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+
+    const { getCatalogEnv } = await importEnv();
+
+    expect(getCatalogEnv()).toEqual({
+      apiInternalUrl: "http://localhost:4000/api",
+      webAppUrl: "http://localhost:3000",
+    });
+  });
+
+  it("still validates the values present during the production build phase", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+    vi.stubEnv("API_INTERNAL_URL", "not a url");
+    vi.stubEnv("WEB_APP_URL", "https://crochetpeakz.com");
+
+    const { getCatalogEnv } = await importEnv();
+
+    expect(() => getCatalogEnv()).toThrow(
+      "API_INTERNAL_URL must be an absolute http(s) URL.",
+    );
+  });
+
+  it("falls back only for the missing key during the production build phase", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+    vi.stubEnv("API_INTERNAL_URL", "https://api.crochetpeakz.com/api");
+
+    const { getCatalogEnv } = await importEnv();
+
+    expect(getCatalogEnv()).toEqual({
+      apiInternalUrl: "https://api.crochetpeakz.com/api",
+      webAppUrl: "http://localhost:3000",
+    });
+  });
+
+  it("keeps production validation when NEXT_PHASE is not the build phase", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PHASE", "phase-production-server");
+    vi.stubEnv("API_INTERNAL_URL", "https://api.crochetpeakz.com/api");
+    vi.stubEnv("WEB_APP_URL", "");
+
+    const { getCatalogEnv } = await importEnv();
+
+    expect(() => getCatalogEnv()).toThrow(
+      "WEB_APP_URL must be an absolute http(s) URL.",
+    );
+  });
+
   it("throws in production when the API base URL is missing", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("API_INTERNAL_URL", "");

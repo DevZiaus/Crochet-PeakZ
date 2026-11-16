@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildShopCanonical,
   buildShopHref,
   buildSortHref,
   defaultCatalogSearchState,
   hasCatalogFilters,
+  hasUnsupportedCollectionParams,
   parseCatalogSearchParams,
   toCatalogListParams,
 } from "./search-params";
@@ -69,6 +71,12 @@ describe("parseCatalogSearchParams", () => {
     expect(state.page).toBe(3);
   });
 
+  it("caps an oversized page at the safe integer limit", () => {
+    const state = parseCatalogSearchParams({ page: "9".repeat(400) }, known);
+
+    expect(state.page).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
   it("only enables featured when the value is true", () => {
     expect(parseCatalogSearchParams({ featured: "true" }, known).featured).toBe(
       true,
@@ -76,6 +84,30 @@ describe("parseCatalogSearchParams", () => {
     expect(
       parseCatalogSearchParams({ featured: "false" }, known).featured,
     ).toBeUndefined();
+  });
+});
+
+describe("hasUnsupportedCollectionParams", () => {
+  it("accepts the sort and page state a collection page supports", () => {
+    expect(
+      hasUnsupportedCollectionParams({ sort: "price-asc", page: "2" }),
+    ).toBe(false);
+  });
+
+  it("detects every catalog filter a collection page ignores", () => {
+    expect(hasUnsupportedCollectionParams({ category: "amigurumi" })).toBe(
+      true,
+    );
+    expect(hasUnsupportedCollectionParams({ type: "STANDARD" })).toBe(true);
+    expect(hasUnsupportedCollectionParams({ minPrice: "10" })).toBe(true);
+    expect(hasUnsupportedCollectionParams({ maxPrice: "50" })).toBe(true);
+    expect(hasUnsupportedCollectionParams({ featured: "true" })).toBe(true);
+  });
+
+  it("ignores unrelated parameters", () => {
+    expect(hasUnsupportedCollectionParams({ utm_source: "newsletter" })).toBe(
+      false,
+    );
   });
 });
 
@@ -108,6 +140,53 @@ describe("buildShopHref", () => {
 
     expect(buildShopHref(state, { page: 1 })).toBe("/shop?category=amigurumi");
     expect(state.page).toBe(2);
+  });
+});
+
+describe("buildShopCanonical", () => {
+  const webAppUrl = "https://crochetpeakz.test";
+
+  it("canonicalises a single collection on page 1 with the default sort", () => {
+    const state = {
+      ...defaultCatalogSearchState,
+      categories: ["amigurumi"],
+    };
+
+    expect(buildShopCanonical(state, webAppUrl)).toBe(
+      `${webAppUrl}/collections/amigurumi`,
+    );
+  });
+
+  const selfCanonicalCases: Array<
+    [string, Partial<typeof defaultCatalogSearchState>]
+  > = [
+    ["a second category", { categories: ["amigurumi", "wearables"] }],
+    ["page 2", { page: 2 }],
+    ["a non default sort", { sort: "price-asc" }],
+    ["a type filter", { types: ["STANDARD"] }],
+    ["a price filter", { minPrice: 100 }],
+    ["the featured filter", { featured: true }],
+  ];
+
+  it.each(selfCanonicalCases)(
+    "keeps the self canonical for %s",
+    (_label, overrides) => {
+      const state = {
+        ...defaultCatalogSearchState,
+        categories: ["amigurumi"],
+        ...overrides,
+      };
+
+      expect(buildShopCanonical(state, webAppUrl)).toBe(
+        `${webAppUrl}${buildShopHref(state)}`,
+      );
+    },
+  );
+
+  it("canonicalises a bare shop visit to the shop URL", () => {
+    expect(buildShopCanonical(defaultCatalogSearchState, webAppUrl)).toBe(
+      `${webAppUrl}/shop`,
+    );
   });
 });
 
