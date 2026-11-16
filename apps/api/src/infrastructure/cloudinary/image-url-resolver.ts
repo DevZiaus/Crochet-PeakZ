@@ -3,8 +3,11 @@ import type { ImageUrlResolver } from "../../domain/ports/image-url-resolver.js"
 /**
  * Cloudinary delivery URL resolver.
  *
- * Database values are public IDs. Absolute URLs pass through unchanged, and
- * slashes inside a public ID are preserved.
+ * Database values are public IDs. Absolute HTTPS URLs pass through only when
+ * they are on `res.cloudinary.com`; every other absolute URL, including HTTP
+ * and foreign hosts, resolves to null so the UI falls back to its placeholder.
+ * The host allowlist is deliberate hardening. Slashes inside a public ID are
+ * preserved.
  */
 export class CloudinaryImageUrlResolver implements ImageUrlResolver {
   /**
@@ -24,7 +27,15 @@ export class CloudinaryImageUrlResolver implements ImageUrlResolver {
     }
 
     if (value.startsWith("http://") || value.startsWith("https://")) {
-      return value;
+      try {
+        const url = new URL(value);
+        return url.protocol === "https:" &&
+          url.hostname === "res.cloudinary.com"
+          ? value
+          : null;
+      } catch {
+        return null;
+      }
     }
 
     const encodedPublicId = value

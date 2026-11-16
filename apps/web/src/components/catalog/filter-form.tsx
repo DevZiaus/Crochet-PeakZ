@@ -113,6 +113,7 @@ export function CatalogFilterForm({
               inputMode="decimal"
               min={0}
               step="0.01"
+              aria-describedby={`${idPrefix}-price-hint`}
               defaultValue={state.minPrice ?? ""}
               placeholder="0"
             />
@@ -131,12 +132,18 @@ export function CatalogFilterForm({
               inputMode="decimal"
               min={0}
               step="0.01"
+              aria-describedby={`${idPrefix}-price-hint`}
               defaultValue={state.maxPrice ?? ""}
               placeholder="Any"
             />
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">Prices in {currency}</p>
+        <p
+          id={`${idPrefix}-price-hint`}
+          className="text-xs text-muted-foreground"
+        >
+          Prices in {currency}. Up to two decimals.
+        </p>
       </fieldset>
 
       <div className="flex flex-col gap-2">

@@ -131,7 +131,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <Breadcrumbs items={breadcrumbItems} className="mb-6" />
 
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
-        <ProductGallery images={product.images} productTitle={product.title} />
+        <ProductGallery
+          key={product.id}
+          images={product.images}
+          productTitle={product.title}
+        />
 
         <div>
           <div className="mb-6">
@@ -148,7 +152,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </h1>
           </div>
 
-          <PurchasePanel product={product} currency={currency} />
+          <PurchasePanel
+            key={product.id}
+            product={product}
+            currency={currency}
+          />
         </div>
       </div>
 

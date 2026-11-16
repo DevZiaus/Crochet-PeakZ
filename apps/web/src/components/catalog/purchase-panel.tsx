@@ -110,9 +110,11 @@ export function PurchasePanel({ product, currency }: PurchasePanelProps) {
                     );
               const swatch =
                 group.dimension === "color" && option.value !== null
-                  ? product.variants.find(
-                      (variant) => variant.colorName === option.value,
-                    )?.colorHex
+                  ? (product.variants.find(
+                      (variant) =>
+                        variant.colorName === option.value &&
+                        variant.colorHex !== null,
+                    )?.colorHex ?? null)
                   : null;
 
               return (
@@ -142,7 +144,7 @@ export function PurchasePanel({ product, currency }: PurchasePanelProps) {
                       "peer-disabled:opacity-40",
                     )}
                   >
-                    {swatch !== null && swatch !== undefined ? (
+                    {swatch !== null ? (
                       <span
                         aria-hidden="true"
                         className="size-4 rounded-full border border-border"

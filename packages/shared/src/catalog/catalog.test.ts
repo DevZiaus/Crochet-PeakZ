@@ -106,6 +106,12 @@ describe("catalogListQuerySchema", () => {
     expect(catalogListQuerySchema.safeParse(query).success).toBe(false);
   });
 
+  it("rejects a page that cannot be represented as a safe integer", () => {
+    expect(
+      catalogListQuerySchema.safeParse({ page: "9".repeat(400) }).success,
+    ).toBe(false);
+  });
+
   it("rejects a minimum price above the maximum", () => {
     const result = catalogListQuerySchema.safeParse({
       minPrice: "20",

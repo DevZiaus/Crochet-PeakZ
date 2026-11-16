@@ -141,7 +141,6 @@ model Product {
   category        Category?          @relation(fields: [categoryId], references: [id])
   reviews         Review[]
 
-  @@index([categoryId])
   @@index([isActive, deletedAt, createdAt])
   @@index([categoryId, isActive, deletedAt, createdAt])
   @@index([productType, isActive, deletedAt, createdAt])

@@ -69,9 +69,13 @@ describe("CatalogFilterForm", () => {
         .getByRole("checkbox", { name: /Standard/ })
         .getAttribute("aria-checked"),
     ).toBe("true");
-    expect(screen.getByLabelText<HTMLInputElement>("Minimum").value).toBe("10");
-    expect(screen.getByLabelText<HTMLInputElement>("Maximum").value).toBe("50");
-    expect(screen.getByText("Prices in USD")).toBeTruthy();
+    const minimum = screen.getByLabelText<HTMLInputElement>("Minimum");
+    const maximum = screen.getByLabelText<HTMLInputElement>("Maximum");
+    expect(minimum.value).toBe("10");
+    expect(maximum.value).toBe("50");
+    expect(minimum.getAttribute("aria-describedby")).toBe("test-price-hint");
+    expect(maximum.getAttribute("aria-describedby")).toBe("test-price-hint");
+    expect(screen.getByText("Prices in USD. Up to two decimals.")).toBeTruthy();
   });
 
   it("preserves featured when applying other filters", () => {

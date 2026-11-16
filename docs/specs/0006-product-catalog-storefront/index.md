@@ -210,7 +210,9 @@ DTOs live in `packages/shared` and are re-exported from the package barrel. They
 The API stores Cloudinary public IDs, as the data model already does. The API resolves each ID at the presentation edge with `ImageUrlResolver`:
 
 - An empty or null ID returns null.
-- A value starting with `http://` or `https://` is returned unchanged.
+- An absolute `https://` URL on `res.cloudinary.com` is returned unchanged.
+- Any other absolute URL returns null, including `http://` URLs and URLs on other hosts. This is deliberate hardening: a tampered or mis-seeded value cannot point customers at an arbitrary host. The web falls back to the placeholder.
+- A value that looks absolute but does not parse as a URL returns null.
 - Any other value becomes `https://res.cloudinary.com/<CLOUDINARY_CLOUD_NAME>/image/upload/f_auto,q_auto/<publicId>`. Slashes inside the public ID are preserved.
 - The resolver never rewrites the database value.
 
@@ -475,6 +477,10 @@ The plan follows the Tracer Bullet approach. Slice 1 proves the whole pipe from 
 - Add visual regression coverage for the product card, gallery, and collection cards when the brand photography lands.
 - Assert the JSON-LD that the product page emits, not only the builder. `apps/web/src/app/(storefront)/shop/[slug]/page.tsx` renders the `Product` structured data, and no test checks the rendered script, including price, availability, and currency.
 - Resolve the five nits from the 2026-11-16 review (`docs/reviews/2026-11-16-feat-product-catalog-storefront.md`): theme colour token, manifest capitalisation, filter step, collections comment numbering, and custom order CTA targets.
+- Cache the categories response at the API or maintain subtree counts incrementally if the category and product tables grow; the current query recomputes stats for every category on each uncached read.
+- Parallelize the product detail trail and related reads, or use a recursive CTE for the category trail, if product detail latency grows.
+- When the URL builders, pluralization copy, or catalog route params are next touched, consolidate the collection and shop URL builders, extract the piece count helper, and remove the redundant route param guard.
+- Give the product image fallback a terminal state if both the remote image and the local placeholder fail.
 
 ## Rationale
 

@@ -148,7 +148,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       if (created !== 0) {
         return created;
       }
-      return left.id.localeCompare(right.id, "en");
+      return compareIds(left.id, right.id);
     });
 
     const total = filtered.length;
@@ -187,7 +187,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       )
       .sort((left, right) => {
         const created = right.createdAt.getTime() - left.createdAt.getTime();
-        return created !== 0 ? created : left.id.localeCompare(right.id, "en");
+        return created !== 0 ? created : compareIds(left.id, right.id);
       })
       .slice(0, input.limit);
   }

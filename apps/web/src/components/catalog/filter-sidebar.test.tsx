@@ -78,7 +78,9 @@ describe("FilterSidebar", () => {
       />,
     );
 
-    expect(screen.getByText("Prices in USD")).toBeInTheDocument();
+    expect(
+      screen.getByText("Prices in USD. Up to two decimals."),
+    ).toBeInTheDocument();
   });
 
   it("submits a GET to the shop so filters live in the URL", () => {

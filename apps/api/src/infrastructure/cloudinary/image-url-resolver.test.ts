@@ -11,13 +11,26 @@ describe("CloudinaryImageUrlResolver", () => {
     expect(resolver.resolve("   ")).toBeNull();
   });
 
-  it("keeps absolute URLs unchanged", () => {
-    expect(resolver.resolve("https://example.com/image.webp")).toBe(
-      "https://example.com/image.webp",
-    );
-    expect(resolver.resolve("http://example.com/image.webp")).toBe(
-      "http://example.com/image.webp",
-    );
+  it("keeps absolute Cloudinary URLs unchanged", () => {
+    expect(
+      resolver.resolve(
+        "https://res.cloudinary.com/crochet-peakz/image/upload/bear-main",
+      ),
+    ).toBe("https://res.cloudinary.com/crochet-peakz/image/upload/bear-main");
+  });
+
+  it("returns null for absolute URLs on other hosts", () => {
+    expect(resolver.resolve("https://example.com/image.webp")).toBeNull();
+    expect(resolver.resolve("http://example.com/image.webp")).toBeNull();
+    expect(
+      resolver.resolve(
+        "http://res.cloudinary.com/crochet-peakz/image/upload/bear-main",
+      ),
+    ).toBeNull();
+  });
+
+  it("returns null for malformed absolute URLs", () => {
+    expect(resolver.resolve("https://")).toBeNull();
   });
 
   it("builds a delivery URL and preserves slashes in the public id", () => {

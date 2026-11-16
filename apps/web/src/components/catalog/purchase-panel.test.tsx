@@ -67,6 +67,38 @@ describe("PurchasePanel", () => {
     expect(screen.getByText("In stock")).toBeInTheDocument();
   });
 
+  it("uses a non null swatch colour when the first matching variant has no hex", () => {
+    render(
+      <PurchasePanel
+        product={makeProductDetail({
+          variants: [
+            makeVariant({
+              id: "a",
+              colorName: "Lavender",
+              colorHex: null,
+              stockQuantity: 5,
+            }),
+            makeVariant({
+              id: "b",
+              colorName: "Lavender",
+              colorHex: "#c8a2c8",
+              stockQuantity: 4,
+            }),
+          ],
+        })}
+        currency="BDT"
+      />,
+    );
+
+    const radio = screen.getByRole("radio", { name: "Lavender" });
+    const swatch = radio
+      .closest("label")
+      ?.querySelector<HTMLElement>('span[aria-hidden="true"]');
+
+    expect(swatch).not.toBeNull();
+    expect(swatch?.style.backgroundColor).toBe("#c8a2c8");
+  });
+
   it("disables an unavailable variant option", () => {
     render(
       <PurchasePanel

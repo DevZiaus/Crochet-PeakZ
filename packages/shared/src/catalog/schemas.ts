@@ -61,7 +61,11 @@ const positiveIntegerSchema = z
   .string()
   .trim()
   .regex(/^[1-9]\d*$/, "Expected a positive integer.")
-  .transform((value) => Number(value));
+  .transform((value) => Number(value))
+  .refine(
+    (value) => Number.isSafeInteger(value),
+    "Expected a positive integer.",
+  );
 
 /** A page size from 1 to 48. */
 const limitSchema = positiveIntegerSchema.refine(
