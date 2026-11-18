@@ -136,7 +136,7 @@ function Footer() {
               </h3>
               <ul className="mt-3 space-y-1">
                 {footerLinks.shop.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
                       className="flex min-h-11 items-center text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
@@ -154,7 +154,7 @@ function Footer() {
               </h3>
               <ul className="mt-3 space-y-1">
                 {footerLinks.company.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
                       className="flex min-h-11 items-center text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
@@ -172,7 +172,7 @@ function Footer() {
               </h3>
               <ul className="mt-3 space-y-1">
                 {footerLinks.help.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
                       className="flex min-h-11 items-center text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
@@ -195,7 +195,7 @@ function Footer() {
           <div className="flex items-center gap-1">
             {footerLinks.legal.map((link) => (
               <Link
-                key={link.href}
+                key={link.label}
                 href={link.href}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground motion-reduce:transition-none"
               >

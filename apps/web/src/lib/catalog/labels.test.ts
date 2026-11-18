@@ -7,7 +7,12 @@
  */
 import { describe, expect, it } from "vitest";
 import { ProductType } from "@crochet-peakz/shared";
-import { productTypeLabels, sortLabels, sortOptions } from "./labels";
+import {
+  formatPieceCount,
+  productTypeLabels,
+  sortLabels,
+  sortOptions,
+} from "./labels";
 
 describe("productTypeLabels", () => {
   it("labels every canonical product type", () => {
@@ -43,5 +48,16 @@ describe("sortOptions", () => {
     expect(sortLabels.newest).toBe("Newest");
     expect(sortLabels["price-asc"]).toBe("Price: low to high");
     expect(sortLabels["price-desc"]).toBe("Price: high to low");
+  });
+});
+
+describe("formatPieceCount", () => {
+  it("uses the singular wording for one piece", () => {
+    expect(formatPieceCount(1)).toBe("1 piece");
+  });
+
+  it("uses the plural wording for zero and many pieces", () => {
+    expect(formatPieceCount(0)).toBe("0 pieces");
+    expect(formatPieceCount(12)).toBe("12 pieces");
   });
 });

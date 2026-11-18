@@ -21,17 +21,18 @@ export async function getProduct(
     throw new CatalogError("PRODUCT_NOT_FOUND", "Product not found.");
   }
 
-  const categories = await dependencies.catalog.listCategories();
+  const [categories, related] = await Promise.all([
+    dependencies.catalog.listCategories(),
+    product.categoryId
+      ? dependencies.catalog.listRelatedProducts({
+          categoryId: product.categoryId,
+          excludeProductId: product.id,
+          limit: 4,
+        })
+      : Promise.resolve([]),
+  ]);
   const categoryTrail = product.categoryId
     ? buildCategoryTrail(categories, product.categoryId)
-    : [];
-
-  const related = product.categoryId
-    ? await dependencies.catalog.listRelatedProducts({
-        categoryId: product.categoryId,
-        excludeProductId: product.id,
-        limit: 4,
-      })
     : [];
 
   return {

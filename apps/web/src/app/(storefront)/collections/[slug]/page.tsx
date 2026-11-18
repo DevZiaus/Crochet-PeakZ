@@ -17,42 +17,16 @@ import {
 } from "@/lib/catalog/api";
 import { getActiveCurrency } from "@/lib/catalog/currency";
 import { getCatalogEnv } from "@/lib/catalog/env";
+import { formatPieceCount } from "@/lib/catalog/labels";
 import {
+  buildPagedCatalogHref,
   hasUnsupportedCollectionParams,
   parseCatalogSearchParams,
-  type CatalogSearchState,
 } from "@/lib/catalog/search-params";
 
 interface CollectionPageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
-
-/**
- * Builds a collection URL for a page and sort.
- *
- * @param slug Collection slug.
- * @param state Parsed URL state.
- * @param overrides Values to replace.
- * @returns A relative collection URL.
- */
-function buildCollectionHref(
-  slug: string,
-  state: CatalogSearchState,
-  overrides: Partial<CatalogSearchState> = {},
-): string {
-  const merged = { ...state, ...overrides };
-  const params = new URLSearchParams();
-  if (merged.sort !== "newest") {
-    params.set("sort", merged.sort);
-  }
-  if (merged.page > 1) {
-    params.set("page", String(merged.page));
-  }
-  const query = params.toString();
-  return query.length > 0
-    ? `/collections/${slug}?${query}`
-    : `/collections/${slug}`;
 }
 
 /**
@@ -141,7 +115,7 @@ export default async function CollectionPage({
   // Collection pages only support sort and page. Drop any other catalog
   // filter instead of leaving a URL that looks filtered but is not.
   if (hasUnsupportedCollectionParams(rawSearchParams)) {
-    redirect(buildCollectionHref(slug, state));
+    redirect(buildPagedCatalogHref(`/collections/${slug}`, state));
   }
 
   let response;
@@ -166,7 +140,11 @@ export default async function CollectionPage({
   }
 
   if (response.meta.page !== state.page) {
-    redirect(buildCollectionHref(slug, state, { page: response.meta.page }));
+    redirect(
+      buildPagedCatalogHref(`/collections/${slug}`, state, {
+        page: response.meta.page,
+      }),
+    );
   }
 
   const children = category.children.filter((child) => child.productCount > 0);
@@ -178,10 +156,7 @@ export default async function CollectionPage({
     })),
     { label: category.name },
   ];
-  const countLabel =
-    response.meta.total === 1
-      ? "1 piece"
-      : `${String(response.meta.total)} pieces`;
+  const countLabel = formatPieceCount(response.meta.total);
 
   return (
     <Container className="py-10 sm:py-14">
@@ -238,7 +213,9 @@ export default async function CollectionPage({
             className="mt-10"
             page={response.meta.page}
             totalPages={response.meta.totalPages}
-            hrefForPage={(page) => buildCollectionHref(slug, state, { page })}
+            hrefForPage={(page) =>
+              buildPagedCatalogHref(`/collections/${slug}`, state, { page })
+            }
           />
         </>
       ) : (

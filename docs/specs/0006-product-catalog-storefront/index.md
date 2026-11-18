@@ -218,6 +218,8 @@ The API stores Cloudinary public IDs, as the data model already does. The API re
 
 The web uses the placeholder committed in Slice 1 at `/images/product-placeholder.webp` when the resolver returns null or when a remote image fires an error. The default OpenGraph image at `/images/og-default.webp` is also committed in Slice 1. Seed image IDs must be uploaded to the configured Cloudinary account for real images to appear. Until then, the placeholder is the expected local state.
 
+The six logo files in `apps/web/public/` (`logo.png`, `logo-square.png`, `logo.jpg`, `logo-square.jpg`, `logo.webp`, `logo-square.webp`) are intentionally retained for future brand use outside the current storefront. They are not referenced by this feature, and that is expected. Do not remove them as unused assets.
+
 ### Security model
 
 - Catalog routes are public and read only. They never require a session, the proxy shared secret, or an admin role.
@@ -473,6 +475,8 @@ The plan follows the Tracer Bullet approach. Slice 1 proves the whole pipe from 
 - Feature 28 adds the sitemap, robots rules, and the final SEO pass for filtered views.
 - Consider an on demand revalidation hook for admin edits instead of waiting for the 60 second window.
 - Consider server side API cache headers if the public traffic grows beyond the web tier.
+- Revisit the category stats query when the catalog outgrows the seed set. `listCategories` expands each category subtree and the repository joins every visible product against every subtree. Cache the categories response at the API layer or maintain counts incrementally before the tables grow.
+- Revisit the product detail trail when the category table grows. The trail loads every category row to build one path; a recursive CTE would remove that read. The related product read runs in parallel with the category list.
 - Consider search and additional filters once the catalog grows beyond the seed set.
 - Add visual regression coverage for the product card, gallery, and collection cards when the brand photography lands.
 - Assert the JSON-LD that the product page emits, not only the builder. `apps/web/src/app/(storefront)/shop/[slug]/page.tsx` renders the `Product` structured data, and no test checks the rendered script, including price, availability, and currency.

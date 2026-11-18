@@ -138,6 +138,24 @@ export function hasUnsupportedCollectionParams(
 }
 
 /**
+ * Appends the sort and page parameters shared by shop and collection URLs.
+ *
+ * @param params Mutable parameter list.
+ * @param state Parsed URL state.
+ */
+function appendSortAndPage(
+  params: URLSearchParams,
+  state: CatalogSearchState,
+): void {
+  if (state.sort !== "newest") {
+    params.set("sort", state.sort);
+  }
+  if (state.page > 1) {
+    params.set("page", String(state.page));
+  }
+}
+
+/**
  * Builds the normalized shop URL for a state.
  *
  * Defaults (newest, page 1) are omitted, so the result is also the canonical
@@ -166,18 +184,36 @@ export function buildShopHref(
   if (merged.maxPrice !== undefined) {
     params.set("maxPrice", String(merged.maxPrice));
   }
-  if (merged.sort !== "newest") {
-    params.set("sort", merged.sort);
-  }
-  if (merged.page > 1) {
-    params.set("page", String(merged.page));
-  }
+  appendSortAndPage(params, merged);
   if (merged.featured === true) {
     params.set("featured", "true");
   }
 
   const query = params.toString();
   return query.length > 0 ? `/shop?${query}` : "/shop";
+}
+
+/**
+ * Builds a normalized URL for a catalog page that carries only sort and page.
+ *
+ * Collection pages use this so their sort and pagination links follow the same
+ * rules as the shop builder.
+ *
+ * @param path Relative path, such as `/collections/amigurumi`.
+ * @param state Parsed URL state.
+ * @param overrides Values to replace, for sort and pagination links.
+ * @returns The relative URL.
+ */
+export function buildPagedCatalogHref(
+  path: string,
+  state: CatalogSearchState,
+  overrides: Partial<CatalogSearchState> = {},
+): string {
+  const merged: CatalogSearchState = { ...state, ...overrides };
+  const params = new URLSearchParams();
+  appendSortAndPage(params, merged);
+  const query = params.toString();
+  return query.length > 0 ? `${path}?${query}` : path;
 }
 
 /**

@@ -18,3 +18,13 @@ export const sortLabels: Record<CatalogSort, string> = {
 
 /** The sort orders offered in the shop, in display order. */
 export const sortOptions: CatalogSort[] = ["newest", "price-asc", "price-desc"];
+
+/**
+ * Formats a product count with singular or plural wording.
+ *
+ * @param count Number of products in a listing or collection.
+ * @returns `1 piece` for one product, otherwise the count plus `pieces`.
+ */
+export function formatPieceCount(count: number): string {
+  return count === 1 ? "1 piece" : `${String(count)} pieces`;
+}

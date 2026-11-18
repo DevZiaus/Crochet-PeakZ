@@ -33,4 +33,15 @@ describe("ProductImage", () => {
 
     expect(image).toHaveAttribute("src", PRODUCT_IMAGE_PLACEHOLDER);
   });
+
+  it("stays on the placeholder if the fallback also fires an error", () => {
+    render(<ProductImage src="https://example.com/bear.webp" alt="Bear" />);
+
+    const image = screen.getByRole("img", { name: "Bear" });
+
+    fireEvent.error(image);
+    fireEvent.error(image);
+
+    expect(image).toHaveAttribute("src", PRODUCT_IMAGE_PLACEHOLDER);
+  });
 });

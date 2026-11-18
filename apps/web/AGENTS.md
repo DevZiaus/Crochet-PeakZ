@@ -69,6 +69,7 @@ npm run test --workspace=@crochet-peakz/web
 - **Route protection**: `src/proxy.ts` sends signed out visitors to `/login?next=<path>`, and the admin layout checks the role on the server before rendering.
 - **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
+- **Brand assets**: the logo files in `public/` (`logo.png`, `logo-square.png`, `logo.jpg`, `logo-square.jpg`, `logo.webp`, `logo-square.webp`) are intentionally retained for future brand use. The current storefront does not reference them; do not remove them as unused.
 
 ## Agent skills
 

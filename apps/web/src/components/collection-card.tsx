@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CategorySummaryDto } from "@crochet-peakz/shared";
 import { ProductImage } from "@/components/product-image";
+import { formatPieceCount } from "@/lib/catalog/labels";
 import { cn } from "@/lib/utils";
 
 interface CollectionCardProps {
@@ -17,10 +18,7 @@ interface CollectionCardProps {
  * category subtree. A missing cover falls back to the product placeholder.
  */
 export function CollectionCard({ category, className }: CollectionCardProps) {
-  const countLabel =
-    category.productCount === 1
-      ? "1 piece"
-      : `${String(category.productCount)} pieces`;
+  const countLabel = formatPieceCount(category.productCount);
 
   return (
     <Link

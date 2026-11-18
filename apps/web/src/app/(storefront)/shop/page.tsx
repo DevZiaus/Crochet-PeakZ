@@ -16,6 +16,7 @@ import {
 } from "@/lib/catalog/api";
 import { getActiveCurrency } from "@/lib/catalog/currency";
 import { getCatalogEnv } from "@/lib/catalog/env";
+import { formatPieceCount } from "@/lib/catalog/labels";
 import {
   buildShopCanonical,
   buildShopHref,
@@ -120,10 +121,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     redirect(buildShopHref(state, { page: response.meta.page }));
   }
 
-  const countLabel =
-    response.meta.total === 1
-      ? "1 piece"
-      : `${String(response.meta.total)} pieces`;
+  const countLabel = formatPieceCount(response.meta.total);
 
   return (
     <Container className="py-10 sm:py-14">

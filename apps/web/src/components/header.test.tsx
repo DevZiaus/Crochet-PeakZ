@@ -50,6 +50,24 @@ describe("Header", () => {
     }
   });
 
+  it("renders the navigation without duplicate React keys", () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      render(<Header />);
+      render(<MobileNavDrawer open onClose={() => undefined} />);
+
+      const duplicateKeyWarnings = consoleError.mock.calls.filter((call) =>
+        String(call[0]).includes("same key"),
+      );
+      expect(duplicateKeyWarnings).toHaveLength(0);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("marks the current route and its child routes as the active page", () => {
     vi.mocked(usePathname).mockReturnValue("/shop/hats");
     render(<Header />);

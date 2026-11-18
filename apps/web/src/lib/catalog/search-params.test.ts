@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPagedCatalogHref,
   buildShopCanonical,
   buildShopHref,
   buildSortHref,
@@ -140,6 +141,42 @@ describe("buildShopHref", () => {
 
     expect(buildShopHref(state, { page: 1 })).toBe("/shop?category=amigurumi");
     expect(state.page).toBe(2);
+  });
+});
+
+describe("buildPagedCatalogHref", () => {
+  it("keeps the path clean for the default state", () => {
+    expect(
+      buildPagedCatalogHref(
+        "/collections/amigurumi",
+        defaultCatalogSearchState,
+      ),
+    ).toBe("/collections/amigurumi");
+  });
+
+  it("keeps sort and page but drops filters", () => {
+    expect(
+      buildPagedCatalogHref("/collections/amigurumi", {
+        ...defaultCatalogSearchState,
+        categories: ["amigurumi"],
+        types: ["STANDARD"],
+        sort: "price-desc",
+        page: 3,
+      }),
+    ).toBe("/collections/amigurumi?sort=price-desc&page=3");
+  });
+
+  it("applies pagination overrides without mutating the state", () => {
+    const state = {
+      ...defaultCatalogSearchState,
+      sort: "price-asc" as const,
+      page: 3,
+    };
+
+    expect(
+      buildPagedCatalogHref("/collections/amigurumi", state, { page: 1 }),
+    ).toBe("/collections/amigurumi?sort=price-asc");
+    expect(state.page).toBe(3);
   });
 });
 
