@@ -145,7 +145,7 @@ Home page with featured products, catalog listing with filtering (category, prod
 - [x] Verify it: `/check verify product catalog storefront`
 - [x] Test it: `/test product catalog storefront`
 - [x] Review it (fresh model): `/check review product catalog storefront`
-- [ ] Document it: `/document product catalog storefront`
+- [x] Document it: `/document product catalog storefront`
 
 ### 7. Currency switcher
 
