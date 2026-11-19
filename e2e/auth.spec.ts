@@ -293,10 +293,8 @@ test.describe("customer session", () => {
   }) => {
     await signIn(page, CUSTOMER);
 
-    // The home page is still the scaffold with no header, so the account menu is
-    // observed on a screen that carries one. The verify screen shares the auth
-    // layout and is not behind the guest guard, so a signed in customer can sit
-    // on it and see their own account.
+    // The verify screen is not behind the guest guard, so a signed in customer
+    // can sit on it and see their own account in the header.
     await page.goto("/verify-email");
     const accountMenu = page.getByRole("button", {
       name: /Account menu for Nadia Rahman/,
@@ -312,10 +310,9 @@ test.describe("customer session", () => {
 
     await page.getByRole("menuitem", { name: "Sign out" }).click();
 
-    // Sign out clears the cookies and replaces to the home page, which is still
-    // the scaffold and mounts no header. The cookie jar and the admin guard are
-    // what actually prove the session is gone; the signed out header is then
-    // observed on the verify screen, which does render it.
+    // Sign out clears the cookies and replaces to the home page. The cookie jar
+    // and the admin guard are what actually prove the session is gone; the
+    // signed out header is then observed on the verify screen.
     await expect
       .poll(async () => (await context.cookies()).map((cookie) => cookie.name))
       .not.toContain("cp_refresh");
