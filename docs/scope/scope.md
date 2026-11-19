@@ -9,40 +9,40 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                            | Phase      | Status      |
-| --- | ---------------------------------- | ---------- | ----------- |
-| 1   | Stack & architecture               | Foundation | done        |
-| 2   | Coding standards & tooling         | Foundation | done        |
-| 3   | Data model                         | Foundation | done        |
-| 4   | Design system & UI foundation      | Foundation | done        |
-| 5   | Customer auth                      | Slice 1    | done        |
-| 6   | Product catalog storefront         | Slice 1    | in-progress |
-| 7   | Currency switcher                  | Slice 1    | planned     |
-| 8   | Shopping cart                      | Slice 1    | planned     |
-| 9   | Checkout & Stripe payment          | Slice 1    | planned     |
-| 10  | Order confirmation & tracking      | Slice 1    | planned     |
-| 11  | PayPal integration                 | Slice 2    | planned     |
-| 12  | SSLCommerz & COD                   | Slice 2    | planned     |
-| 13  | Shipping engine                    | Slice 2    | planned     |
-| 14  | Digital product catalog & delivery | Slice 3    | planned     |
-| 15  | Custom commission request flow     | Slice 4    | planned     |
-| 16  | Admin commission review & quoting  | Slice 4    | planned     |
-| 17  | Admin dashboard & analytics        | Slice 5    | planned     |
-| 18  | Product management (admin)         | Slice 5    | planned     |
-| 19  | Order management (admin)           | Slice 5    | planned     |
-| 20  | Payment gateway & store settings   | Slice 5    | planned     |
-| 21  | Coupon & discount system           | Slice 5    | planned     |
-| 22  | Customer dashboard & order history | Slice 6    | planned     |
-| 23  | Address book management            | Slice 6    | planned     |
-| 24  | Reviews & ratings                  | Slice 6    | planned     |
-| 25  | Blog CMS                           | Slice 7    | planned     |
-| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned     |
-| 27  | Transactional email system         | Slice 7    | planned     |
-| 28  | SEO                                | Slice 8    | planned     |
-| 29  | Cookie consent & legal pages       | Slice 8    | planned     |
-| 30  | Accessibility                      | Slice 8    | planned     |
-| 31  | Error monitoring                   | Slice 8    | planned     |
-| 32  | Internationalization               | Slice 8    | planned     |
+| #   | Feature                            | Phase      | Status  |
+| --- | ---------------------------------- | ---------- | ------- |
+| 1   | Stack & architecture               | Foundation | done    |
+| 2   | Coding standards & tooling         | Foundation | done    |
+| 3   | Data model                         | Foundation | done    |
+| 4   | Design system & UI foundation      | Foundation | done    |
+| 5   | Customer auth                      | Slice 1    | done    |
+| 6   | Product catalog storefront         | Slice 1    | done    |
+| 7   | Currency switcher                  | Slice 1    | planned |
+| 8   | Shopping cart                      | Slice 1    | planned |
+| 9   | Checkout & Stripe payment          | Slice 1    | planned |
+| 10  | Order confirmation & tracking      | Slice 1    | planned |
+| 11  | PayPal integration                 | Slice 2    | planned |
+| 12  | SSLCommerz & COD                   | Slice 2    | planned |
+| 13  | Shipping engine                    | Slice 2    | planned |
+| 14  | Digital product catalog & delivery | Slice 3    | planned |
+| 15  | Custom commission request flow     | Slice 4    | planned |
+| 16  | Admin commission review & quoting  | Slice 4    | planned |
+| 17  | Admin dashboard & analytics        | Slice 5    | planned |
+| 18  | Product management (admin)         | Slice 5    | planned |
+| 19  | Order management (admin)           | Slice 5    | planned |
+| 20  | Payment gateway & store settings   | Slice 5    | planned |
+| 21  | Coupon & discount system           | Slice 5    | planned |
+| 22  | Customer dashboard & order history | Slice 6    | planned |
+| 23  | Address book management            | Slice 6    | planned |
+| 24  | Reviews & ratings                  | Slice 6    | planned |
+| 25  | Blog CMS                           | Slice 7    | planned |
+| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned |
+| 27  | Transactional email system         | Slice 7    | planned |
+| 28  | SEO                                | Slice 8    | planned |
+| 29  | Cookie consent & legal pages       | Slice 8    | planned |
+| 30  | Accessibility                      | Slice 8    | planned |
+| 31  | Error monitoring                   | Slice 8    | planned |
+| 32  | Internationalization               | Slice 8    | planned |
 
 ## Foundations
 
@@ -128,7 +128,7 @@ Mandatory account creation (no guest checkout). Local email/password auth with v
 - [x] Review it (fresh model): `/check review customer auth`
 - [x] Document it: `/document customer auth`
 
-### 6. Product catalog storefront · in-progress
+### 6. Product catalog storefront
 
 Home page with featured products, catalog listing with filtering (category, product type, price range), and dynamic product detail pages showing variants (color swatches, sizes, yarn types), image gallery, pricing in the active currency, stock status, and lead time indicators.
 

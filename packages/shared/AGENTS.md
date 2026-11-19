@@ -40,6 +40,10 @@ Root scripts (`npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint
 | `src/schemas/index.ts`    | Zod validation schemas for enums and domain entities                                           |
 | `src/schemas/auth.ts`     | Auth request schemas and the `AuthUser` DTO schema                                             |
 | `src/auth/next-path.ts`   | Relative post sign in redirect validator shared by the web app and tests                       |
+| `src/catalog/types.ts`    | Catalog DTOs shared by the API and web app (products, variants, categories, pagination)        |
+| `src/catalog/schemas.ts`  | Strict catalog list query schema and catalog sort types                                        |
+| `src/catalog/pricing.ts`  | Variant price helper used by both workspaces                                                   |
+| `src/catalog/labels.ts`   | Catalog stock and lead time labels                                                             |
 | `src/constants/index.ts`  | Shared constants (`CURRENCIES`, `ORDER_STATUSES`, `PRODUCT_TYPES`) and display metadata        |
 | `tsconfig.json`           | Base config: typecheck only (`noEmit`)                                                         |
 | `tsconfig.build.json`     | Emits `src` to `dist/`, excluding tests                                                        |
@@ -51,11 +55,13 @@ Root scripts (`npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint
 - **Relative imports use `.js` extensions** (e.g. `from "../types/index.js"`), required by Node ESM output.
 - **Add new exports to the barrel.** Any new type, schema, or constant must be re-exported from `src/index.ts` to be available to consumers.
 - **Auth contracts**: auth schemas and the `AuthUser` DTO live in `src/schemas/auth.ts`; both workspaces import them from the barrel.
+- **Catalog contracts**: catalog DTOs, the list query schema, pricing, and labels live in `src/catalog/` and are exported from the barrel; the API validates with the schema and the web uses the same types.
 - **Rebuild after changing source** when running a consumer that uses the compiled output (`npm run build:shared` at the repo root). The root dev script watches and rebuilds automatically.
 
 ## Related specs
 
 - [0002 Data model](../../docs/specs/0002-data-model/index.md)
 - [0004 Platform-agnostic deployment](../../docs/specs/0004-platform-agnostic-deployment/index.md)
+- [0006 Product catalog storefront](../../docs/specs/0006-product-catalog-storefront/index.md)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._
