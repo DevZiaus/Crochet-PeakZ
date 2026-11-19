@@ -104,7 +104,7 @@ Visual language, layout primitives, and base components (with Tailwind CSS, Radi
 - [x] Test it: `/test design system & UI foundation`
 - [x] Review it (fresh model): `/check review design system & UI foundation`
 - [x] Document it: `/document design system & UI foundation`
-- [ ] Remove the temporary `/design-system` showcase routes before the storefront ships (tracked from the 2026-10-24 review; `noindex` in the meantime)
+- [x] Remove the temporary `/design-system` showcase routes before the storefront ships (tracked from the 2026-10-24 review; `noindex` in the meantime)
 
 ## Slice 1: Core product loop
 

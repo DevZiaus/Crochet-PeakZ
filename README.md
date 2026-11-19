@@ -84,9 +84,9 @@ Three things worth knowing before you add a test:
   between runs. The limits themselves are asserted in
   `apps/api/src/presentation/auth/routes.integration.test.ts`, which passes an
   address explicitly.
-- **The home page mounts no site header.** It is still the scaffold, so the
-  account menu and the signed out header can only be observed on `/verify-email`
-  or `/admin`. Assertions that expect a header on `/` cannot pass.
+- **The home page mounts the storefront header.** The account menu and the
+  signed out header are visible on `/`, `/shop`, and the auth screens, so tests
+  can assert the header on the home page.
 - Playwright artifacts land in `/tmp/crochet-peakz-playwright`, outside the
   repository on purpose: the dev servers watch the repo root, so a trace written
   inside it triggers a rebuild that reloads the page under test.
