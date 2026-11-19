@@ -12,6 +12,12 @@ describe("PriceDisplay", () => {
     expect(container.querySelector("del")).not.toBeInTheDocument();
   });
 
+  it("keeps up to two decimals on BDT prices", () => {
+    render(<PriceDisplay priceBdt={1900.5} priceUsd={19.005} />);
+
+    expect(screen.getByText("৳1,900.5")).toBeInTheDocument();
+  });
+
   it("marks the compare at price as deleted and labels it for screen readers", () => {
     const { container } = render(
       <PriceDisplay priceBdt={1200} priceUsd={12} compareAtBdt={1500} />,

@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = {
-  title: "Admin layout fixture · Crochet PeakZ",
+  title: "Admin layout fixture",
 };
 
 const stats = [

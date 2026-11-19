@@ -15,6 +15,7 @@ const baseEnv: NodeJS.ProcessEnv = {
   FACEBOOK_APP_SECRET: "facebook-app-secret",
   RESEND_API_KEY: "re_test_key",
   EMAIL_FROM: "Crochet PeakZ <hello@example.com>",
+  CLOUDINARY_CLOUD_NAME: "crochet-peakz",
 };
 
 describe("loadEnv startup validation", () => {
@@ -34,6 +35,7 @@ describe("loadEnv startup validation", () => {
     "FACEBOOK_APP_SECRET",
     "RESEND_API_KEY",
     "EMAIL_FROM",
+    "CLOUDINARY_CLOUD_NAME",
   ])("refuses to start when %s is missing and names it (AC-15)", (name) => {
     const source = Object.fromEntries(
       Object.entries(baseEnv).filter(([key]) => key !== name),

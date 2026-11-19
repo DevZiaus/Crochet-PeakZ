@@ -32,9 +32,11 @@ const currencyConfig: Record<CurrencyCode, { symbol: string; locale: string }> =
  */
 function formatPrice(amount: number, currency: CurrencyCode): string {
   const config = currencyConfig[currency];
+  // USD always shows cents; BDT shows paisa only when the amount has them, so
+  // whole taka prices stay "৳1,200" and variant prices such as 1900.5 stay exact.
   const formatted = new Intl.NumberFormat(config.locale, {
     minimumFractionDigits: currency === "USD" ? 2 : 0,
-    maximumFractionDigits: currency === "USD" ? 2 : 0,
+    maximumFractionDigits: 2,
   }).format(amount);
 
   return `${config.symbol}${formatted}`;

@@ -5,7 +5,7 @@ import { AuthFormFallback } from "@/components/auth/auth-form-fallback";
 import { RequireGuest } from "@/components/auth/require-guest";
 
 export const metadata: Metadata = {
-  title: "Sign in | Crochet PeakZ",
+  title: "Sign in",
   description: "Sign in to your Crochet PeakZ account.",
   robots: { index: false, follow: false },
 };

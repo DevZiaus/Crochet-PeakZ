@@ -244,8 +244,18 @@ npm run dev:mock-oauth --workspace=@crochet-peakz/api
 Set `MOCK_GOOGLE_EMAIL` or `MOCK_FACEBOOK_EMAIL` to change the fixture account
 the mock returns.
 
-Other feature secrets (Cloudinary, payment gateways, monitoring) are documented
-in `apps/api/.env.example`.
+Other feature secrets (payment gateways, monitoring) are documented in
+`apps/api/.env.example`.
+
+### Catalog (API, required)
+
+| Variable                | Purpose                                                         |
+| ----------------------- | --------------------------------------------------------------- |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name used to build product image delivery URLs |
+
+The API validates this at startup and rejects missing or placeholder values. The
+cloud name is public information; `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET`
+are only needed when an upload feature lands.
 
 ### Build time (web)
 
@@ -260,11 +270,11 @@ new web build; it is not a runtime setting.
 
 Read by the Next.js server on each auth request, never sent to the browser.
 
-| Variable              | Purpose                                                            |
-| --------------------- | ------------------------------------------------------------------ |
-| `API_INTERNAL_URL`    | API base URL including `/api`, reached from the web server         |
-| `PROXY_SHARED_SECRET` | Must equal the API value; the API rejects auth calls without it    |
-| `WEB_APP_URL`         | Public origin of this web app, used for the proxy's `Origin` check |
+| Variable              | Purpose                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `API_INTERNAL_URL`    | API base URL including `/api`, reached from the web server for auth and catalog reads |
+| `PROXY_SHARED_SECRET` | Must equal the API value; the API rejects auth calls without it                       |
+| `WEB_APP_URL`         | Public origin of this web app, used for auth redirects, canonical URLs, and metadata  |
 
 `NEXT_PUBLIC_API_URL` is only for browser calls to non-auth endpoints. The auth
 screens always talk to the web origin (`/api/auth/*`), and the web server

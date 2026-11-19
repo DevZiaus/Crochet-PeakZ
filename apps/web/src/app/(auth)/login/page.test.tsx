@@ -54,7 +54,7 @@ describe("LoginPage", () => {
   });
 
   it("gives the screen a title naming the store", () => {
-    expect(metadata.title).toBe("Sign in | Crochet PeakZ");
+    expect(metadata.title).toBe("Sign in");
   });
 
   it("renders the sign in form for a signed out visitor", () => {

@@ -4,7 +4,7 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { AuthFormFallback } from "@/components/auth/auth-form-fallback";
 
 export const metadata: Metadata = {
-  title: "Choose a new password | Crochet PeakZ",
+  title: "Choose a new password",
   description: "Choose a new password for your Crochet PeakZ account.",
   robots: { index: false, follow: false },
 };

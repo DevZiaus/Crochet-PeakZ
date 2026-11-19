@@ -19,7 +19,7 @@ const DEFAULT_RETURN_PATH = "/admin";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Admin | Crochet PeakZ",
+  title: "Admin",
   robots: { index: false, follow: false },
 };
 

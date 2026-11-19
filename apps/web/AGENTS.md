@@ -8,7 +8,7 @@ The web app builds with `output: "standalone"` so it runs on any Node.js host or
 
 ## Stack
 
-- **Framework**: Next.js 16.3 (App Router), React 19
+- **Framework**: Next.js 16.4 (App Router), React 19
 - **Styling**: Tailwind CSS v4 (PostCSS plugin), DM Sans + Playfair Display fonts
 - **Validation**: Zod (shared schemas from `@crochet-peakz/shared`)
 - **Path alias**: `@/*` maps to `./src/*`
@@ -37,24 +37,26 @@ npm run test --workspace=@crochet-peakz/web
 
 ## Key files
 
-| File                                  | Owns                                                                                             |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `src/app/layout.tsx`                  | Root layout: HTML shell, fonts, metadata                                                         |
-| `src/app/page.tsx`                    | Home page (scaffold placeholder, imports from shared to verify workspace link)                   |
-| `src/app/health/route.ts`             | `/health` liveness probe for containers and reverse proxies                                      |
-| `src/app/(auth)/`                     | Six auth screens: sign in, register, verify email, forgot password, reset password, OAuth result |
-| `src/app/api/auth/[...path]/route.ts` | Same origin auth proxy: cookie relay, one time refresh, and replay                               |
-| `src/app/admin/`                      | Admin layout with the server side role guard                                                     |
-| `src/components/auth/`                | Auth forms, OAuth buttons, password input, header menu, and route guards                         |
-| `src/lib/auth/`                       | Server session helper, client session hook, cookies, and the auth API wrapper                    |
-| `src/proxy.ts`                        | Route guard, auth refresh, and security headers                                                  |
-| `src/app/globals.css`                 | Design tokens (light + `[data-theme="dark"]`), Tailwind imports                                  |
-| `design.md`                           | Design system reference: tokens, type scale, component APIs, a11y rules                          |
-| `src/components/ui/`                  | Shadcn UI primitives (Button, Input, Dialog, and the rest)                                       |
-| `src/components/`                     | Composed components built on the primitives                                                      |
-| `next.config.ts`                      | Standalone output, monorepo tracing root, image allowlist                                        |
-| `eslint.config.mjs`                   | ESLint config (Next.js preset)                                                                   |
-| `.env.local` / `.env.local.example`   | Build-time `NEXT_PUBLIC_*` variables                                                             |
+| File                                  | Owns                                                                                               |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `src/app/layout.tsx`                  | Root layout: HTML shell, fonts, metadata base, title template, icons, and theme color              |
+| `src/app/(storefront)/`               | Public storefront: home, shop, product detail, collections, and loading/error/not found states     |
+| `src/app/health/route.ts`             | `/health` liveness probe for containers and reverse proxies                                        |
+| `src/app/(auth)/`                     | Six auth screens: sign in, register, verify email, forgot password, reset password, OAuth result   |
+| `src/app/api/auth/[...path]/route.ts` | Same origin auth proxy: cookie relay, one time refresh, and replay                                 |
+| `src/app/admin/`                      | Admin layout with the server side role guard                                                       |
+| `src/components/auth/`                | Auth forms, OAuth buttons, password input, header menu, and route guards                           |
+| `src/components/catalog/`             | Catalog filters, mobile drawer, sort, pagination, gallery, purchase panel, and error states        |
+| `src/lib/auth/`                       | Server session helper, client session hook, cookies, and the auth API wrapper                      |
+| `src/lib/catalog/`                    | Server catalog client, URL search parsing, currency cookie, labels, JSON-LD, and variant selection |
+| `src/proxy.ts`                        | Route guard, auth refresh, and security headers                                                    |
+| `src/app/globals.css`                 | Design tokens (light + `[data-theme="dark"]`), Tailwind imports                                    |
+| `design.md`                           | Design system reference: tokens, type scale, component APIs, a11y rules                            |
+| `src/components/ui/`                  | Shadcn UI primitives (Button, Input, Dialog, and the rest)                                         |
+| `src/components/`                     | Composed components built on the primitives                                                        |
+| `next.config.ts`                      | Standalone output, monorepo tracing root, image allowlist                                          |
+| `eslint.config.mjs`                   | ESLint config (Next.js preset)                                                                     |
+| `.env.local` / `.env.local.example`   | Build-time `NEXT_PUBLIC_*` variables                                                               |
 
 ## Conventions
 
@@ -65,10 +67,14 @@ npm run test --workspace=@crochet-peakz/web
 - **Design system**: build all UI to `design.md` (tokens, type scale, component APIs, accessibility rules); token values live in CSS (`src/app/globals.css`). Primitives live in `src/components/ui/`, composed components in `src/components/`; a composed component imports from `ui/`, never the reverse. Every color resolves to a token, never a raw hex or Tailwind default.
 - **Radix imports**: import primitives from the umbrella `radix-ui` package (`import { Dialog } from "radix-ui"`), never from individual `@radix-ui/react-*` packages. The umbrella is the only Radix runtime dependency.
 - **Auth calls**: the browser never calls the API directly. Auth requests go through `/api/auth/*` route handlers, which forward cookies and the proxy secret, refresh once on a 401, and replay. Server components read the session through `src/lib/auth/session.ts`.
+- **Catalog calls**: server components call `src/lib/catalog/api.ts`; the client uses `API_INTERNAL_URL`, caches reads for 60 seconds, caches a 404 lookup as a value, and aborts after 10 seconds. The browser never calls the catalog API directly.
+- **Catalog URLs**: the shop state lives in URL search params. The web drops unknown categories, types, prices, sorts, and pages before calling the API; the API rejects malformed queries with 400. Canonical URLs normalize the filter state.
+- **Currency**: the storefront reads the `cp_currency` cookie (BDT default, USD when set); feature 7 owns writing it.
 - **Auth screens**: the six screens live under `(auth)`, follow `design.md`, and set `robots: { index: false }`; the proxy adds an `X-Robots-Tag` header.
 - **Route protection**: `src/proxy.ts` sends signed out visitors to `/login?next=<path>`, and the admin layout checks the role on the server before rendering.
-- **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart.
+- **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart. Server side `API_INTERNAL_URL` and `WEB_APP_URL` are read by `src/lib/catalog/env.ts`; production boot fails if either is missing.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
+- **Brand assets**: the logo files in `public/` (`logo.png`, `logo-square.png`, `logo.jpg`, `logo-square.jpg`, `logo.webp`, `logo-square.webp`) are intentionally retained for future brand use. The current storefront does not reference them; do not remove them as unused.
 
 ## Agent skills
 
@@ -79,6 +85,7 @@ npm run test --workspace=@crochet-peakz/web
 - [0001 Stack and architecture](../../docs/specs/0001-stack-and-architecture/index.md)
 - [0003 Design system and UI foundation](../../docs/specs/0003-design-system/index.md)
 - [0004 Platform-agnostic deployment](../../docs/specs/0004-platform-agnostic-deployment/index.md)
+- [0006 Product catalog storefront](../../docs/specs/0006-product-catalog-storefront/index.md)
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._
 

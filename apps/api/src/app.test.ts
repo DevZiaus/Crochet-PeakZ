@@ -30,6 +30,7 @@ const env: ApiEnv = {
   facebookClient: { id: "facebook-id", secret: "facebook-secret" },
   resendApiKey: "re_test_key",
   emailFrom: "Crochet PeakZ <hello@example.com>",
+  cloudinaryCloudName: "crochet-peakz",
 };
 
 describe("createApp", () => {

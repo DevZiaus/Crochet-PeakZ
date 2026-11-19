@@ -15,7 +15,11 @@ import { ResendEmailSender } from "./infrastructure/email/resend-email-sender.js
 import { createOAuthAuthenticator } from "./infrastructure/oauth/passport.js";
 import { systemClock } from "./domain/ports/clock.js";
 import type { AuthDependencies } from "./application/dependencies.js";
+import type { CatalogDependencies } from "./application/catalog/dependencies.js";
 import { createAuthRouter } from "./presentation/auth/auth.routes.js";
+import { createCatalogRouter } from "./presentation/catalog/catalog.routes.js";
+import { PrismaCatalogRepository } from "./infrastructure/database/catalog.repository.js";
+import { CloudinaryImageUrlResolver } from "./infrastructure/cloudinary/image-url-resolver.js";
 
 dotenv.config({ quiet: true });
 
@@ -80,7 +84,21 @@ async function main(): Promise<void> {
   }
 
   const authRouter = buildAuthRouter();
-  const app = createApp(env, database.checkHealth, authRouter);
+  const catalogRouter = buildCatalogRouter();
+  const app = createApp(env, database.checkHealth, authRouter, catalogRouter);
+
+  /**
+   * Builds the catalog dependencies from the validated environment and the
+   * Prisma client.
+   */
+  function buildCatalogRouter(): Router {
+    const catalog: CatalogDependencies = {
+      catalog: new PrismaCatalogRepository(database.client),
+      imageUrls: new CloudinaryImageUrlResolver(env.cloudinaryCloudName),
+    };
+
+    return createCatalogRouter(catalog);
+  }
 
   /**
    * Builds the auth dependencies from the validated environment and the

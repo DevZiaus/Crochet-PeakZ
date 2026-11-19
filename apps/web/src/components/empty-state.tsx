@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,11 @@ interface EmptyStateProps {
   heading: string;
   /** The description text below the heading. */
   description?: string;
-  /** Optional call to action button. Provide both label and onClick. */
+  /** Optional call to action. Provide a label and either a link or a handler. */
   action?: {
     label: string;
-    onClick: () => void;
+    href?: string;
+    onClick?: () => void;
   };
   /** Optional custom content to render below the description. */
   children?: ReactNode;
@@ -53,16 +55,21 @@ function EmptyState({
           </p>
         )}
       </div>
-      {action && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={action.onClick}
-          className="mt-2"
-        >
-          {action.label}
-        </Button>
-      )}
+      {action &&
+        (action.href ? (
+          <Button asChild variant="outline" size="sm" className="mt-2">
+            <Link href={action.href}>{action.label}</Link>
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={action.onClick}
+            className="mt-2"
+          >
+            {action.label}
+          </Button>
+        ))}
       {children}
     </div>
   );

@@ -1,1 +1,0 @@
-/check verify customer auth

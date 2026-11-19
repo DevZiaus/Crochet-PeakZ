@@ -55,7 +55,7 @@ npx playwright test
 
 ## Specs
 
-Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
+Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 
 Deployment guide: `docs/deployment.md` (Docker Compose, one-origin proxy, Vercel, Heroku, bare Node).
 
@@ -118,7 +118,7 @@ _Choices recorded here. `/develop tooling` installs them._
 
 ## Personal notes
 
-- `nextStep.txt` is the repository owner's own file for tracking what to do next and for other notes. It is deliberately tracked in git. Never edit, overwrite, truncate, move, or delete it; only the owner changes that file. Treat it as read only input when you need context.
+- `personalNotes.txt` is the repository owner's own file for tracking what to do next and for other notes. It is deliberately tracked in git. Never edit, overwrite, truncate, move, or delete it; only the owner changes that file. Treat it as read only input when you need context.
 
 ## Agent skills
 
@@ -150,7 +150,7 @@ Declined for customer auth (spec 0005): jose · passport · Playwright (offered 
 ## Context files
 
 - [apps/api/AGENTS.md](apps/api/AGENTS.md): Express.js backend, Clean Architecture layers, Prisma, env and error handling conventions
-- [apps/web/AGENTS.md](apps/web/AGENTS.md): Next.js 16 frontend, App Router, Tailwind CSS, design system (`design.md`), components and layout
+- [apps/web/AGENTS.md](apps/web/AGENTS.md): Next.js 16 frontend, App Router, Tailwind CSS, design system (`design.md`), storefront and catalog, components and layout
 - [packages/shared/AGENTS.md](packages/shared/AGENTS.md): shared types, Zod schemas, constants consumed by both api and web
 - [docs/deployment.md](docs/deployment.md): platform-agnostic deployment guide (Docker, Compose, reverse proxy, managed hosts)
 

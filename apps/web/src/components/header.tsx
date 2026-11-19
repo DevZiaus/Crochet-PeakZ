@@ -31,7 +31,7 @@ interface NavLink {
 const navLinks: NavLink[] = [
   { label: "Shop", href: "/shop" },
   { label: "Collections", href: "/collections" },
-  { label: "Custom Orders", href: "/custom" },
+  { label: "Custom Orders", href: "/shop" },
   { label: "Patterns", href: "/patterns" },
   { label: "Blog", href: "/blog" },
 ];
@@ -164,7 +164,7 @@ function MobileNavDrawer({
               pathname === link.href || pathname.startsWith(link.href + "/");
             return (
               <Link
-                key={link.href}
+                key={link.label}
                 href={link.href}
                 onClick={onClose}
                 className={cn(
@@ -252,7 +252,7 @@ function Header() {
                   pathname.startsWith(link.href + "/");
                 return (
                   <Link
-                    key={link.href}
+                    key={link.label}
                     href={link.href}
                     className={cn(
                       "rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none",

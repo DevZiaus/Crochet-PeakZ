@@ -6,6 +6,10 @@ dist/
 .next/
 out/
 
+# Next.js generated type declarations (next dev and next build rewrite these,
+# so tracking them leaves a diff after every dev run)
+apps/web/next-env.d.ts
+
 # Environment files
 .env
 .env.local
