@@ -257,6 +257,12 @@ The API validates this at startup and rejects missing or placeholder values. The
 cloud name is public information; `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET`
 are only needed when an upload feature lands.
 
+### Contact form (API, optional)
+
+| Variable        | Purpose                                                                             |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `CONTACT_EMAIL` | Destination inbox for contact form messages (defaults to `hello@crochetpeakz.tech`) |
+
 ### Build time (web)
 
 | Variable              | Purpose                                                          |

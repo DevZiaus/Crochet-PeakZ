@@ -117,6 +117,28 @@ describe("loadEnv startup validation", () => {
       }),
     ).toThrow(/EMAIL_FROM/);
   });
+
+  it("defaults CONTACT_EMAIL to hello@crochetpeakz.tech when unset", () => {
+    const env = loadEnv(baseEnv);
+    expect(env.contactEmail).toBe("hello@crochetpeakz.tech");
+  });
+
+  it("accepts a valid CONTACT_EMAIL override", () => {
+    const env = loadEnv({
+      ...baseEnv,
+      CONTACT_EMAIL: "support@crochetpeakz.tech",
+    });
+    expect(env.contactEmail).toBe("support@crochetpeakz.tech");
+  });
+
+  it("rejects an invalid or placeholder CONTACT_EMAIL", () => {
+    expect(() =>
+      loadEnv({ ...baseEnv, CONTACT_EMAIL: "not-an-email" }),
+    ).toThrow(/CONTACT_EMAIL/);
+    expect(() =>
+      loadEnv({ ...baseEnv, CONTACT_EMAIL: "change-me@example.com" }),
+    ).toThrow(/CONTACT_EMAIL/);
+  });
 });
 
 describe("loadEnv OAuth endpoint overrides", () => {

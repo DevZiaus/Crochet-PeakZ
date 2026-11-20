@@ -43,6 +43,7 @@ services:
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-}
       # Product catalog images (required; the API fails fast when it is missing).
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
     ports:

@@ -6,7 +6,7 @@
  * destination.
  */
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { Footer } from "./footer";
 
 describe("Footer", () => {
@@ -25,5 +25,25 @@ describe("Footer", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it("exposes the Data Deletion link and Crochet PeakZ social/contact hrefs", () => {
+    render(<Footer />);
+
+    expect(screen.getByRole("link", { name: "Data Deletion" })).toHaveAttribute(
+      "href",
+      "/data-deletion",
+    );
+    expect(screen.getByRole("link", { name: "Facebook" })).toHaveAttribute(
+      "href",
+      "https://www.facebook.com/crochet.peakz",
+    );
+    expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
+      "href",
+      "https://www.instagram.com/crochetpeakz/",
+    );
+    const emailLink = screen.getByRole("link", { name: "Email" });
+    expect(emailLink).toHaveAttribute("href", "mailto:hello@crochetpeakz.tech");
+    expect(emailLink).not.toHaveAttribute("target", "_blank");
   });
 });

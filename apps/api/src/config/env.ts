@@ -1,3 +1,5 @@
+import { DEFAULT_CONTACT_EMAIL } from "@crochet-peakz/shared";
+
 /**
  * Runtime configuration for the API.
  *
@@ -60,6 +62,8 @@ export interface ApiEnv {
   resendApiKey: string;
   /** Sender address on every auth email. */
   emailFrom: string;
+  /** Destination inbox for contact form submissions. */
+  contactEmail: string;
   /** Cloudinary cloud name used to build public delivery URLs. */
   cloudinaryCloudName: string;
 }
@@ -138,6 +142,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     },
     resendApiKey: parseCredential(source, "RESEND_API_KEY"),
     emailFrom: parseEmailFrom(source["EMAIL_FROM"], nodeEnv),
+    contactEmail: parseOptionalContactEmail(source["CONTACT_EMAIL"], nodeEnv),
     cloudinaryCloudName: parseCredential(source, "CLOUDINARY_CLOUD_NAME"),
   };
 }
@@ -239,6 +244,31 @@ function parseEmailFrom(value: string | undefined, nodeEnv: NodeEnv): string {
         "A localhost sender is allowed outside production.",
     );
   }
+  return raw;
+}
+
+function parseOptionalContactEmail(
+  value: string | undefined,
+  nodeEnv: NodeEnv,
+): string {
+  const raw = value?.trim();
+  if (!raw) {
+    return DEFAULT_CONTACT_EMAIL;
+  }
+
+  if (
+    PLACEHOLDER_PATTERN.test(raw) ||
+    !(
+      EMAIL_ADDRESS_PATTERN.test(raw) ||
+      (nodeEnv !== "production" && isLocalEmailAddress(raw))
+    )
+  ) {
+    throw new Error(
+      "Invalid environment variable: CONTACT_EMAIL. " +
+        "Set it to a valid destination address such as hello@crochetpeakz.tech.",
+    );
+  }
+
   return raw;
 }
 

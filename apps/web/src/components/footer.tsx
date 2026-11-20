@@ -72,14 +72,23 @@ const footerLinks = {
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
     { label: "Cookie Policy", href: "/cookies" },
+    { label: "Data Deletion", href: "/data-deletion" },
   ],
 };
 
 const socialLinks = [
-  { label: "Facebook", href: "https://facebook.com", icon: FacebookIcon },
-  { label: "Instagram", href: "https://instagram.com", icon: InstagramIcon },
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/crochet.peakz",
+    icon: FacebookIcon,
+  },
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/crochetpeakz/",
+    icon: InstagramIcon,
+  },
   { label: "YouTube", href: "https://youtube.com", icon: YoutubeIcon },
-  { label: "Email", href: "mailto:hello@crochetpeakz.com", icon: Mail },
+  { label: "Email", href: "mailto:hello@crochetpeakz.tech", icon: Mail },
 ];
 
 /**
@@ -114,18 +123,21 @@ function Footer() {
                 commissions from Bangladesh to the world.
               </p>
               <div className="mt-4 flex items-center gap-3">
-                {socialLinks.map((social) => (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
-                    aria-label={social.label}
-                  >
-                    <social.icon className="size-5" aria-hidden="true" />
-                  </a>
-                ))}
+                {socialLinks.map((social) => {
+                  const isExternal = social.href.startsWith("http");
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target={isExternal ? "_blank" : undefined}
+                      rel={isExternal ? "noopener noreferrer" : undefined}
+                      className="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
+                      aria-label={social.label}
+                    >
+                      <social.icon className="size-5" aria-hidden="true" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
 
@@ -192,7 +204,7 @@ function Footer() {
           <p className="text-xs text-muted-foreground">
             &copy; {copyrightYear} Crochet PeakZ. All rights reserved.
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-center gap-1">
             {footerLinks.legal.map((link) => (
               <Link
                 key={link.label}

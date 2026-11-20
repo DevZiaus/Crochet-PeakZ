@@ -12,12 +12,15 @@ import { PrismaSessionRepository } from "./infrastructure/database/session.repos
 import { BcryptPasswordHasher } from "./infrastructure/auth/bcrypt-password-hasher.js";
 import { JwtTokenService } from "./infrastructure/auth/jwt-token-service.js";
 import { ResendEmailSender } from "./infrastructure/email/resend-email-sender.js";
+import { ResendContactEmailSender } from "./infrastructure/email/resend-contact-email-sender.js";
 import { createOAuthAuthenticator } from "./infrastructure/oauth/passport.js";
 import { systemClock } from "./domain/ports/clock.js";
 import type { AuthDependencies } from "./application/dependencies.js";
 import type { CatalogDependencies } from "./application/catalog/dependencies.js";
+import type { ContactDependencies } from "./application/contact/dependencies.js";
 import { createAuthRouter } from "./presentation/auth/auth.routes.js";
 import { createCatalogRouter } from "./presentation/catalog/catalog.routes.js";
+import { createContactRouter } from "./presentation/contact/contact.routes.js";
 import { PrismaCatalogRepository } from "./infrastructure/database/catalog.repository.js";
 import { CloudinaryImageUrlResolver } from "./infrastructure/cloudinary/image-url-resolver.js";
 
@@ -85,7 +88,33 @@ async function main(): Promise<void> {
 
   const authRouter = buildAuthRouter();
   const catalogRouter = buildCatalogRouter();
-  const app = createApp(env, database.checkHealth, authRouter, catalogRouter);
+  const contactRouter = buildContactRouter();
+  const app = createApp(
+    env,
+    database.checkHealth,
+    authRouter,
+    catalogRouter,
+    contactRouter,
+  );
+
+  /**
+   * Builds the contact form dependencies and Express router.
+   */
+  function buildContactRouter(): Router {
+    const contact: ContactDependencies = {
+      emails: new ResendContactEmailSender({
+        apiKey: env.resendApiKey,
+        from: env.emailFrom,
+        to: env.contactEmail,
+      }),
+      clock: systemClock,
+    };
+
+    return createContactRouter({
+      contact,
+      allowedOrigins: [...new Set([env.webAppUrl, ...env.corsOrigins])],
+    });
+  }
 
   /**
    * Builds the catalog dependencies from the validated environment and the

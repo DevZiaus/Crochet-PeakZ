@@ -122,6 +122,7 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
       },
       resendApiKey: "re_integration_key",
       emailFrom: "Crochet PeakZ <hello@shop.example.com>",
+      contactEmail: "hello@crochetpeakz.tech",
       cloudinaryCloudName: "crochet-peakz",
     };
 
