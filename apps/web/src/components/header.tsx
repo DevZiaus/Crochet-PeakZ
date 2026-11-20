@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/container";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthMenu } from "@/components/auth/auth-menu";
+import { CurrencySwitcher } from "@/components/currency/currency-switcher";
 
 interface NavLink {
   /** The visible label. */
@@ -271,16 +272,8 @@ function Header() {
 
             {/* Right actions */}
             <div className="flex items-center gap-1">
-              {/* Currency switcher placeholder */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="hidden text-xs font-semibold text-muted-foreground sm:inline-flex min-h-[44px]"
-                aria-label="Switch currency (coming soon)"
-                disabled
-              >
-                ৳ BDT
-              </Button>
+              {/* Currency switcher */}
+              <CurrencySwitcher />
 
               {/* Search */}
               <Button

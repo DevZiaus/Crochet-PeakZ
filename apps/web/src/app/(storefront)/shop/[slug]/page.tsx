@@ -9,7 +9,7 @@ import { PurchasePanel } from "@/components/catalog/purchase-panel";
 import { Container } from "@/components/container";
 import { ProductGrid } from "@/components/product-grid";
 import { fetchCatalogProduct, isCatalogNotFound } from "@/lib/catalog/api";
-import { getActiveCurrency } from "@/lib/catalog/currency";
+import { getActiveCurrency } from "@/lib/currency/server";
 import { getCatalogEnv } from "@/lib/catalog/env";
 import { buildProductJsonLd, serializeJsonLd } from "@/lib/catalog/json-ld";
 

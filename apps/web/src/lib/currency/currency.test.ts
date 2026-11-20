@@ -1,5 +1,6 @@
 /**
- * Tests for the active currency read (AC-14).
+ * Tests for the active currency cookie parser and server reader (AC-3, AC-9,
+ * spec 0006 AC-14).
  *
  * Every catalog surface resolves its currency from the `cp_currency` cookie,
  * so an unknown or empty value has to land on BDT rather than leaking through
@@ -7,7 +8,8 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Currency } from "@crochet-peakz/shared";
-import { CURRENCY_COOKIE, getActiveCurrency, parseCurrency } from "./currency";
+import { CURRENCY_COOKIE, parseCurrency } from "./cookie";
+import { getActiveCurrency } from "./server";
 
 const { cookiesMock } = vi.hoisted(() => ({
   cookiesMock: vi.fn(),

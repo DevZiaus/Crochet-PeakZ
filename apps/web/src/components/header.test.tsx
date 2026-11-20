@@ -98,8 +98,8 @@ describe("Header", () => {
       screen.getByRole("button", { name: "Switch to dark mode" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Switch currency (coming soon)" }),
-    ).toBeDisabled();
+      screen.getByRole("button", { name: "Currency: ৳ BDT" }),
+    ).toBeEnabled();
   });
 
   it("opens the mobile drawer with the same navigation links and a close button", async () => {
