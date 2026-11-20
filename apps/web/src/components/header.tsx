@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/container";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthMenu } from "@/components/auth/auth-menu";
+import { useOptionalCurrency } from "@/components/currency/currency-provider";
+import { CurrencyRadio } from "@/components/currency/currency-radio";
 import { CurrencySwitcher } from "@/components/currency/currency-switcher";
 
 interface NavLink {
@@ -117,6 +119,7 @@ function MobileNavDrawer({
   closeReason?: CloseReason;
 }) {
   const pathname = usePathname();
+  const activeCurrency = useOptionalCurrency();
   return (
     <Dialog
       open={open}
@@ -183,7 +186,8 @@ function MobileNavDrawer({
           })}
         </nav>
 
-        <div className="border-t border-border p-4">
+        <div className="space-y-4 border-t border-border p-4">
+          {activeCurrency !== null ? <CurrencyRadio /> : null}
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <span className="text-sm text-muted-foreground">Theme</span>
@@ -195,12 +199,13 @@ function MobileNavDrawer({
 }
 
 /**
- * Storefront header with logo, desktop nav links, currency switcher placeholder,
- * theme toggle, cart icon placeholder, and auth placeholder.
+ * Storefront header with logo, desktop nav links, currency switcher (on
+ * storefront pages), theme toggle, cart icon placeholder, and auth control.
  * Responsive: shows hamburger menu on mobile.
  */
 function Header() {
   const pathname = usePathname();
+  const activeCurrency = useOptionalCurrency();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const homeLinkRef = useRef<HTMLAnchorElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -272,8 +277,8 @@ function Header() {
 
             {/* Right actions */}
             <div className="flex items-center gap-1">
-              {/* Currency switcher */}
-              <CurrencySwitcher />
+              {/* Currency switcher (storefront only) */}
+              {activeCurrency !== null ? <CurrencySwitcher /> : null}
 
               {/* Search */}
               <Button

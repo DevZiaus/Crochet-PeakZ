@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Currency, type CurrencyCode } from "@crochet-peakz/shared";
+import { useRef } from "react";
+import type { CurrencyCode } from "@crochet-peakz/shared";
+import { useCurrencySwitch } from "@/components/currency/currency-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,45 +11,37 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { setCurrency } from "@/lib/currency/actions";
 import { CURRENCY_OPTIONS, currencyLabels } from "@/lib/currency/labels";
 
-/** Props for the header currency dropdown switcher. */
-export interface CurrencySwitcherProps {
-  /** Active currency code, defaults to BDT until the provider is mounted. */
-  activeCurrency?: CurrencyCode;
-}
-
 /**
- * Header currency dropdown menu (shown at `sm` and wider).
+ * Header currency dropdown menu (shown at `sm` and wider on storefront pages).
  *
- * Lists both supported currencies as radio items with a check mark on the
- * active one and calls the `setCurrency` Server Action on selection (AC-1,
- * AC-2).
+ * Reads the active currency from `CurrencyProvider`, lists both supported
+ * currencies as radio items with a check mark on the active one, and calls
+ * `switchCurrency` on selection (AC-1, AC-2, AC-9).
  */
-export function CurrencySwitcher({
-  activeCurrency = Currency.BDT,
-}: CurrencySwitcherProps) {
-  const [currency, setCurrencyState] = useState<CurrencyCode>(activeCurrency);
+export function CurrencySwitcher() {
+  const { currency, isPending, switchCurrency } = useCurrencySwitch();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const currentLabel = currencyLabels[currency];
 
-  const handleSelect = async (nextCurrency: CurrencyCode): Promise<void> => {
+  const handleSelect = (nextCurrency: CurrencyCode): void => {
     if (nextCurrency === currency) {
       return;
     }
 
-    const result = await setCurrency({ currency: nextCurrency });
-    if (result.ok) {
-      setCurrencyState(nextCurrency);
-    }
+    switchCurrency(nextCurrency, triggerRef.current);
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="ghost"
           size="sm"
+          disabled={isPending}
+          aria-busy={isPending ? "true" : undefined}
           className="hidden min-h-11 text-xs font-semibold text-muted-foreground hover:text-foreground sm:inline-flex"
           aria-label={currentLabel.triggerAriaLabel}
         >
@@ -61,9 +54,10 @@ export function CurrencySwitcher({
             <DropdownMenuRadioItem
               key={option}
               value={option}
+              disabled={isPending}
               className="min-h-11 cursor-pointer"
               onSelect={() => {
-                void handleSelect(option);
+                handleSelect(option);
               }}
             >
               {currencyLabels[option].optionLabel}

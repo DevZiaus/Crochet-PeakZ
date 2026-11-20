@@ -11,6 +11,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { usePathname } from "next/navigation";
+import { Currency } from "@crochet-peakz/shared";
+import { CurrencyProvider } from "./currency/currency-provider";
 import { Header, MobileNavDrawer, navLinks } from "./header";
 import { mockDesktopBreakpoint } from "../test/match-media";
 
@@ -84,8 +86,12 @@ describe("Header", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("gives every header action an accessible name and keeps the placeholder disabled", () => {
-    render(<Header />);
+  it("gives every header action an accessible name and shows the currency switcher inside CurrencyProvider", () => {
+    render(
+      <CurrencyProvider currency={Currency.BDT}>
+        <Header />
+      </CurrencyProvider>,
+    );
 
     for (const name of ["Search products", "Shopping cart", "Open menu"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
@@ -100,6 +106,14 @@ describe("Header", () => {
     expect(
       screen.getByRole("button", { name: "Currency: ৳ BDT" }),
     ).toBeEnabled();
+  });
+
+  it("hides the currency control when rendered outside CurrencyProvider (auth and admin layouts, AC-1)", () => {
+    render(<Header />);
+
+    expect(
+      screen.queryByRole("button", { name: /Currency:/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("opens the mobile drawer with the same navigation links and a close button", async () => {
