@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useOptimistic,
   useRef,
   useState,
   useTransition,
@@ -24,6 +25,8 @@ import {
 export interface CurrencyContextValue {
   /** Active currency read from the server cookie (`BDT` or `USD`). */
   readonly currency: CurrencyCode;
+  /** Currency being switched to while a transition is in flight, or `null`. */
+  readonly pendingCurrency: CurrencyCode | null;
   /** Whether a currency switch transition is currently in flight. */
   readonly isPending: boolean;
   /** Latest polite live region announcement after a switch. */
@@ -56,6 +59,8 @@ export function CurrencyProvider({
 }: CurrencyProviderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [pendingCurrency, setPendingCurrency] =
+    useOptimistic<CurrencyCode | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [restoreTick, setRestoreTick] = useState(0);
   const pendingFocusRef = useRef<HTMLElement | null>(null);
@@ -82,6 +87,7 @@ export function CurrencyProvider({
       );
 
       startTransition(async () => {
+        setPendingCurrency(nextCurrency);
         try {
           const result = await setCurrency({ currency: nextCurrency });
           if (!result.ok) {
@@ -103,13 +109,14 @@ export function CurrencyProvider({
         }
       });
     },
-    [currency, isPending, router],
+    [currency, isPending, router, setPendingCurrency],
   );
 
   return (
     <CurrencyContext.Provider
       value={{
         currency,
+        pendingCurrency,
         isPending,
         announcement,
         switchCurrency,

@@ -74,9 +74,11 @@ test("switches prices across shop and product detail, updates JSON-LD, and hides
 
   await page.goto(BEAR_SLUG);
   await expect(page.getByText("$22.00").first()).toBeVisible();
+  await expect(page.getByText("In stock")).toBeVisible();
 
-  await page.getByText("Large (35 cm)", { exact: true }).click();
-  await expect(page.getByText("$28.00").first()).toBeVisible();
+  await page.getByText("Lavender", { exact: true }).click();
+  await expect(page.getByText("Only 5 left")).toBeVisible();
+  await expect(page.getByText("$22.00").first()).toBeVisible();
 
   const jsonLdText = await page
     .locator('script[type="application/ld+json"]')
@@ -144,7 +146,7 @@ test("resets minPrice, maxPrice, and page on /shop when switching currency with 
       await navDialog.getByRole("button", { name: "Close menu" }).click();
     }
     await page.getByRole("button", { name: "Filters" }).click();
-    const filterDialog = page.getByRole("dialog", { name: "Product filters" });
+    const filterDialog = page.getByRole("dialog", { name: "Filters" });
     await expect(filterDialog.getByLabel("Minimum")).toHaveValue("");
     await expect(filterDialog.getByLabel("Maximum")).toHaveValue("");
     await filterDialog.getByRole("button", { name: "Close filters" }).click();

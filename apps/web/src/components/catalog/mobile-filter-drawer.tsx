@@ -40,6 +40,7 @@ export function MobileFilterDrawer({
       <DialogContent
         className="fixed inset-y-0 right-0 left-auto h-full w-full max-w-sm translate-x-0 translate-y-0 grid-rows-[auto_1fr] gap-0 overflow-hidden rounded-none border-y-0 border-r-0 p-0 sm:max-w-sm"
         aria-label="Product filters"
+        showCloseButton={false}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <DialogTitle className="font-heading text-lg font-bold">

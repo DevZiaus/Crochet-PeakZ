@@ -87,6 +87,10 @@ describe("MobileFilterDrawer", () => {
     await user.click(screen.getByRole("button", { name: "Filters" }));
     const dialog = await screen.findByRole("dialog", { name: "Filters" });
 
+    expect(
+      within(dialog).queryByRole("button", { name: "Close" }),
+    ).not.toBeInTheDocument();
+
     await user.click(
       within(dialog).getByRole("button", { name: "Close filters" }),
     );

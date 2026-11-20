@@ -265,6 +265,48 @@ describe("CurrencySwitcher", () => {
       consoleError.mockRestore();
     }
   });
+
+  it("keeps sibling focusable controls visible to assistive tech while open and toggles or closes on Escape (AC-8)", async () => {
+    const user = userEvent.setup();
+    render(
+      <CurrencyProvider currency={Currency.BDT}>
+        <button type="button">Outside action</button>
+        <CurrencySwitcher />
+      </CurrencyProvider>,
+    );
+
+    const outsideControl = screen.getByRole("button", {
+      name: "Outside action",
+    });
+    const trigger = screen.getByRole("button", { name: "Currency: ৳ BDT" });
+
+    await user.click(trigger);
+    await screen.findByRole("menuitemradio", { name: "$ USD, US dollars" });
+
+    expect(
+      document.querySelectorAll(
+        '[aria-hidden="true"] button, button[aria-hidden="true"]',
+      ),
+    ).toHaveLength(0);
+    expect(outsideControl.closest('[aria-hidden="true"]')).toBeNull();
+    expect(screen.getByRole("menu")).not.toHaveClass(
+      "data-[state=closed]:animate-out",
+    );
+
+    await user.click(trigger);
+    await waitFor(() => {
+      expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
+    });
+
+    await user.click(trigger);
+    await screen.findByRole("menuitemradio", { name: "$ USD, US dollars" });
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
+    });
+    expect(trigger).toHaveFocus();
+  });
 });
 
 describe("CurrencyRadio", () => {
@@ -305,5 +347,60 @@ describe("CurrencyRadio", () => {
       expect(usdRadio).toBeEnabled();
       expect(usdRadio).toHaveFocus();
     });
+  });
+
+  it("checks the clicked radio immediately while pending and reverts to the active currency on failure (AC-7)", async () => {
+    let rejectAction: (reason?: unknown) => void = () => undefined;
+    setCurrencyMock.mockImplementation(
+      () =>
+        new Promise<SetCurrencyResult>((_resolve, reject) => {
+          rejectAction = reject;
+        }),
+    );
+
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      const user = userEvent.setup();
+      render(
+        <CurrencyProvider currency={Currency.BDT}>
+          <CurrencyRadio />
+        </CurrencyProvider>,
+      );
+
+      const group = screen.getByRole("group", { name: "Currency" });
+      const bdtRadio = screen.getByRole("radio", {
+        name: "৳ BDT, Bangladeshi taka",
+      });
+      const usdRadio = screen.getByRole("radio", {
+        name: "$ USD, US dollars",
+      });
+
+      await user.click(usdRadio);
+
+      await waitFor(() => {
+        expect(usdRadio).toBeChecked();
+        expect(bdtRadio).not.toBeChecked();
+        expect(group).toBeDisabled();
+        expect(group).toHaveAttribute("aria-busy", "true");
+      });
+
+      rejectAction(new Error("network down"));
+
+      await waitFor(() => {
+        expect(group).toBeEnabled();
+        expect(usdRadio).not.toBeChecked();
+        expect(bdtRadio).toBeChecked();
+        expect(toastErrorMock).toHaveBeenCalledWith(
+          "Could not change currency, please try again",
+        );
+      });
+
+      expect(consoleError).toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

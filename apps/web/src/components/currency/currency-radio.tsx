@@ -18,8 +18,9 @@ import { cn } from "@/lib/utils";
  * while the modal drawer hides the background document.
  */
 export function CurrencyRadio() {
-  const { currency, isPending, announcement, switchCurrency } =
+  const { currency, pendingCurrency, isPending, announcement, switchCurrency } =
     useCurrencySwitch();
+  const selectedCurrency = pendingCurrency ?? currency;
 
   return (
     <fieldset
@@ -39,7 +40,7 @@ export function CurrencyRadio() {
       <div className="flex flex-col gap-1">
         {CURRENCY_OPTIONS.map((option) => {
           const inputId = `drawer-currency-${option.toLowerCase()}`;
-          const isChecked = currency === option;
+          const isChecked = selectedCurrency === option;
 
           return (
             <label
