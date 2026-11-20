@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { Loader2 } from "lucide-react";
 import type { CurrencyCode } from "@crochet-peakz/shared";
 import { useCurrencySwitch } from "@/components/currency/currency-provider";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,9 @@ import { CURRENCY_OPTIONS, currencyLabels } from "@/lib/currency/labels";
  * Header currency dropdown menu (shown at `sm` and wider on storefront pages).
  *
  * Reads the active currency from `CurrencyProvider`, lists both supported
- * currencies as radio items with a check mark on the active one, and calls
- * `switchCurrency` on selection (AC-1, AC-2, AC-9).
+ * currencies as radio items with a check mark on the active one, disables with
+ * a spinner while a switch is in flight, and restores focus to the trigger
+ * after completion (AC-1, AC-2, AC-3, AC-7, AC-8, AC-9).
  */
 export function CurrencySwitcher() {
   const { currency, isPending, switchCurrency } = useCurrencySwitch();
@@ -45,7 +47,13 @@ export function CurrencySwitcher() {
           className="hidden min-h-11 text-xs font-semibold text-muted-foreground hover:text-foreground sm:inline-flex"
           aria-label={currentLabel.triggerAriaLabel}
         >
-          {currentLabel.shortLabel}
+          {isPending ? (
+            <Loader2
+              className="size-3.5 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+          ) : null}
+          <span>{currentLabel.shortLabel}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

@@ -154,11 +154,12 @@ Global header toggle between BDT (৳) and USD ($). Persisted in local storage /
 **Done when:** switching currencies updates all displayed prices site wide; the preference persists across sessions; checkout uses the selected currency.
 
 - [x] Design it (spec): [0007](../specs/0007-currency-switcher/index.md)
-- [ ] Build it: `/develop currency switcher`
+- [x] Build it: `/develop currency switcher`
+  - Spec 0007 · code in `apps/web/src/lib/currency/`, `apps/web/src/components/currency/`, `apps/web/src/components/header.tsx`, `apps/web/src/app/(storefront)/layout.tsx`, `apps/web/src/lib/catalog/search-params.ts`, `apps/web/src/components/catalog/filter-form.tsx`, `e2e/currency.spec.ts`
   - [x] Thin thread: shared currency helpers, `setCurrency` Server Action, header menu switching real prices (AC-2, AC-3, AC-4, AC-9)
   - [x] Provider, storefront only placement, and mobile drawer row (AC-1, AC-9)
   - [x] `/shop` price filter reset and action validation (AC-5, AC-6)
-  - [ ] Pending, failure, announcement, and focus states, plus the full test pass (AC-3, AC-7, AC-8)
+  - [x] Pending, failure, announcement, and focus states, plus the full test pass (AC-3, AC-7, AC-8)
 - [ ] Verify it: `/check verify currency switcher`
 - [ ] Test it: `/test currency switcher`
 - [ ] Review it (fresh model): `/check review currency switcher`

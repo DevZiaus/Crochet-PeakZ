@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useCurrencySwitch } from "@/components/currency/currency-provider";
 import {
   CURRENCY_DRAWER_LEGEND,
@@ -9,13 +10,16 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Mobile navigation drawer currency control (AC-1).
+ * Mobile navigation drawer currency control (AC-1, AC-7, AC-8).
  *
- * Renders a native `<fieldset>` with legend `Currency` and two stacked
- * `<input type="radio">` options, each with at least a 44px touch target.
+ * Renders a native `<fieldset>` with legend `Currency`, two stacked
+ * `<input type="radio">` options with 44px minimum touch targets, a spinner
+ * while pending, and its own polite live region so announcements are heard
+ * while the modal drawer hides the background document.
  */
 export function CurrencyRadio() {
-  const { currency, isPending, switchCurrency } = useCurrencySwitch();
+  const { currency, isPending, announcement, switchCurrency } =
+    useCurrencySwitch();
 
   return (
     <fieldset
@@ -23,8 +27,14 @@ export function CurrencyRadio() {
       disabled={isPending}
       aria-busy={isPending ? "true" : undefined}
     >
-      <legend className="text-sm font-medium text-muted-foreground">
-        {CURRENCY_DRAWER_LEGEND}
+      <legend className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <span>{CURRENCY_DRAWER_LEGEND}</span>
+        {isPending ? (
+          <Loader2
+            className="size-3.5 animate-spin motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+        ) : null}
       </legend>
       <div className="flex flex-col gap-1">
         {CURRENCY_OPTIONS.map((option) => {
@@ -58,6 +68,14 @@ export function CurrencyRadio() {
             </label>
           );
         })}
+      </div>
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
       </div>
     </fieldset>
   );

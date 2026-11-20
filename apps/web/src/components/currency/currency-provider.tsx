@@ -1,10 +1,24 @@
 "use client";
 
-import { createContext, useCallback, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { CurrencyCode } from "@crochet-peakz/shared";
 import { withoutPriceFilters } from "@/lib/catalog/search-params";
 import { setCurrency } from "@/lib/currency/actions";
+import {
+  CURRENCY_SWITCH_ERROR_MESSAGE,
+  currencyLabels,
+} from "@/lib/currency/labels";
 
 /** Context value shared across storefront currency controls and consumers. */
 export interface CurrencyContextValue {
@@ -32,18 +46,33 @@ export interface CurrencyProviderProps {
 }
 
 /**
- * Provides the active server currency and switch action to storefront client
- * components (AC-1, AC-9).
+ * Provides the active server currency, transition state, polite live region,
+ * and switch handler to storefront client components (AC-1, AC-3, AC-5, AC-7,
+ * AC-8, AC-9).
  */
 export function CurrencyProvider({
   currency,
   children,
 }: CurrencyProviderProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [announcement, setAnnouncement] = useState("");
+  const [restoreTick, setRestoreTick] = useState(0);
+  const pendingFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isPending && pendingFocusRef.current !== null) {
+      const target = pendingFocusRef.current;
+      pendingFocusRef.current = null;
+      if (target.isConnected) {
+        target.focus();
+      }
+    }
+  }, [isPending, restoreTick]);
 
   const switchCurrency = useCallback(
-    (nextCurrency: CurrencyCode): void => {
-      if (nextCurrency === currency) {
+    (nextCurrency: CurrencyCode, focusTarget?: HTMLElement | null): void => {
+      if (nextCurrency === currency || isPending) {
         return;
       }
 
@@ -52,26 +81,49 @@ export function CurrencyProvider({
         new URLSearchParams(window.location.search),
       );
 
-      void (async () => {
-        const result = await setCurrency({ currency: nextCurrency });
-        if (result.ok && cleaned !== null) {
-          router.replace(cleaned);
+      startTransition(async () => {
+        try {
+          const result = await setCurrency({ currency: nextCurrency });
+          if (!result.ok) {
+            toast.error(CURRENCY_SWITCH_ERROR_MESSAGE);
+            console.error("Failed to switch currency:", result.error);
+            return;
+          }
+
+          setAnnouncement(currencyLabels[nextCurrency].announcement);
+          if (cleaned !== null) {
+            router.replace(cleaned);
+          }
+        } catch (error) {
+          toast.error(CURRENCY_SWITCH_ERROR_MESSAGE);
+          console.error("Failed to switch currency:", error);
+        } finally {
+          pendingFocusRef.current = focusTarget ?? null;
+          setRestoreTick((tick) => tick + 1);
         }
-      })();
+      });
     },
-    [currency, router],
+    [currency, isPending, router],
   );
 
   return (
     <CurrencyContext.Provider
       value={{
         currency,
-        isPending: false,
-        announcement: "",
+        isPending,
+        announcement,
         switchCurrency,
       }}
     >
       {children}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
     </CurrencyContext.Provider>
   );
 }

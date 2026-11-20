@@ -335,4 +335,28 @@ describe("MobileNavDrawer", () => {
       "sm:max-w-lg",
     );
   });
+
+  it("renders the Currency radio row in the drawer inside CurrencyProvider and omits it outside (AC-1)", () => {
+    const { unmount } = render(
+      <MobileNavDrawer open onClose={() => undefined} />,
+    );
+    expect(
+      screen.queryByRole("group", { name: "Currency" }),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <CurrencyProvider currency={Currency.USD}>
+        <MobileNavDrawer open onClose={() => undefined} />
+      </CurrencyProvider>,
+    );
+
+    const drawer = screen.getByRole("dialog", { name: "Mobile navigation" });
+    expect(
+      within(drawer).getByRole("group", { name: "Currency" }),
+    ).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole("radio", { name: "$ USD, US dollars" }),
+    ).toBeChecked();
+  });
 });
