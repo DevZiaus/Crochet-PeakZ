@@ -1,5 +1,8 @@
 import type { CategorySummaryDto, CurrencyCode } from "@crochet-peakz/shared";
-import type { CatalogSearchState } from "@/lib/catalog/search-params";
+import {
+  buildShopHref,
+  type CatalogSearchState,
+} from "@/lib/catalog/search-params";
 import { CatalogFilterForm } from "@/components/catalog/filter-form";
 
 /** Props for the desktop catalog filter sidebar. */
@@ -22,6 +25,7 @@ export function FilterSidebar({
           Filters
         </h2>
         <CatalogFilterForm
+          key={`${currency}:${buildShopHref(state)}`}
           categories={categories}
           state={state}
           currency={currency}

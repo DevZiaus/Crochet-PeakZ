@@ -2,7 +2,10 @@
 
 import { SlidersHorizontalIcon, XIcon } from "lucide-react";
 import type { CategorySummaryDto, CurrencyCode } from "@crochet-peakz/shared";
-import type { CatalogSearchState } from "@/lib/catalog/search-params";
+import {
+  buildShopHref,
+  type CatalogSearchState,
+} from "@/lib/catalog/search-params";
 import { CatalogFilterForm } from "@/components/catalog/filter-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +58,7 @@ export function MobileFilterDrawer({
         </div>
         <div className="overflow-y-auto p-5">
           <CatalogFilterForm
+            key={`${currency}:${buildShopHref(state)}`}
             categories={categories}
             state={state}
             currency={currency}

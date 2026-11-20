@@ -1,7 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import type { CurrencyCode } from "@crochet-peakz/shared";
+import { withoutPriceFilters } from "@/lib/catalog/search-params";
 import { setCurrency } from "@/lib/currency/actions";
 
 /** Context value shared across storefront currency controls and consumers. */
@@ -37,15 +39,27 @@ export function CurrencyProvider({
   currency,
   children,
 }: CurrencyProviderProps) {
+  const router = useRouter();
+
   const switchCurrency = useCallback(
     (nextCurrency: CurrencyCode): void => {
       if (nextCurrency === currency) {
         return;
       }
 
-      void setCurrency({ currency: nextCurrency });
+      const cleaned = withoutPriceFilters(
+        window.location.pathname,
+        new URLSearchParams(window.location.search),
+      );
+
+      void (async () => {
+        const result = await setCurrency({ currency: nextCurrency });
+        if (result.ok && cleaned !== null) {
+          router.replace(cleaned);
+        }
+      })();
     },
-    [currency],
+    [currency, router],
   );
 
   return (
