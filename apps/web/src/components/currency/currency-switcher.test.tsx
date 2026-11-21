@@ -842,4 +842,46 @@ describe("CurrencyRadio", () => {
       consoleError.mockRestore();
     }
   });
+
+  it("announces only in the drawer live region on drawer switch and only in the provider live region on header switch (AC-8)", async () => {
+    const user = userEvent.setup();
+    render(
+      <CurrencyProvider currency={Currency.BDT}>
+        <CurrencySwitcher />
+        <CurrencyRadio />
+      </CurrencyProvider>,
+    );
+
+    const group = screen.getByRole("group", { name: "Currency" });
+    const drawerStatus = within(group).getByRole("status");
+    const providerStatus = screen
+      .getAllByRole("status")
+      .find((region) => region !== drawerStatus);
+    if (!providerStatus) {
+      throw new Error("provider status live region missing");
+    }
+
+    await user.click(
+      within(group).getByRole("radio", { name: "$ USD, US dollars" }),
+    );
+
+    await waitFor(() => {
+      expect(drawerStatus).toHaveTextContent("Prices now shown in US dollars");
+    });
+    expect(providerStatus).toHaveTextContent("");
+
+    await user.click(screen.getByRole("button", { name: "Currency: ৳ BDT" }));
+    await user.click(
+      await screen.findByRole("menuitemradio", {
+        name: "$ USD, US dollars",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(providerStatus).toHaveTextContent(
+        "Prices now shown in US dollars",
+      );
+    });
+    expect(drawerStatus).toHaveTextContent("");
+  });
 });

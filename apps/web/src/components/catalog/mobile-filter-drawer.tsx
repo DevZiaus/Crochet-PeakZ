@@ -2,10 +2,7 @@
 
 import { SlidersHorizontalIcon, XIcon } from "lucide-react";
 import type { CategorySummaryDto, CurrencyCode } from "@crochet-peakz/shared";
-import {
-  buildShopHref,
-  type CatalogSearchState,
-} from "@/lib/catalog/search-params";
+import type { CatalogSearchState } from "@/lib/catalog/search-params";
 import { CatalogFilterForm } from "@/components/catalog/filter-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +37,7 @@ export function MobileFilterDrawer({
       <DialogContent
         className="fixed inset-y-0 right-0 left-auto h-full w-full max-w-sm translate-x-0 translate-y-0 grid-rows-[auto_1fr] gap-0 overflow-hidden rounded-none border-y-0 border-r-0 p-0 sm:max-w-sm"
         aria-label="Product filters"
+        // The drawer header renders its own labelled "Close filters" button.
         showCloseButton={false}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-5">
@@ -59,7 +57,6 @@ export function MobileFilterDrawer({
         </div>
         <div className="overflow-y-auto p-5">
           <CatalogFilterForm
-            key={`${currency}:${buildShopHref(state)}`}
             categories={categories}
             state={state}
             currency={currency}

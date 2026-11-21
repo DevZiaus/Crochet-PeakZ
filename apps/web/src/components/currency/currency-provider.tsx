@@ -21,6 +21,15 @@ import {
   currencyLabels,
 } from "@/lib/currency/labels";
 
+/** Live region surface where a currency change announcement should render. */
+export type AnnouncementTarget = "provider" | "drawer";
+
+/** Options controlling how a currency switch announces completion. */
+export interface SwitchCurrencyOptions {
+  /** Destination live region for the change announcement. */
+  readonly announceIn?: AnnouncementTarget;
+}
+
 /** Context value shared across storefront currency controls and consumers. */
 export interface CurrencyContextValue {
   /** Active currency read from the server cookie (`BDT` or `USD`). */
@@ -29,12 +38,15 @@ export interface CurrencyContextValue {
   readonly pendingCurrency: CurrencyCode | null;
   /** Whether a currency switch transition is currently in flight. */
   readonly isPending: boolean;
-  /** Latest polite live region announcement after a switch. */
+  /** Latest polite live region announcement for the storefront document. */
   readonly announcement: string;
+  /** Latest polite live region announcement for the modal mobile drawer. */
+  readonly drawerAnnouncement: string;
   /** Switches the active currency when a different option is chosen. */
   readonly switchCurrency: (
     nextCurrency: CurrencyCode,
     focusTarget?: HTMLElement | null,
+    options?: SwitchCurrencyOptions,
   ) => void;
 }
 
@@ -61,7 +73,10 @@ export function CurrencyProvider({
   const [isPending, startTransition] = useTransition();
   const [pendingCurrency, setPendingCurrency] =
     useOptimistic<CurrencyCode | null>(null);
-  const [announcement, setAnnouncement] = useState("");
+  const [announcementState, setAnnouncementState] = useState<{
+    text: string;
+    target: AnnouncementTarget;
+  }>({ text: "", target: "provider" });
   const [restoreTick, setRestoreTick] = useState(0);
   const pendingFocusRef = useRef<HTMLElement | null>(null);
 
@@ -76,11 +91,16 @@ export function CurrencyProvider({
   }, [isPending, restoreTick]);
 
   const switchCurrency = useCallback(
-    (nextCurrency: CurrencyCode, focusTarget?: HTMLElement | null): void => {
+    (
+      nextCurrency: CurrencyCode,
+      focusTarget?: HTMLElement | null,
+      options?: SwitchCurrencyOptions,
+    ): void => {
       if (nextCurrency === currency || isPending) {
         return;
       }
 
+      const announceTarget = options?.announceIn ?? "provider";
       const cleaned = withoutPriceFilters(
         window.location.pathname,
         new URLSearchParams(window.location.search),
@@ -96,7 +116,10 @@ export function CurrencyProvider({
             return;
           }
 
-          setAnnouncement(currencyLabels[nextCurrency].announcement);
+          setAnnouncementState({
+            text: currencyLabels[nextCurrency].announcement,
+            target: announceTarget,
+          });
           if (cleaned !== null) {
             router.replace(cleaned);
           }
@@ -112,6 +135,11 @@ export function CurrencyProvider({
     [currency, isPending, router, setPendingCurrency],
   );
 
+  const announcement =
+    announcementState.target === "provider" ? announcementState.text : "";
+  const drawerAnnouncement =
+    announcementState.target === "drawer" ? announcementState.text : "";
+
   return (
     <CurrencyContext.Provider
       value={{
@@ -119,6 +147,7 @@ export function CurrencyProvider({
         pendingCurrency,
         isPending,
         announcement,
+        drawerAnnouncement,
         switchCurrency,
       }}
     >

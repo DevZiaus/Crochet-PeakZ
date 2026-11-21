@@ -18,8 +18,13 @@ import { cn } from "@/lib/utils";
  * while the modal drawer hides the background document.
  */
 export function CurrencyRadio() {
-  const { currency, pendingCurrency, isPending, announcement, switchCurrency } =
-    useCurrencySwitch();
+  const {
+    currency,
+    pendingCurrency,
+    isPending,
+    drawerAnnouncement,
+    switchCurrency,
+  } = useCurrencySwitch();
   const selectedCurrency = pendingCurrency ?? currency;
 
   return (
@@ -61,7 +66,9 @@ export function CurrencyRadio() {
                 checked={isChecked}
                 disabled={isPending}
                 onChange={(event) => {
-                  switchCurrency(option, event.currentTarget);
+                  switchCurrency(option, event.currentTarget, {
+                    announceIn: "drawer",
+                  });
                 }}
                 className="size-4 accent-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
               />
@@ -76,7 +83,7 @@ export function CurrencyRadio() {
         aria-atomic="true"
         className="sr-only"
       >
-        {announcement}
+        {drawerAnnouncement}
       </div>
     </fieldset>
   );

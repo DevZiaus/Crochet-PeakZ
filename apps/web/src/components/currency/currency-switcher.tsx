@@ -36,7 +36,7 @@ export function CurrencySwitcher() {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           ref={triggerRef}
@@ -56,7 +56,7 @@ export function CurrencySwitcher() {
           <span>{currentLabel.shortLabel}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" animateClose={false} className="w-56">
         <DropdownMenuRadioGroup value={currency}>
           {CURRENCY_OPTIONS.map((option) => (
             <DropdownMenuRadioItem
