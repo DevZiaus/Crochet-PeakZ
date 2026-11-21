@@ -35,7 +35,7 @@ test("browses the catalog, filters the shop, and opens a product", async ({
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Handmade pieces, made to be kept",
+      name: "Little things with a big heart.",
     }),
   ).toBeVisible();
   await expect(

@@ -243,7 +243,7 @@ function Header() {
               aria-label="Crochet PeakZ home"
             >
               <span className="font-heading text-xl font-bold text-primary">
-                Crochet PeakZ
+                CrocheT PeakZ
               </span>
             </Link>
 

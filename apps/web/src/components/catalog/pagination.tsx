@@ -58,7 +58,7 @@ export function Pagination({
               <Link
                 href={hrefForPage(page - 1)}
                 rel="prev"
-                className="min-h-11 gap-1 px-3"
+                className="min-h-11 gap-1 px-4"
               >
                 <ChevronLeftIcon aria-hidden="true" className="size-4" />
                 <span className="hidden sm:inline">Previous</span>
@@ -68,7 +68,7 @@ export function Pagination({
           ) : (
             <span
               aria-disabled="true"
-              className="flex min-h-11 items-center gap-1 rounded-md border border-border px-3 text-sm text-muted-foreground opacity-50"
+              className="flex min-h-11 items-center gap-1 rounded-full border border-border px-4 text-sm text-muted-foreground opacity-50"
             >
               <ChevronLeftIcon aria-hidden="true" className="size-4" />
               <span className="hidden sm:inline">Previous</span>
@@ -109,7 +109,7 @@ export function Pagination({
               <Link
                 href={hrefForPage(page + 1)}
                 rel="next"
-                className="min-h-11 gap-1 px-3"
+                className="min-h-11 gap-1 px-4"
               >
                 <span className="hidden sm:inline">Next</span>
                 <span className="sr-only sm:hidden">Next page</span>
@@ -119,7 +119,7 @@ export function Pagination({
           ) : (
             <span
               aria-disabled="true"
-              className="flex min-h-11 items-center gap-1 rounded-md border border-border px-3 text-sm text-muted-foreground opacity-50"
+              className="flex min-h-11 items-center gap-1 rounded-full border border-border px-4 text-sm text-muted-foreground opacity-50"
             >
               <span className="hidden sm:inline">Next</span>
               <ChevronRightIcon aria-hidden="true" className="size-4" />

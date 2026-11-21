@@ -102,13 +102,13 @@ Reach them through the Tailwind utilities `shadow-sm`, `shadow-md` and `shadow-l
 
 ### Radius
 
-| Token           | Value     | Usage                      |
-| --------------- | --------- | -------------------------- |
-| `--radius-sm`   | `0.25rem` | Small badges, chips        |
-| `--radius-md`   | `0.5rem`  | Inputs, small cards        |
-| `--radius-lg`   | `0.75rem` | Cards, modals              |
-| `--radius-xl`   | `1rem`    | Large cards, hero sections |
-| `--radius-full` | `9999px`  | Avatars, round buttons     |
+| Token           | Value     | Usage                                  |
+| --------------- | --------- | -------------------------------------- |
+| `--radius-sm`   | `0.25rem` | Small badges, chips                    |
+| `--radius-md`   | `0.5rem`  | Inputs, small cards                    |
+| `--radius-lg`   | `0.75rem` | Cards, modals                          |
+| `--radius-xl`   | `1rem`    | Large cards, hero sections             |
+| `--radius-full` | `9999px`  | Avatars, badges, pill and icon buttons |
 
 ---
 
@@ -196,7 +196,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 
 | Component          | Variants                                                                                                                                                                    | Notes                                                                                                                                                                                                                                                    |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Button`           | variant: default, destructive, outline, secondary, ghost, link; size: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg                                                  | Uses `asChild` for link buttons                                                                                                                                                                                                                          |
+| `Button`           | variant: default, destructive, outline, secondary, ghost, link; size: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg                                                  | Pill-shaped (`rounded-full`); uses `asChild` for link buttons                                                                                                                                                                                            |
 | `Input`            | —                                                                                                                                                                           | 36px height (`h-9`). Border uses `--input`. On focus the native outline is removed (`outline-none`) and replaced by a 2px `--ring` ring (`focus-visible:ring-2`) with `focus-visible:border-ring`. Invalid state uses `aria-invalid:border-destructive`. |
 | `Textarea`         | —                                                                                                                                                                           | Same styling as Input                                                                                                                                                                                                                                    |
 | `Select`           | —                                                                                                                                                                           | Radix based, scrollable                                                                                                                                                                                                                                  |

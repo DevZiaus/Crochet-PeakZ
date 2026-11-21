@@ -18,4 +18,23 @@ describe("design token variants", () => {
     expect(classes).toContain("focus-visible:ring-ring");
     expect(classes).not.toContain("ring-destructive");
   });
+
+  it("renders every Button size as a rounded-full pill", () => {
+    const sizes = [
+      "default",
+      "xs",
+      "sm",
+      "lg",
+      "icon",
+      "icon-xs",
+      "icon-sm",
+      "icon-lg",
+    ] as const;
+
+    for (const size of sizes) {
+      const classes = buttonVariants({ size });
+      expect(classes).toContain("rounded-full");
+      expect(classes).not.toContain("rounded-md");
+    }
+  });
 });

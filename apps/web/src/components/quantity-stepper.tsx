@@ -38,7 +38,7 @@ function QuantityStepper({
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-lg border border-border",
+        "inline-flex items-center rounded-full border border-border",
         disabled && "opacity-50",
         className,
       )}

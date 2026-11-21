@@ -17,7 +17,7 @@ export default function StorefrontNotFound() {
         </p>
         <Link
           href="/shop"
-          className="mt-8 inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors duration-200 hover:bg-primary-hover motion-reduce:transition-none"
+          className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-7 text-sm font-medium text-primary-foreground transition-colors duration-200 hover:bg-primary-hover motion-reduce:transition-none"
         >
           Back to shop
         </Link>
