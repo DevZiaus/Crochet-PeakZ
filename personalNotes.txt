@@ -1,8 +1,8 @@
 next: /check review product catalog storefront
 
 Plan:
-    - add a new topic on the contact form called 'data-deletion'
-    - update message on the data deletin page to send a message from contact form on topic data deletion or send an email
+    - add a new topic on the contact form called 'data-deletion' - done
+    - update message on the data deletin page to send a message from contact form on topic data deletion or send an email - done
     - use landing page home page as inspration for home page colors
     - Use the logo placed in apps/web/public/logo.webp/png/jpg
     - stop checking email verified status for facebook login/register
