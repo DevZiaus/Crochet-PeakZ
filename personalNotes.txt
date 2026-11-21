@@ -1,4 +1,9 @@
-next: /check review product catalog storefront
+FIX: 
+
+- Stale spec → /architect: docs/specs/0003-design-system/index.md lines 59 and 130 still describe a Zustand currency store; spec 0007 uses a Server Action cookie and React context.
+- Stale spec → /architect: docs/specs/0001-stack-and-architecture/index.md line 30 lists "currency toggle" as a Zustand responsibility.
+- Small follow-ups not enrolled: auth fetch timeouts and skip links (spec 0005); root pointer for the nextjs-app-router skill (spec 0007).
+
 
 Plan:
     - add a new topic on the contact form called 'data-deletion' - done
