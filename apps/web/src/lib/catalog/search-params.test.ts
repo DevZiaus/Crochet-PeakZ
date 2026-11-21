@@ -9,6 +9,7 @@ import {
   hasUnsupportedCollectionParams,
   parseCatalogSearchParams,
   toCatalogListParams,
+  withoutPriceFilters,
 } from "./search-params";
 
 const known = new Set(["amigurumi", "wearables"]);
@@ -296,5 +297,81 @@ describe("buildSortHref", () => {
     expect(
       buildSortHref("/shop", new URLSearchParams("page=4"), "newest"),
     ).toBe("/shop");
+  });
+});
+
+describe("withoutPriceFilters", () => {
+  it("returns null outside /shop even when price params exist (AC-5)", () => {
+    expect(
+      withoutPriceFilters(
+        "/collections/amigurumi",
+        new URLSearchParams("minPrice=10&maxPrice=50"),
+      ),
+    ).toBeNull();
+    expect(withoutPriceFilters("/", new URLSearchParams("minPrice=10"))).toBe(
+      null,
+    );
+  });
+
+  it("returns null on /shop when neither minPrice nor maxPrice is present", () => {
+    expect(
+      withoutPriceFilters(
+        "/shop",
+        new URLSearchParams("category=bags&sort=price-asc&page=2"),
+      ),
+    ).toBeNull();
+  });
+
+  it("strips minPrice, maxPrice, and page while keeping other filters and sort (AC-5)", () => {
+    expect(
+      withoutPriceFilters(
+        "/shop",
+        new URLSearchParams(
+          "category=bags&minPrice=500&maxPrice=2000&page=2&sort=price-asc",
+        ),
+      ),
+    ).toBe("/shop?category=bags&sort=price-asc");
+  });
+
+  it("strips empty minPrice or maxPrice params and returns bare /shop when empty (AC-5)", () => {
+    expect(
+      withoutPriceFilters("/shop", new URLSearchParams("minPrice=&page=3")),
+    ).toBe("/shop");
+    expect(withoutPriceFilters("/shop", new URLSearchParams("maxPrice="))).toBe(
+      "/shop",
+    );
+  });
+
+  it("preserves repeated categories, types, featured, and sort while stripping a single price param and page (AC-5)", () => {
+    expect(
+      withoutPriceFilters(
+        "/shop",
+        new URLSearchParams(
+          "category=amigurumi&category=wearables&type=STANDARD&type=DIGITAL&featured=true&minPrice=500&sort=price-desc&page=4",
+        ),
+      ),
+    ).toBe(
+      "/shop?category=amigurumi&category=wearables&type=STANDARD&type=DIGITAL&featured=true&sort=price-desc",
+    );
+    expect(
+      withoutPriceFilters(
+        "/shop",
+        new URLSearchParams("category=bags&maxPrice=2000&page=2"),
+      ),
+    ).toBe("/shop?category=bags");
+  });
+
+  it("returns null on a product detail route and leaves the input URLSearchParams unmutated (AC-5)", () => {
+    const params = new URLSearchParams(
+      "category=bags&minPrice=500&maxPrice=2000&page=2",
+    );
+
+    expect(
+      withoutPriceFilters("/shop/sunflower-amigurumi-bear", params),
+    ).toBeNull();
+    expect(withoutPriceFilters("/shop", params)).toBe("/shop?category=bags");
+    expect(params.toString()).toBe(
+      "category=bags&minPrice=500&maxPrice=2000&page=2",
+    );
   });
 });

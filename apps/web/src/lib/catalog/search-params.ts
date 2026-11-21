@@ -308,6 +308,37 @@ export function hasCatalogFilters(state: CatalogSearchState): boolean {
   );
 }
 
+/**
+ * Removes `minPrice`, `maxPrice`, and `page` from a `/shop` URL when a price
+ * filter parameter is present (AC-5).
+ *
+ * Returns `null` when the pathname is not `/shop` or when neither `minPrice`
+ * nor `maxPrice` is present in `searchParams`.
+ *
+ * @param pathname Current location pathname.
+ * @param searchParams Current location query parameters.
+ * @returns The cleaned `/shop` relative URL, or `null` when no reset is needed.
+ */
+export function withoutPriceFilters(
+  pathname: string,
+  searchParams: URLSearchParams,
+): string | null {
+  if (
+    pathname !== "/shop" ||
+    (!searchParams.has("minPrice") && !searchParams.has("maxPrice"))
+  ) {
+    return null;
+  }
+
+  const nextParams = new URLSearchParams(searchParams.toString());
+  nextParams.delete("minPrice");
+  nextParams.delete("maxPrice");
+  nextParams.delete("page");
+
+  const query = nextParams.toString();
+  return query.length > 0 ? `/shop?${query}` : "/shop";
+}
+
 /** Reads the first value of a repeatable parameter. */
 function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;

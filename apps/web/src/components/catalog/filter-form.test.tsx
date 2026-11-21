@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { CategorySummaryDto } from "@crochet-peakz/shared";
 import { CatalogFilterForm } from "./filter-form";
@@ -111,5 +111,37 @@ describe("CatalogFilterForm", () => {
       screen.getByRole("link", { name: "Clear all" }).getAttribute("href"),
     ).toBe("/shop");
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeTruthy();
+  });
+
+  it("remounts the uncontrolled price inputs empty when currency or price state resets (AC-5)", () => {
+    const { rerender } = render(
+      <CatalogFilterForm
+        categories={categories}
+        state={{
+          ...defaultCatalogSearchState,
+          minPrice: 500,
+          maxPrice: 2000,
+        }}
+        currency="BDT"
+        idPrefix="test"
+      />,
+    );
+
+    const minimumBefore = screen.getByLabelText<HTMLInputElement>("Minimum");
+    fireEvent.change(minimumBefore, { target: { value: "750" } });
+    expect(minimumBefore.value).toBe("750");
+
+    rerender(
+      <CatalogFilterForm
+        categories={categories}
+        state={defaultCatalogSearchState}
+        currency="USD"
+        idPrefix="test"
+      />,
+    );
+
+    expect(screen.getByLabelText<HTMLInputElement>("Minimum").value).toBe("");
+    expect(screen.getByLabelText<HTMLInputElement>("Maximum").value).toBe("");
+    expect(screen.getByText("Prices in USD. Up to two decimals.")).toBeTruthy();
   });
 });

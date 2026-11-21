@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { ProductType } from "@crochet-peakz/shared";
 import type { CategorySummaryDto, CurrencyCode } from "@crochet-peakz/shared";
-import type { CatalogSearchState } from "@/lib/catalog/search-params";
+import {
+  buildShopHref,
+  type CatalogSearchState,
+} from "@/lib/catalog/search-params";
 import { productTypeLabels } from "@/lib/catalog/labels";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,9 +32,10 @@ export function CatalogFilterForm({
   const visibleCategories = categories.filter(
     (category) => category.productCount > 0,
   );
+  const formKey = `${currency}:${buildShopHref(state)}`;
 
   return (
-    <form method="get" action="/shop" className="space-y-7">
+    <form key={formKey} method="get" action="/shop" className="space-y-7">
       {state.sort !== "newest" ? (
         <input type="hidden" name="sort" value={state.sort} />
       ) : null}

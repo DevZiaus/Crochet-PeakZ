@@ -7,7 +7,8 @@
  * from the page source. These tests lock the server side decision in place.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { AuthUser } from "@crochet-peakz/shared";
 import type { SessionState } from "../../lib/auth/use-session";
 
@@ -160,5 +161,25 @@ describe("AdminLayout", () => {
     );
 
     expect(rendered).toBeNull();
+  });
+
+  it("omits the currency control from both the header and mobile drawer in admin (AC-1)", async () => {
+    const user = userEvent.setup();
+    mockedGetSessionUser.mockResolvedValue(admin);
+
+    render(await renderShell());
+
+    expect(
+      screen.queryByRole("button", { name: /^Currency:/ }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const drawer = await screen.findByRole("dialog", {
+      name: "Mobile navigation",
+    });
+
+    expect(
+      within(drawer).queryByRole("group", { name: "Currency" }),
+    ).not.toBeInTheDocument();
   });
 });

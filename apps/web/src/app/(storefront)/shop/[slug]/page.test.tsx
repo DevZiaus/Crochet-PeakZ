@@ -35,7 +35,7 @@ vi.mock("../../../../lib/catalog/api", () => ({
   isCatalogNotFound: () => false,
 }));
 
-vi.mock("../../../../lib/catalog/currency", () => ({
+vi.mock("../../../../lib/currency/server", () => ({
   getActiveCurrency: () => Promise.resolve("BDT"),
 }));
 

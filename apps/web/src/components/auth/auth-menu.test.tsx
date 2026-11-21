@@ -280,4 +280,27 @@ describe("AuthMenu", () => {
     await screen.findByText("ada@example.com");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("keeps the modal default and close animation on the shared DropdownMenu", async () => {
+    const user = userEvent.setup();
+    mockedUseSession.mockReturnValue(session({ user: customer }));
+
+    render(
+      <>
+        <button type="button">Outside action</button>
+        <AuthMenu />
+      </>,
+    );
+
+    const outsideControl = screen.getByRole("button", {
+      name: "Outside action",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Account menu for Ada Lovelace" }),
+    );
+
+    const menu = await screen.findByRole("menu");
+    expect(menu).toHaveClass("data-[state=closed]:animate-out");
+    expect(outsideControl.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
 });

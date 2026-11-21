@@ -5,7 +5,7 @@ import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { fetchCatalogCategories } from "@/lib/catalog/api";
-import { getActiveCurrency } from "@/lib/catalog/currency";
+import { getActiveCurrency } from "@/lib/currency/server";
 import { getCatalogEnv } from "@/lib/catalog/env";
 
 /**
