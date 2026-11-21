@@ -43,6 +43,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 30  | Accessibility                      | Slice 8    | planned |
 | 31  | Error monitoring                   | Slice 8    | planned |
 | 32  | Internationalization               | Slice 8    | planned |
+| 33  | Rate limiting & abuse protection   | Slice 8    | planned |
 
 ## Foundations
 
@@ -149,9 +150,9 @@ Home page with featured products, catalog listing with filtering (category, prod
 
 ### 7. Currency switcher
 
-Global header toggle between BDT (৳) and USD ($). Persisted in local storage / session cookie. All product prices display in the selected currency. Dual pricing from the database (`price_bdt`, `price_usd`).
+Header dropdown and mobile drawer toggle between BDT (৳) and USD ($). Persisted for one year in an HttpOnly cookie. All product prices display in the selected currency. Dual pricing from the database (`priceBdt`, `priceUsd`).
 
-**Done when:** switching currencies updates all displayed prices site wide; the preference persists across sessions; checkout uses the selected currency.
+**Done when:** switching currencies updates all displayed prices site wide; the preference persists across sessions and is available to the cart and checkout.
 
 - [x] Design it (spec): [0007](../specs/0007-currency-switcher/index.md)
 - [x] Build it: `/develop currency switcher`
@@ -279,7 +280,7 @@ Order lifecycle manager: view all orders, update status through the stages, assi
 
 ### 20. Payment gateway & store settings
 
-Live toggles for each payment gateway (Stripe, PayPal, SSLCommerz, COD) with enable/disable in real time without code redeployment. Shipping rate configuration. Currency exchange rate setting.
+Live toggles for each payment gateway (Stripe, PayPal, SSLCommerz, COD) with enable/disable in real time without code redeployment. Shipping rate configuration. Currency exchange rate setting (confirm whether it is still needed; prices are hand set in BDT and USD).
 
 **Done when:** admin can toggle gateways on/off and the checkout immediately reflects the change; shipping rates are editable; the store_settings table drives all dynamic configuration.
 
@@ -392,6 +393,14 @@ English as the default language, Bangla (bn) as the second language, with infras
 **Done when:** the store can be viewed in English and Bangla; the language switcher works; all user facing strings are extracted for translation; the infrastructure supports adding new languages without code changes.
 
 - [ ] Design it (spec): `/architect internationalization`
+
+### 33. Rate limiting & abuse protection · needs a decision
+
+Protect the public catalog, contact, and auth routes from abuse with rate limits at the reverse proxy or WAF, and add an application level limiter if the proxy cannot cover a route.
+
+**Done when:** public routes have a documented rate limit; repeated abuse is blocked or slowed; the limit is configurable per environment; the contact form and auth endpoints are covered.
+
+- [ ] Design it (spec): `/architect rate limiting & abuse protection`
 
 ## Deferred
 
