@@ -9,40 +9,41 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                            | Phase      | Status      |
-| --- | ---------------------------------- | ---------- | ----------- |
-| 1   | Stack & architecture               | Foundation | done        |
-| 2   | Coding standards & tooling         | Foundation | done        |
-| 3   | Data model                         | Foundation | done        |
-| 4   | Design system & UI foundation      | Foundation | done        |
-| 5   | Customer auth                      | Slice 1    | done        |
-| 6   | Product catalog storefront         | Slice 1    | done        |
-| 7   | Currency switcher                  | Slice 1    | in-progress |
-| 8   | Shopping cart                      | Slice 1    | planned     |
-| 9   | Checkout & Stripe payment          | Slice 1    | planned     |
-| 10  | Order confirmation & tracking      | Slice 1    | planned     |
-| 11  | PayPal integration                 | Slice 2    | planned     |
-| 12  | SSLCommerz & COD                   | Slice 2    | planned     |
-| 13  | Shipping engine                    | Slice 2    | planned     |
-| 14  | Digital product catalog & delivery | Slice 3    | planned     |
-| 15  | Custom commission request flow     | Slice 4    | planned     |
-| 16  | Admin commission review & quoting  | Slice 4    | planned     |
-| 17  | Admin dashboard & analytics        | Slice 5    | planned     |
-| 18  | Product management (admin)         | Slice 5    | planned     |
-| 19  | Order management (admin)           | Slice 5    | planned     |
-| 20  | Payment gateway & store settings   | Slice 5    | planned     |
-| 21  | Coupon & discount system           | Slice 5    | planned     |
-| 22  | Customer dashboard & order history | Slice 6    | planned     |
-| 23  | Address book management            | Slice 6    | planned     |
-| 24  | Reviews & ratings                  | Slice 6    | planned     |
-| 25  | Blog CMS                           | Slice 7    | planned     |
-| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned     |
-| 27  | Transactional email system         | Slice 7    | planned     |
-| 28  | SEO                                | Slice 8    | planned     |
-| 29  | Cookie consent & legal pages       | Slice 8    | planned     |
-| 30  | Accessibility                      | Slice 8    | planned     |
-| 31  | Error monitoring                   | Slice 8    | planned     |
-| 32  | Internationalization               | Slice 8    | planned     |
+| #   | Feature                            | Phase      | Status  |
+| --- | ---------------------------------- | ---------- | ------- |
+| 1   | Stack & architecture               | Foundation | done    |
+| 2   | Coding standards & tooling         | Foundation | done    |
+| 3   | Data model                         | Foundation | done    |
+| 4   | Design system & UI foundation      | Foundation | done    |
+| 5   | Customer auth                      | Slice 1    | done    |
+| 6   | Product catalog storefront         | Slice 1    | done    |
+| 7   | Currency switcher                  | Slice 1    | done    |
+| 8   | Shopping cart                      | Slice 1    | planned |
+| 9   | Checkout & Stripe payment          | Slice 1    | planned |
+| 10  | Order confirmation & tracking      | Slice 1    | planned |
+| 11  | PayPal integration                 | Slice 2    | planned |
+| 12  | SSLCommerz & COD                   | Slice 2    | planned |
+| 13  | Shipping engine                    | Slice 2    | planned |
+| 14  | Digital product catalog & delivery | Slice 3    | planned |
+| 15  | Custom commission request flow     | Slice 4    | planned |
+| 16  | Admin commission review & quoting  | Slice 4    | planned |
+| 17  | Admin dashboard & analytics        | Slice 5    | planned |
+| 18  | Product management (admin)         | Slice 5    | planned |
+| 19  | Order management (admin)           | Slice 5    | planned |
+| 20  | Payment gateway & store settings   | Slice 5    | planned |
+| 21  | Coupon & discount system           | Slice 5    | planned |
+| 22  | Customer dashboard & order history | Slice 6    | planned |
+| 23  | Address book management            | Slice 6    | planned |
+| 24  | Reviews & ratings                  | Slice 6    | planned |
+| 25  | Blog CMS                           | Slice 7    | planned |
+| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned |
+| 27  | Transactional email system         | Slice 7    | planned |
+| 28  | SEO                                | Slice 8    | planned |
+| 29  | Cookie consent & legal pages       | Slice 8    | planned |
+| 30  | Accessibility                      | Slice 8    | planned |
+| 31  | Error monitoring                   | Slice 8    | planned |
+| 32  | Internationalization               | Slice 8    | planned |
+| 33  | Rate limiting & abuse protection   | Slice 8    | planned |
 
 ## Foundations
 
@@ -149,9 +150,9 @@ Home page with featured products, catalog listing with filtering (category, prod
 
 ### 7. Currency switcher
 
-Global header toggle between BDT (৳) and USD ($). Persisted in local storage / session cookie. All product prices display in the selected currency. Dual pricing from the database (`price_bdt`, `price_usd`).
+Header dropdown and mobile drawer toggle between BDT (৳) and USD ($). Persisted for one year in an HttpOnly cookie. All product prices display in the selected currency. Dual pricing from the database (`priceBdt`, `priceUsd`).
 
-**Done when:** switching currencies updates all displayed prices site wide; the preference persists across sessions; checkout uses the selected currency.
+**Done when:** switching currencies updates all displayed prices site wide; the preference persists across sessions and is available to the cart and checkout.
 
 - [x] Design it (spec): [0007](../specs/0007-currency-switcher/index.md)
 - [x] Build it: `/develop currency switcher`
@@ -163,7 +164,7 @@ Global header toggle between BDT (৳) and USD ($). Persisted in local storage /
 - [x] Verify it: `/check verify currency switcher`
 - [x] Test it: `/test currency switcher`
 - [x] Review it (fresh model): `/check review currency switcher`
-- [ ] Document it: `/document currency switcher`
+- [x] Document it: `/document currency switcher`
 
 ### 8. Shopping cart · needs a decision
 
@@ -279,7 +280,7 @@ Order lifecycle manager: view all orders, update status through the stages, assi
 
 ### 20. Payment gateway & store settings
 
-Live toggles for each payment gateway (Stripe, PayPal, SSLCommerz, COD) with enable/disable in real time without code redeployment. Shipping rate configuration. Currency exchange rate setting.
+Live toggles for each payment gateway (Stripe, PayPal, SSLCommerz, COD) with enable/disable in real time without code redeployment. Shipping rate configuration. Currency exchange rate setting (confirm whether it is still needed; prices are hand set in BDT and USD).
 
 **Done when:** admin can toggle gateways on/off and the checkout immediately reflects the change; shipping rates are editable; the store_settings table drives all dynamic configuration.
 
@@ -392,6 +393,14 @@ English as the default language, Bangla (bn) as the second language, with infras
 **Done when:** the store can be viewed in English and Bangla; the language switcher works; all user facing strings are extracted for translation; the infrastructure supports adding new languages without code changes.
 
 - [ ] Design it (spec): `/architect internationalization`
+
+### 33. Rate limiting & abuse protection · needs a decision
+
+Protect the public catalog, contact, and auth routes from abuse with rate limits at the reverse proxy or WAF, and add an application level limiter if the proxy cannot cover a route.
+
+**Done when:** public routes have a documented rate limit; repeated abuse is blocked or slowed; the limit is configurable per environment; the contact form and auth endpoints are covered.
+
+- [ ] Design it (spec): `/architect rate limiting & abuse protection`
 
 ## Deferred
 
