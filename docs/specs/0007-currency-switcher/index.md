@@ -1,7 +1,7 @@
 # 0007. Currency switcher with a server written cookie
 
 **Date**: 2026-11-20
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
