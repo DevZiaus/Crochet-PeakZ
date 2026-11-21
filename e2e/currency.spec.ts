@@ -292,9 +292,12 @@ test("persists across browser sessions and sign in/out, and defaults to BDT with
   )?.value;
   expect(afterSignOutCurrency).toBe("USD");
 
+  if (baseURL === undefined || baseURL.length === 0) {
+    throw new Error("Playwright baseURL must be configured");
+  }
   await context.clearCookies();
   await context.addCookies([
-    { name: "cp_currency", value: "EUR", url: baseURL ?? "" },
+    { name: "cp_currency", value: "EUR", url: baseURL },
   ]);
   await page.goto("/shop");
   await expect(page.getByText("৳1,800").first()).toBeVisible();

@@ -56,6 +56,7 @@ export function CurrencySwitcher() {
           <span>{currentLabel.shortLabel}</span>
         </Button>
       </DropdownMenuTrigger>
+      {/* Disable close animation so Radix FocusScope unmounts immediately on rapid reopen. */}
       <DropdownMenuContent align="end" animateClose={false} className="w-56">
         <DropdownMenuRadioGroup value={currency}>
           {CURRENCY_OPTIONS.map((option) => (

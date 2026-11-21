@@ -599,6 +599,50 @@ describe("CurrencySwitcher", () => {
       expect(trigger).toHaveFocus();
     });
   });
+
+  it("does not show the currency failure toast if router.replace throws after setCurrency succeeds (AC-5, AC-7)", async () => {
+    setLocation("/shop", "?category=bags&minPrice=500");
+    replaceMock.mockImplementationOnce(() => {
+      throw new Error("navigation aborted");
+    });
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      const user = userEvent.setup();
+      render(
+        <CurrencyProvider currency={Currency.BDT}>
+          <CurrencySwitcher />
+        </CurrencyProvider>,
+      );
+
+      const trigger = screen.getByRole("button", { name: "Currency: ৳ BDT" });
+      await user.click(trigger);
+      await user.click(
+        await screen.findByRole("menuitemradio", {
+          name: "$ USD, US dollars",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(setCurrencyMock).toHaveBeenCalledWith({ currency: "USD" });
+        expect(screen.getByRole("status")).toHaveTextContent(
+          "Prices now shown in US dollars",
+        );
+        expect(trigger).toBeEnabled();
+        expect(trigger).toHaveFocus();
+      });
+
+      expect(toastErrorMock).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalledWith(
+        "Failed to reset shop price filters:",
+        expect.any(Error),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
 });
 
 describe("CurrencyRadio", () => {

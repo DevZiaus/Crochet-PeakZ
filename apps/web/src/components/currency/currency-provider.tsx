@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useOptimistic,
   useRef,
   useState,
@@ -15,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { CurrencyCode } from "@crochet-peakz/shared";
 import { withoutPriceFilters } from "@/lib/catalog/search-params";
-import { setCurrency } from "@/lib/currency/actions";
+import { setCurrency, type SetCurrencyResult } from "@/lib/currency/actions";
 import {
   CURRENCY_SWITCH_ERROR_MESSAGE,
   currencyLabels,
@@ -109,7 +110,15 @@ export function CurrencyProvider({
       startTransition(async () => {
         setPendingCurrency(nextCurrency);
         try {
-          const result = await setCurrency({ currency: nextCurrency });
+          let result: SetCurrencyResult;
+          try {
+            result = await setCurrency({ currency: nextCurrency });
+          } catch (error) {
+            toast.error(CURRENCY_SWITCH_ERROR_MESSAGE);
+            console.error("Failed to switch currency:", error);
+            return;
+          }
+
           if (!result.ok) {
             toast.error(CURRENCY_SWITCH_ERROR_MESSAGE);
             console.error("Failed to switch currency:", result.error);
@@ -121,11 +130,12 @@ export function CurrencyProvider({
             target: announceTarget,
           });
           if (cleaned !== null) {
-            router.replace(cleaned);
+            try {
+              router.replace(cleaned);
+            } catch (error) {
+              console.error("Failed to reset shop price filters:", error);
+            }
           }
-        } catch (error) {
-          toast.error(CURRENCY_SWITCH_ERROR_MESSAGE);
-          console.error("Failed to switch currency:", error);
         } finally {
           pendingFocusRef.current = focusTarget ?? null;
           setRestoreTick((tick) => tick + 1);
@@ -140,17 +150,27 @@ export function CurrencyProvider({
   const drawerAnnouncement =
     announcementState.target === "drawer" ? announcementState.text : "";
 
+  const contextValue = useMemo<CurrencyContextValue>(
+    () => ({
+      currency,
+      pendingCurrency,
+      isPending,
+      announcement,
+      drawerAnnouncement,
+      switchCurrency,
+    }),
+    [
+      currency,
+      pendingCurrency,
+      isPending,
+      announcement,
+      drawerAnnouncement,
+      switchCurrency,
+    ],
+  );
+
   return (
-    <CurrencyContext.Provider
-      value={{
-        currency,
-        pendingCurrency,
-        isPending,
-        announcement,
-        drawerAnnouncement,
-        switchCurrency,
-      }}
-    >
+    <CurrencyContext.Provider value={contextValue}>
       {children}
       <div
         role="status"
