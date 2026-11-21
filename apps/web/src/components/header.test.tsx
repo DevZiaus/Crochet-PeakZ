@@ -12,9 +12,20 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { usePathname } from "next/navigation";
 import { Currency } from "@crochet-peakz/shared";
+import type { SetCurrencyResult } from "../lib/currency/actions";
 import { CurrencyProvider } from "./currency/currency-provider";
 import { Header, MobileNavDrawer, navLinks } from "./header";
 import { mockDesktopBreakpoint } from "../test/match-media";
+
+const { setCurrencyMock } = vi.hoisted(() => ({
+  setCurrencyMock: vi.fn<
+    (input: { currency: string }) => Promise<SetCurrencyResult>
+  >(() => Promise.resolve({ ok: true as const })),
+}));
+
+vi.mock("../lib/currency/actions", () => ({
+  setCurrency: setCurrencyMock,
+}));
 
 // The account control reads the session with `useSession`, which would call
 // `/api/auth/me`. Stub it to the signed out state so the suite stays offline
@@ -30,6 +41,7 @@ vi.mock("../lib/auth/use-session", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  setCurrencyMock.mockResolvedValue({ ok: true });
   vi.mocked(usePathname).mockReturnValue("/");
 });
 
@@ -108,12 +120,28 @@ describe("Header", () => {
     ).toBeEnabled();
   });
 
-  it("hides the currency control when rendered outside CurrencyProvider (auth and admin layouts, AC-1)", () => {
-    render(<Header />);
+  it("hides the currency control when rendered outside CurrencyProvider and omits the coming soon placeholder (AC-1)", () => {
+    const { unmount } = render(<Header />);
 
     expect(
       screen.queryByRole("button", { name: /Currency:/ }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /BDT/i }),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <CurrencyProvider currency={Currency.BDT}>
+        <Header />
+      </CurrencyProvider>,
+    );
+
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Currency: ৳ BDT" }),
+    ).toBeEnabled();
   });
 
   it("opens the mobile drawer with the same navigation links and a close button", async () => {
@@ -358,5 +386,38 @@ describe("MobileNavDrawer", () => {
     expect(
       within(drawer).getByRole("radio", { name: "$ USD, US dollars" }),
     ).toBeChecked();
+  });
+
+  it("places Currency next to Theme in the open drawer, keeps the drawer open on switch, and announces in the drawer live region (AC-1, AC-8)", async () => {
+    const user = userEvent.setup();
+    render(
+      <CurrencyProvider currency={Currency.BDT}>
+        <Header />
+      </CurrencyProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
+    const drawer = await screen.findByRole("dialog", {
+      name: "Mobile navigation",
+    });
+
+    const currencyGroup = within(drawer).getByRole("group", {
+      name: "Currency",
+    });
+    expect(within(drawer).getByText("Theme")).toBeInTheDocument();
+
+    await user.click(
+      within(currencyGroup).getByRole("radio", { name: "$ USD, US dollars" }),
+    );
+
+    await waitFor(() => {
+      expect(setCurrencyMock).toHaveBeenCalledWith({ currency: "USD" });
+      expect(within(drawer).getByRole("status")).toHaveTextContent(
+        "Prices now shown in US dollars",
+      );
+    });
+    expect(
+      screen.getByRole("dialog", { name: "Mobile navigation" }),
+    ).toBeVisible();
   });
 });

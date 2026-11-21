@@ -161,8 +161,8 @@ Global header toggle between BDT (৳) and USD ($). Persisted in local storage /
   - [x] `/shop` price filter reset and action validation (AC-5, AC-6)
   - [x] Pending, failure, announcement, and focus states, plus the full test pass (AC-3, AC-7, AC-8)
 - [x] Verify it: `/check verify currency switcher`
-- [ ] Test it: `/test currency switcher`
-- [ ] Review it (fresh model): `/check review currency switcher`
+- [x] Test it: `/test currency switcher`
+- [x] Review it (fresh model): `/check review currency switcher`
 - [ ] Document it: `/document currency switcher`
 
 ### 8. Shopping cart · needs a decision

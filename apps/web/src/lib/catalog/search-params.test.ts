@@ -341,4 +341,37 @@ describe("withoutPriceFilters", () => {
       "/shop",
     );
   });
+
+  it("preserves repeated categories, types, featured, and sort while stripping a single price param and page (AC-5)", () => {
+    expect(
+      withoutPriceFilters(
+        "/shop",
+        new URLSearchParams(
+          "category=amigurumi&category=wearables&type=STANDARD&type=DIGITAL&featured=true&minPrice=500&sort=price-desc&page=4",
+        ),
+      ),
+    ).toBe(
+      "/shop?category=amigurumi&category=wearables&type=STANDARD&type=DIGITAL&featured=true&sort=price-desc",
+    );
+    expect(
+      withoutPriceFilters(
+        "/shop",
+        new URLSearchParams("category=bags&maxPrice=2000&page=2"),
+      ),
+    ).toBe("/shop?category=bags");
+  });
+
+  it("returns null on a product detail route and leaves the input URLSearchParams unmutated (AC-5)", () => {
+    const params = new URLSearchParams(
+      "category=bags&minPrice=500&maxPrice=2000&page=2",
+    );
+
+    expect(
+      withoutPriceFilters("/shop/sunflower-amigurumi-bear", params),
+    ).toBeNull();
+    expect(withoutPriceFilters("/shop", params)).toBe("/shop?category=bags");
+    expect(params.toString()).toBe(
+      "category=bags&minPrice=500&maxPrice=2000&page=2",
+    );
+  });
 });
