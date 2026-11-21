@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { CategorySummaryDto } from "@crochet-peakz/shared";
 import { FilterSidebar } from "./filter-sidebar";
 import { defaultCatalogSearchState } from "../../lib/catalog/search-params";
@@ -96,5 +97,39 @@ describe("FilterSidebar", () => {
 
     expect(form).toHaveAttribute("method", "get");
     expect(form).toHaveAttribute("action", "/shop");
+  });
+
+  it("remounts uncontrolled price inputs empty when currency resets price state (AC-5)", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <FilterSidebar
+        categories={categories}
+        state={{
+          ...defaultCatalogSearchState,
+          minPrice: 500,
+          maxPrice: 2000,
+        }}
+        currency="BDT"
+      />,
+    );
+
+    const minimumBefore = screen.getByLabelText<HTMLInputElement>("Minimum");
+    await user.clear(minimumBefore);
+    await user.type(minimumBefore, "750");
+    expect(minimumBefore.value).toBe("750");
+
+    rerender(
+      <FilterSidebar
+        categories={categories}
+        state={defaultCatalogSearchState}
+        currency="USD"
+      />,
+    );
+
+    expect(screen.getByLabelText<HTMLInputElement>("Minimum").value).toBe("");
+    expect(screen.getByLabelText<HTMLInputElement>("Maximum").value).toBe("");
+    expect(
+      screen.getByText("Prices in USD. Up to two decimals."),
+    ).toBeInTheDocument();
   });
 });

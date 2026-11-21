@@ -14,7 +14,7 @@ import {
   fetchCatalogCategories,
   fetchCatalogProducts,
 } from "@/lib/catalog/api";
-import { getActiveCurrency } from "@/lib/catalog/currency";
+import { getActiveCurrency } from "@/lib/currency/server";
 import { getCatalogEnv } from "@/lib/catalog/env";
 import { formatPieceCount } from "@/lib/catalog/labels";
 import {

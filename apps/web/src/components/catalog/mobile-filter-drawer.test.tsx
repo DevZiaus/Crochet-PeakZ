@@ -87,6 +87,10 @@ describe("MobileFilterDrawer", () => {
     await user.click(screen.getByRole("button", { name: "Filters" }));
     const dialog = await screen.findByRole("dialog", { name: "Filters" });
 
+    expect(
+      within(dialog).queryByRole("button", { name: "Close" }),
+    ).not.toBeInTheDocument();
+
     await user.click(
       within(dialog).getByRole("button", { name: "Close filters" }),
     );
@@ -146,5 +150,47 @@ describe("MobileFilterDrawer", () => {
       within(dialog).getByRole("checkbox", { name: /Amigurumi/ }),
     ).toBeChecked();
     expect(within(dialog).getByLabelText("Minimum")).toHaveValue(10);
+  });
+
+  it("remounts uncontrolled drawer price inputs empty when currency resets price state (AC-5)", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <MobileFilterDrawer
+        categories={categories}
+        state={{
+          ...defaultCatalogSearchState,
+          minPrice: 500,
+          maxPrice: 2000,
+        }}
+        currency="BDT"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    const dialogBefore = await screen.findByRole("dialog", { name: "Filters" });
+    const minimumBefore =
+      within(dialogBefore).getByLabelText<HTMLInputElement>("Minimum");
+    await user.clear(minimumBefore);
+    await user.type(minimumBefore, "750");
+    expect(minimumBefore.value).toBe("750");
+
+    rerender(
+      <MobileFilterDrawer
+        categories={categories}
+        state={defaultCatalogSearchState}
+        currency="USD"
+      />,
+    );
+
+    const dialogAfter = await screen.findByRole("dialog", { name: "Filters" });
+    expect(
+      within(dialogAfter).getByLabelText<HTMLInputElement>("Minimum").value,
+    ).toBe("");
+    expect(
+      within(dialogAfter).getByLabelText<HTMLInputElement>("Maximum").value,
+    ).toBe("");
+    expect(
+      within(dialogAfter).getByText("Prices in USD. Up to two decimals."),
+    ).toBeInTheDocument();
   });
 });

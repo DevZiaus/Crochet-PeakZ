@@ -9,40 +9,40 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                            | Phase      | Status  |
-| --- | ---------------------------------- | ---------- | ------- |
-| 1   | Stack & architecture               | Foundation | done    |
-| 2   | Coding standards & tooling         | Foundation | done    |
-| 3   | Data model                         | Foundation | done    |
-| 4   | Design system & UI foundation      | Foundation | done    |
-| 5   | Customer auth                      | Slice 1    | done    |
-| 6   | Product catalog storefront         | Slice 1    | done    |
-| 7   | Currency switcher                  | Slice 1    | planned |
-| 8   | Shopping cart                      | Slice 1    | planned |
-| 9   | Checkout & Stripe payment          | Slice 1    | planned |
-| 10  | Order confirmation & tracking      | Slice 1    | planned |
-| 11  | PayPal integration                 | Slice 2    | planned |
-| 12  | SSLCommerz & COD                   | Slice 2    | planned |
-| 13  | Shipping engine                    | Slice 2    | planned |
-| 14  | Digital product catalog & delivery | Slice 3    | planned |
-| 15  | Custom commission request flow     | Slice 4    | planned |
-| 16  | Admin commission review & quoting  | Slice 4    | planned |
-| 17  | Admin dashboard & analytics        | Slice 5    | planned |
-| 18  | Product management (admin)         | Slice 5    | planned |
-| 19  | Order management (admin)           | Slice 5    | planned |
-| 20  | Payment gateway & store settings   | Slice 5    | planned |
-| 21  | Coupon & discount system           | Slice 5    | planned |
-| 22  | Customer dashboard & order history | Slice 6    | planned |
-| 23  | Address book management            | Slice 6    | planned |
-| 24  | Reviews & ratings                  | Slice 6    | planned |
-| 25  | Blog CMS                           | Slice 7    | planned |
-| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned |
-| 27  | Transactional email system         | Slice 7    | planned |
-| 28  | SEO                                | Slice 8    | planned |
-| 29  | Cookie consent & legal pages       | Slice 8    | planned |
-| 30  | Accessibility                      | Slice 8    | planned |
-| 31  | Error monitoring                   | Slice 8    | planned |
-| 32  | Internationalization               | Slice 8    | planned |
+| #   | Feature                            | Phase      | Status      |
+| --- | ---------------------------------- | ---------- | ----------- |
+| 1   | Stack & architecture               | Foundation | done        |
+| 2   | Coding standards & tooling         | Foundation | done        |
+| 3   | Data model                         | Foundation | done        |
+| 4   | Design system & UI foundation      | Foundation | done        |
+| 5   | Customer auth                      | Slice 1    | done        |
+| 6   | Product catalog storefront         | Slice 1    | done        |
+| 7   | Currency switcher                  | Slice 1    | in-progress |
+| 8   | Shopping cart                      | Slice 1    | planned     |
+| 9   | Checkout & Stripe payment          | Slice 1    | planned     |
+| 10  | Order confirmation & tracking      | Slice 1    | planned     |
+| 11  | PayPal integration                 | Slice 2    | planned     |
+| 12  | SSLCommerz & COD                   | Slice 2    | planned     |
+| 13  | Shipping engine                    | Slice 2    | planned     |
+| 14  | Digital product catalog & delivery | Slice 3    | planned     |
+| 15  | Custom commission request flow     | Slice 4    | planned     |
+| 16  | Admin commission review & quoting  | Slice 4    | planned     |
+| 17  | Admin dashboard & analytics        | Slice 5    | planned     |
+| 18  | Product management (admin)         | Slice 5    | planned     |
+| 19  | Order management (admin)           | Slice 5    | planned     |
+| 20  | Payment gateway & store settings   | Slice 5    | planned     |
+| 21  | Coupon & discount system           | Slice 5    | planned     |
+| 22  | Customer dashboard & order history | Slice 6    | planned     |
+| 23  | Address book management            | Slice 6    | planned     |
+| 24  | Reviews & ratings                  | Slice 6    | planned     |
+| 25  | Blog CMS                           | Slice 7    | planned     |
+| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned     |
+| 27  | Transactional email system         | Slice 7    | planned     |
+| 28  | SEO                                | Slice 8    | planned     |
+| 29  | Cookie consent & legal pages       | Slice 8    | planned     |
+| 30  | Accessibility                      | Slice 8    | planned     |
+| 31  | Error monitoring                   | Slice 8    | planned     |
+| 32  | Internationalization               | Slice 8    | planned     |
 
 ## Foundations
 
@@ -153,7 +153,17 @@ Global header toggle between BDT (৳) and USD ($). Persisted in local storage /
 
 **Done when:** switching currencies updates all displayed prices site wide; the preference persists across sessions; checkout uses the selected currency.
 
-- [ ] Design it (spec): `/architect currency switcher`
+- [x] Design it (spec): [0007](../specs/0007-currency-switcher/index.md)
+- [x] Build it: `/develop currency switcher`
+  - Spec 0007 · code in `apps/web/src/lib/currency/`, `apps/web/src/components/currency/`, `apps/web/src/components/header.tsx`, `apps/web/src/app/(storefront)/layout.tsx`, `apps/web/src/lib/catalog/search-params.ts`, `apps/web/src/components/catalog/filter-form.tsx`, `e2e/currency.spec.ts`
+  - [x] Thin thread: shared currency helpers, `setCurrency` Server Action, header menu switching real prices (AC-2, AC-3, AC-4, AC-9)
+  - [x] Provider, storefront only placement, and mobile drawer row (AC-1, AC-9)
+  - [x] `/shop` price filter reset and action validation (AC-5, AC-6)
+  - [x] Pending, failure, announcement, and focus states, plus the full test pass (AC-3, AC-7, AC-8)
+- [x] Verify it: `/check verify currency switcher`
+- [x] Test it: `/test currency switcher`
+- [x] Review it (fresh model): `/check review currency switcher`
+- [ ] Document it: `/document currency switcher`
 
 ### 8. Shopping cart · needs a decision
 
