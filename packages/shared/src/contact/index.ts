@@ -10,6 +10,7 @@ export const CONTACT_TOPIC_KEYS = [
   "order",
   "patterns",
   "privacy",
+  "data-deletion",
 ] as const;
 
 /** Human-readable labels for each contact form topic. */
@@ -19,6 +20,7 @@ export const CONTACT_TOPICS = {
   order: "Order & shipping help",
   patterns: "Patterns & digital guides",
   privacy: "Privacy & data request",
+  "data-deletion": "Data deletion",
 } as const satisfies Record<(typeof CONTACT_TOPIC_KEYS)[number], string>;
 
 /** Supported contact topic identifier. */

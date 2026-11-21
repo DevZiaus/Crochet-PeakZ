@@ -41,13 +41,13 @@ describe("Storefront info and legal pages", () => {
     );
   });
 
-  it("renders the Contact page with Crochet PeakZ email, social links, and form", () => {
+  it("renders the Contact page with Crochet PeakZ email, social links, and form", async () => {
     const metadata = generateContactMetadata();
     expect(metadata.alternates?.canonical).toBe(
       "https://shop.example.test/contact",
     );
 
-    render(<ContactPage />);
+    render(await ContactPage());
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(
@@ -77,6 +77,30 @@ describe("Storefront info and legal pages", () => {
     ).toBeInTheDocument();
   });
 
+  it("pre-selects the contact topic from ?topic= and falls back on unknown topics", async () => {
+    const { unmount } = render(
+      await ContactPage({
+        searchParams: Promise.resolve({ topic: "data-deletion" }),
+      }),
+    );
+
+    expect(screen.getByRole("combobox", { name: /Topic/ })).toHaveTextContent(
+      "Data deletion",
+    );
+
+    unmount();
+
+    render(
+      await ContactPage({
+        searchParams: Promise.resolve({ topic: "invalid-topic" }),
+      }),
+    );
+
+    expect(screen.getByRole("combobox", { name: /Topic/ })).toHaveTextContent(
+      "General inquiry",
+    );
+  });
+
   it("renders the Privacy page with hello@crochetpeakz.tech and link to data deletion", () => {
     const metadata = generatePrivacyMetadata();
     expect(metadata.alternates?.canonical).toBe(
@@ -103,6 +127,11 @@ describe("Storefront info and legal pages", () => {
     render(<DataDeletionPage />);
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "contact form" })).toHaveAttribute(
+      "href",
+      "/contact?topic=data-deletion",
+    );
+    expect(screen.getByText("Data deletion")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "hello@crochetpeakz.tech" }),
     ).toHaveAttribute(

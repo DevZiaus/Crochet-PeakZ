@@ -61,7 +61,18 @@ export default function DataDeletionPage() {
                 How to request deletion
               </h2>
               <p className="text-base leading-relaxed text-muted-foreground">
-                Send an email to{" "}
+                Send us a message through the{" "}
+                <Link
+                  href="/contact?topic=data-deletion"
+                  className="font-medium text-primary underline underline-offset-4 transition-colors duration-200 hover:text-primary-hover motion-reduce:transition-none"
+                >
+                  contact form
+                </Link>{" "}
+                using the{" "}
+                <strong className="font-medium text-foreground">
+                  Data deletion
+                </strong>{" "}
+                topic, or send an email to{" "}
                 <a
                   href={`mailto:${DEFAULT_CONTACT_EMAIL}?subject=Data%20deletion%20request`}
                   className="font-medium text-primary underline underline-offset-4 transition-colors duration-200 hover:text-primary-hover motion-reduce:transition-none"

@@ -53,15 +53,22 @@ function isFieldName(value: string): value is FieldName {
   );
 }
 
+/** Props for {@link ContactForm}. */
+export interface ContactFormProps {
+  /** Optional topic pre-selected on initial load. */
+  initialTopic?: ContactTopic;
+}
+
 /**
  * Interactive storefront contact form with client-side Zod validation,
  * honeypot and fill-time bot guards, accessible field wiring, and inline
  * delivery feedback.
  */
-export function ContactForm() {
+export function ContactForm({ initialTopic }: ContactFormProps = {}) {
+  const defaultTopic: ContactTopic = initialTopic ?? "general";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [topic, setTopic] = useState<ContactTopic>("general");
+  const [topic, setTopic] = useState<ContactTopic>(defaultTopic);
   const [message, setMessage] = useState("");
   const [website, setWebsite] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -170,7 +177,7 @@ export function ContactForm() {
 
       setName("");
       setEmail("");
-      setTopic("general");
+      setTopic(defaultTopic);
       setMessage("");
       setWebsite("");
       setFieldErrors({});

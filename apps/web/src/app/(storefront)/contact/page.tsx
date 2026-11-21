@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Mail } from "lucide-react";
-import { DEFAULT_CONTACT_EMAIL } from "@crochet-peakz/shared";
+import { DEFAULT_CONTACT_EMAIL, isContactTopic } from "@crochet-peakz/shared";
 import { ContactForm } from "@/components/contact-form";
 import { Container } from "@/components/container";
 import { Section } from "@/components/section";
@@ -30,10 +30,23 @@ export function generateMetadata(): Metadata {
   };
 }
 
+interface ContactPageProps {
+  searchParams?: Promise<{ topic?: string | string[] }>;
+}
+
 /**
  * Public Contact page inside the storefront layout.
  */
-export default function ContactPage() {
+export default async function ContactPage({
+  searchParams,
+}: ContactPageProps = {}) {
+  const params = searchParams ? await searchParams : undefined;
+  const rawTopic = Array.isArray(params?.topic)
+    ? params.topic[0]
+    : params?.topic;
+  const initialTopic =
+    rawTopic && isContactTopic(rawTopic) ? rawTopic : undefined;
+
   return (
     <>
       <section className="border-b border-border bg-surface">
@@ -113,7 +126,7 @@ export default function ContactPage() {
             </div>
 
             <div className="lg:col-span-7">
-              <ContactForm />
+              <ContactForm initialTopic={initialTopic} />
             </div>
           </div>
         </Section>

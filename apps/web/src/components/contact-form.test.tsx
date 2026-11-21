@@ -154,4 +154,49 @@ describe("ContactForm", () => {
       "Testing rate limit handling.",
     );
   });
+
+  it("pre-selects initialTopic and submits with that topic", async () => {
+    let clock = 1_000_000;
+    vi.spyOn(Date, "now").mockImplementation(() => {
+      clock += 4000;
+      return clock;
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(<ContactForm initialTopic="data-deletion" />);
+
+    expect(screen.getByRole("combobox", { name: /Topic/ })).toHaveTextContent(
+      "Data deletion",
+    );
+
+    await user.type(screen.getByLabelText(/Name/), "Ada Lovelace");
+    await user.type(screen.getByLabelText(/Email/), "ada@example.com");
+    await user.type(
+      screen.getByLabelText(/Message/),
+      "Please remove my stored contact details.",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /Thank you for reaching out/,
+      );
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(typeof init.body === "string" ? init.body : "") as {
+      topic: string;
+    };
+    expect(sent.topic).toBe("data-deletion");
+    expect(screen.getByRole("combobox", { name: /Topic/ })).toHaveTextContent(
+      "Data deletion",
+    );
+  });
 });

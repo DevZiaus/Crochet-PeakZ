@@ -13,6 +13,8 @@ import {
 describe("contact shared contract", () => {
   it("exposes the default email and topic labels", () => {
     expect(DEFAULT_CONTACT_EMAIL).toBe("hello@crochetpeakz.tech");
+    expect(CONTACT_TOPIC_KEYS).toContain("data-deletion");
+    expect(CONTACT_TOPICS["data-deletion"]).toBe("Data deletion");
     for (const key of CONTACT_TOPIC_KEYS) {
       expect(isContactTopic(key)).toBe(true);
       expect(CONTACT_TOPICS[key].length).toBeGreaterThan(0);
@@ -41,6 +43,15 @@ describe("contact shared contract", () => {
         elapsedMs: 4200,
       });
     }
+
+    const deletionResult = contactSubmissionSchema.safeParse({
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      topic: "data-deletion",
+      message: "Please delete my account data.",
+      elapsedMs: 4000,
+    });
+    expect(deletionResult.success).toBe(true);
   });
 
   it("rejects empty or oversized names", () => {
