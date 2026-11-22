@@ -297,17 +297,25 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
     expect(row.avatarUrl).toBe(facebookProfile.pictureUrl);
     expect(row.emailVerified).toBe(true);
     expect(row.passwordHash).toBeNull();
+
+    const facebookProfileRequest = [...provider.requests.profile]
+      .reverse()
+      .find((entry) => entry.provider === "facebook");
+    expect(facebookProfileRequest?.url.searchParams.get("fields")).toBe(
+      "id,name,email,picture",
+    );
+    expect(
+      facebookProfileRequest?.url.searchParams.get("appsecret_proof"),
+    ).toBeTruthy();
   });
 
-  it("refuses a Facebook email the provider has not verified (M1)", async () => {
-    const email = uniqueEmail("facebook-unverified");
+  it("refuses a Facebook profile when no email is returned (AC-8)", async () => {
     provider.setProfile(
       "facebook",
       makeProfile({
-        id: "facebook-sub-unverified",
-        name: "Unproven Nadia",
-        email,
-        emailVerified: false,
+        id: "facebook-sub-no-email",
+        name: "Phone Only Nadia",
+        email: null,
       }),
     );
 
@@ -317,12 +325,9 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
     expect(response.status).toBe(302);
     const result = resultOf(response);
     expect(result.searchParams.get("provider")).toBe("facebook");
-    expect(result.searchParams.get("error")).toBe("email_unverified");
+    expect(result.searchParams.get("error")).toBe("email_missing");
     expect(hasCookie(response, "cp_access")).toBe(false);
     expect(hasCookie(response, "cp_refresh")).toBe(false);
-    expect(
-      await database.client.user.findUnique({ where: { email } }),
-    ).toBeNull();
   });
 
   it("refuses a Google email the provider has not explicitly verified (M1)", async () => {
@@ -334,6 +339,32 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
         name: "Unproven Ada",
         email,
         omitEmailVerified: true,
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("google");
+    const response = await completeRoundTrip("google", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("google");
+    expect(result.searchParams.get("error")).toBe("email_unverified");
+    expect(hasCookie(response, "cp_access")).toBe(false);
+    expect(hasCookie(response, "cp_refresh")).toBe(false);
+    expect(
+      await database.client.user.findUnique({ where: { email } }),
+    ).toBeNull();
+  });
+
+  it("refuses a Google email with email_verified set to false (AC-8)", async () => {
+    const email = uniqueEmail("google-unverified");
+    provider.setProfile(
+      "google",
+      makeProfile({
+        id: "google-sub-unverified",
+        name: "Unverified Ada",
+        email,
+        emailVerified: false,
       }),
     );
 

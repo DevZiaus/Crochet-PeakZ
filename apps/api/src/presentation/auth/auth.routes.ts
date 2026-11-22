@@ -453,11 +453,12 @@ interface PassportProfileLike {
   emails?: { value: string }[];
   photos?: { value: string }[];
   /**
-   * Provider payload. Google sends `email_verified`; Facebook sends `verified`.
-   * These are provider wire keys, not our own types.
+   * Provider payload. Google sends `email_verified`; Facebook deprecated its
+   * `verified` field and omits `email` unless the user has a confirmed primary
+   * email. This is a provider wire key, not our own type.
    */
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  _json?: { email_verified?: boolean; verified?: boolean };
+  _json?: { email_verified?: boolean };
 }
 
 /** The identity read from a provider profile, or why it was refused. */
@@ -467,11 +468,10 @@ type OAuthProfileOutcome =
 /**
  * Extracts a proven identity from a Passport profile.
  *
- * Email is the identity key, so the provider must attest that it verified the
- * inbox. Google proves it only when the profile carries `email_verified: true`;
- * Facebook proves it only when the profile carries `verified: true`. A profile
- * with no email, or one whose email the provider has not explicitly confirmed,
- * is refused so an unproven address can never link to an existing account.
+ * Email is the identity key. Google proves ownership only when `_json` carries
+ * `email_verified: true`; Facebook's Graph API deprecated `verified` and only
+ * exposes a user's confirmed primary address in `email`, so any non-empty
+ * Facebook email is accepted while missing emails are refused.
  */
 function toOAuthProfile(
   provider: OAuthProviderPath,
@@ -484,12 +484,7 @@ function toOAuthProfile(
     return { error: "email_missing" };
   }
 
-  const emailVerified =
-    provider === "google"
-      ? profile._json?.email_verified === true
-      : profile._json?.verified === true;
-
-  if (!emailVerified) {
+  if (provider === "google" && profile._json?.email_verified !== true) {
     return { error: "email_unverified" };
   }
 

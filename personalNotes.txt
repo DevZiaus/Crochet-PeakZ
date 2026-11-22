@@ -11,4 +11,4 @@ Plan:
     - use landing page home page as inspration for home page colors - done
     - Use the logo placed in apps/web/public/logo.webp/png/jpg - done
     - visiting /shop page custom order nav menu get active state - done
-    - stop checking email verified status for facebook login/register
+    - stop checking email verified status for facebook login/register - done
