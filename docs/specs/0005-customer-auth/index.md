@@ -265,8 +265,8 @@ Tracer Bullet: the first milestone is a thin but real thread from a sign in form
 - [x] Recorded the installed skills (`auth-implementation-patterns`, `resend`, `email-best-practices`) in the root `AGENTS.md` `## Agent skills` section, `nextjs-app-router` in `apps/web/AGENTS.md`, and the Resend MCP server in the root `MCP servers` line (2026-10-25). The server is configured in `opencode.json` and awaits an OAuth sign in through `/mcps`.
 - [ ] Consider an auth area `AGENTS.md` (for example `apps/api/src/domain/AGENTS.md`) once auth conventions settle.
 - [ ] The transactional email feature (27) should own real templates and a verified sending domain.
-- [ ] Add a timeout to every auth fetch call in `apps/web/src/proxy.ts`, `apps/web/src/lib/auth/session.ts`, `apps/web/src/lib/auth/use-session.ts`, `apps/web/src/lib/auth/api.ts`, and `apps/web/src/app/api/auth/[...path]/route.ts`. The catalog client now uses `AbortSignal.timeout(10_000)` and maps the abort to a friendly failure state; reuse that pattern so a stalled API cannot hang a request.
-- [ ] Add the skip to content link to the auth layout (`apps/web/src/app/(auth)/layout.tsx`) and the admin layout (`apps/web/src/app/admin/layout.tsx`), matching `apps/web/src/app/(storefront)/layout.tsx`. Give each `main` an id so the link has a target.
+- [x] Auth fetch calls enforce timeouts (`AbortSignal.timeout(5_000)` on the server in `apps/web/src/proxy.ts`, `apps/web/src/lib/auth/session.ts`, and `apps/web/src/app/api/auth/[...path]/route.ts`; 10s timeouts on browser helpers in `apps/web/src/lib/auth/api.ts` and `apps/web/src/lib/auth/use-session.ts`) (2026-11-22).
+- [x] Skip to content links targeting `#main-content` added to `apps/web/src/app/(auth)/layout.tsx` and `apps/web/src/app/admin/layout.tsx`, matching `apps/web/src/app/(storefront)/layout.tsx` (2026-11-22).
 
 ## Rationale
 

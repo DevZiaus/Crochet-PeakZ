@@ -1,13 +1,14 @@
 FIX: 
 
-- Stale spec → /architect: docs/specs/0003-design-system/index.md lines 59 and 130 still describe a Zustand currency store; spec 0007 uses a Server Action cookie and React context.
-- Stale spec → /architect: docs/specs/0001-stack-and-architecture/index.md line 30 lists "currency toggle" as a Zustand responsibility.
-- Small follow-ups not enrolled: auth fetch timeouts and skip links (spec 0005); root pointer for the nextjs-app-router skill (spec 0007).
+- Stale spec → /architect: docs/specs/0003-design-system/index.md lines 59 and 130 still describe a Zustand currency store; spec 0007 uses a Server Action cookie and React context. - done
+- Stale spec → /architect: docs/specs/0001-stack-and-architecture/index.md line 30 lists "currency toggle" as a Zustand responsibility. - done
+- Small follow-ups not enrolled: auth fetch timeouts and skip links (spec 0005); root pointer for the nextjs-app-router skill (spec 0007). - done
 
 
 Plan:
     - add a new topic on the contact form called 'data-deletion' - done
-    - update message on the data deletin page to send a message from contact form on topic data deletion or send an email - done
-    - use landing page home page as inspration for home page colors
-    - Use the logo placed in apps/web/public/logo.webp/png/jpg
+    - update message on the data deletion page to send a message from contact form on topic data deletion or send an email - done
+    - use landing page home page as inspration for home page colors - done
+    - Use the logo placed in apps/web/public/logo.webp/png/jpg - done
+    - visiting /shop page custom order nav menu get active state - done
     - stop checking email verified status for facebook login/register

@@ -38,9 +38,15 @@ const assurances = [
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       <Header />
 
-      <main className="flex-1 py-10 sm:py-16">
+      <main id="main-content" className="flex-1 py-10 sm:py-16">
         <Container>
           <div className="mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
             <aside className="hidden lg:block">

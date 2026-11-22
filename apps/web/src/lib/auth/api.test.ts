@@ -31,7 +31,7 @@ afterEach(() => {
 describe("postAuthJson", () => {
   it("posts JSON to the auth path and returns the parsed body", async () => {
     const fetchMock = vi
-      .fn()
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
       .mockResolvedValue(jsonResponse({ message: "ok" }, 200));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -39,12 +39,14 @@ describe("postAuthJson", () => {
       email: "ada@example.com",
     });
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/auth/login", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "ada@example.com" }),
-    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const call = fetchMock.mock.calls[0];
+    expect(call?.[0]).toBe("/api/auth/login");
+    expect(call?.[1]?.method).toBe("POST");
+    expect(call?.[1]?.credentials).toBe("same-origin");
+    expect(call?.[1]?.headers).toEqual({ "content-type": "application/json" });
+    expect(call?.[1]?.body).toBe(JSON.stringify({ email: "ada@example.com" }));
+    expect(call?.[1]?.signal).toBeInstanceOf(AbortSignal);
     expect(result).toEqual({ ok: true, status: 200, data: { message: "ok" } });
   });
 
@@ -108,6 +110,32 @@ describe("postAuthJson", () => {
 
   it("reports an unreachable store when the network fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+
+    const result = await postAuthJson("login", {});
+
+    expect(result).toEqual({
+      ok: false,
+      status: 0,
+      error: {
+        message:
+          "We could not reach the store. Check your connection and try again.",
+        statusCode: 0,
+      },
+    });
+  });
+
+  it("reports an unreachable store when the auth request times out", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockRejectedValue(
+          new DOMException(
+            "The operation was aborted due to timeout",
+            "TimeoutError",
+          ),
+        ),
+    );
 
     const result = await postAuthJson("login", {});
 

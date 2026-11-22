@@ -54,14 +54,14 @@ No API endpoints. The design system produces React components and CSS tokens con
 
 **Value sourcing**:
 
-| Action                   | Value produced / displayed                  | Source                                                                                                                                                                                 |
-| ------------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PriceDisplay render      | Formatted price string with currency symbol | `priceBdt` / `priceUsd` from product entity (spec 0002), active currency from Zustand store (future currency switcher feature). Defaults to `"BDT"` when no currency store is provided |
-| ProductCard image render | Product thumbnail                           | `url` field from `ProductImage` entity (spec 0002), loaded via Next.js `Image` component with Cloudinary domain configured in `next.config.ts`                                         |
-| StarRating render        | Average rating display                      | `averageRating` computed from Review entity (spec 0002)                                                                                                                                |
-| Dark mode toggle         | Current theme                               | `next-themes` reads from localStorage, falls back to `prefers-color-scheme` media query                                                                                                |
-| Header logo display      | Brand logo / wordmark                       | Static SVG asset in `public/logo.svg` (or `src/assets/`), provided by the engineer. If not yet created, a text wordmark placeholder renders                                            |
-| Skeleton shimmer color   | Shimmer gradient                            | Derived from `--muted` and `--muted-foreground` CSS tokens                                                                                                                             |
+| Action                   | Value produced / displayed                  | Source                                                                                                                                                                                                                             |
+| ------------------------ | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PriceDisplay render      | Formatted price string with currency symbol | `priceBdt` / `priceUsd` from product entity (spec 0002), active currency from the `cp_currency` cookie via `getActiveCurrency()` on the server or `useCurrency()` in client components (spec 0007). Defaults to `"BDT"` when unset |
+| ProductCard image render | Product thumbnail                           | `url` field from `ProductImage` entity (spec 0002), loaded via Next.js `Image` component with Cloudinary domain configured in `next.config.ts`                                                                                     |
+| StarRating render        | Average rating display                      | `averageRating` computed from Review entity (spec 0002)                                                                                                                                                                            |
+| Dark mode toggle         | Current theme                               | `next-themes` reads from localStorage, falls back to `prefers-color-scheme` media query                                                                                                                                            |
+| Header logo display      | Brand logo / wordmark                       | Static SVG asset in `public/logo.svg` (or `src/assets/`), provided by the engineer. If not yet created, a text wordmark placeholder renders                                                                                        |
+| Skeleton shimmer color   | Shimmer gradient                            | Derived from `--muted` and `--muted-foreground` CSS tokens                                                                                                                                                                         |
 
 **Key invariants**:
 
@@ -127,6 +127,6 @@ Ordered by Tracer Bullet: prove the full pipe (tokens → primitives → compose
 ## Follow-up
 
 - [ ] After this ships, each Slice 1 feature should import from the component library rather than creating new primitives. The ProductCard, PriceDisplay, and Header are specifically designed to be consumed by Feature #6 (Product catalog storefront) and Feature #7 (Currency switcher).
-- [ ] The currency switcher Zustand store (Feature #7) will feed the `activeCurrency` prop to PriceDisplay. Until then, PriceDisplay defaults to BDT.
+- [x] Currency switching shipped in Feature #7 (spec 0007) using a Server Action (`setCurrency`), the `cp_currency` HttpOnly cookie, server `getActiveCurrency()`, and client `CurrencyProvider` / `useCurrency()` rather than a Zustand store.
 - [ ] Consider adding a Storybook instance later for visual component documentation. Not worth the setup cost at foundation stage, but valuable once the component count grows past 30.
 - [ ] A brand logo SVG is needed for the Header component. If one does not exist yet, create or commission it before the storefront goes live. The Header renders a text wordmark placeholder until then.

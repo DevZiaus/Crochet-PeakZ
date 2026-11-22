@@ -22,6 +22,9 @@ export interface SessionState {
 /** Whether the server revoked the session behind a sign out call. */
 type SignOutResult = { success: true } | { success: false };
 
+/** Upper bound for one browser session or sign out request. */
+const AUTH_FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * Reads the current session from the server.
  *
@@ -33,11 +36,26 @@ type SignOutResult = { success: true } | { success: false };
  * @returns The signed in user, or null when the session is missing or expired.
  */
 async function readSession(signal?: AbortSignal): Promise<AuthUser | null> {
+  const controller = new AbortController();
+  const onAbort = (): void => {
+    controller.abort();
+  };
+
+  if (signal?.aborted) {
+    controller.abort();
+  } else {
+    signal?.addEventListener("abort", onAbort, { once: true });
+  }
+
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, AUTH_FETCH_TIMEOUT_MS);
+
   try {
     const response = await fetch("/api/auth/me", {
       cache: "no-store",
       credentials: "same-origin",
-      signal,
+      signal: controller.signal,
     });
     if (response.status !== 200) {
       return null;
@@ -45,6 +63,9 @@ async function readSession(signal?: AbortSignal): Promise<AuthUser | null> {
     return (await response.json()) as AuthUser;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
   }
 }
 
@@ -65,6 +86,7 @@ export function useSession(): SessionState {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
+        signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),
       });
 
       // Keep the local user when the server did not revoke the session, so the
