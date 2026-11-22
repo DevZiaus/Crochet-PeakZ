@@ -89,7 +89,7 @@ describe("Storefront HomePage", () => {
     ).toBeInTheDocument();
 
     const logo = screen.getByRole("img", {
-      name: "Colorful handmade Crochet PeakZ logo",
+      name: "Colorful handmade CrocheT PeakZ logo",
     });
     expect(logo).toHaveAttribute("src", "/logo-square.webp");
 

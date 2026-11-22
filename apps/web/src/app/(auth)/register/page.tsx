@@ -6,7 +6,7 @@ import { RequireGuest } from "@/components/auth/require-guest";
 
 export const metadata: Metadata = {
   title: "Create account",
-  description: "Create a Crochet PeakZ account to track orders and patterns.",
+  description: "Create a CrocheT PeakZ account to track orders and patterns.",
   robots: { index: false, follow: false },
 };
 

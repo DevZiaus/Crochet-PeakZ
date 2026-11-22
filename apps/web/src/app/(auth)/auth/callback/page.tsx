@@ -5,7 +5,7 @@ import { AuthFormFallback } from "@/components/auth/auth-form-fallback";
 
 export const metadata: Metadata = {
   title: "Signing you in",
-  description: "Completing your Crochet PeakZ sign in.",
+  description: "Completing your CrocheT PeakZ sign in.",
   robots: { index: false, follow: false },
 };
 

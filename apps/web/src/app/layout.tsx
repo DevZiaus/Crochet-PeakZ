@@ -19,8 +19,8 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   metadataBase: new URL(getCatalogEnv().webAppUrl),
   title: {
-    default: "Crochet PeakZ — Feel The Handmade Love",
-    template: "%s | Crochet PeakZ — Feel The Handmade Love",
+    default: "CrocheT PeakZ — Feel The Handmade Love",
+    template: "%s | CrocheT PeakZ — Feel The Handmade Love",
   },
   description:
     "Premium handmade crochet products, patterns, and custom commissions from Bangladesh to the world.",
@@ -38,7 +38,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f4ed" },
+    { media: "(prefers-color-scheme: dark)", color: "#121814" },
+  ],
 };
 
 interface RootLayoutProps {

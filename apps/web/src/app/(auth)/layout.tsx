@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Sparkles, Truck, ShieldCheck } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { BrandLogo } from "@/components/brand-logo";
 import { Container } from "@/components/container";
 
 export const metadata: Metadata = {
@@ -43,9 +44,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <Container>
           <div className="mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
             <aside className="hidden lg:block">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                Crochet PeakZ
-              </p>
+              <BrandLogo size="md" />
               <h2 className="mt-4 font-heading text-4xl font-bold leading-tight tracking-tight text-foreground">
                 Handmade pieces, kept in one place.
               </h2>

@@ -14,7 +14,7 @@ const baseEnv: NodeJS.ProcessEnv = {
   FACEBOOK_APP_ID: "facebook-app-id",
   FACEBOOK_APP_SECRET: "facebook-app-secret",
   RESEND_API_KEY: "re_test_key",
-  EMAIL_FROM: "Crochet PeakZ <hello@example.com>",
+  EMAIL_FROM: "CrocheT PeakZ <hello@example.com>",
   CLOUDINARY_CLOUD_NAME: "crochet-peakz",
 };
 
@@ -82,12 +82,12 @@ describe("loadEnv startup validation", () => {
   });
 
   it("refuses an EMAIL_FROM without an address (AC-15)", () => {
-    expect(() => loadEnv({ ...baseEnv, EMAIL_FROM: "Crochet PeakZ" })).toThrow(
+    expect(() => loadEnv({ ...baseEnv, EMAIL_FROM: "CrocheT PeakZ" })).toThrow(
       /EMAIL_FROM/,
     );
   });
 
-  it.each(["foo@", "@example.com", "foo@bar", "Crochet PeakZ <hello>"])(
+  it.each(["foo@", "@example.com", "foo@bar", "CrocheT PeakZ <hello>"])(
     "refuses a malformed EMAIL_FROM address %s (AC-15)",
     (value) => {
       expect(() => loadEnv({ ...baseEnv, EMAIL_FROM: value })).toThrow(
@@ -98,13 +98,19 @@ describe("loadEnv startup validation", () => {
 
   it("accepts a display name with a real address (AC-15)", () => {
     expect(() =>
-      loadEnv({ ...baseEnv, EMAIL_FROM: "Crochet PeakZ <hello@example.com>" }),
+      loadEnv({
+        ...baseEnv,
+        EMAIL_FROM: "CrocheT PeakZ <hello@example.com>",
+      }),
     ).not.toThrow();
   });
 
   it("accepts a localhost sender outside production", () => {
     expect(() =>
-      loadEnv({ ...baseEnv, EMAIL_FROM: "Crochet PeakZ <hello@localhost>" }),
+      loadEnv({
+        ...baseEnv,
+        EMAIL_FROM: "CrocheT PeakZ <hello@localhost>",
+      }),
     ).not.toThrow();
   });
 

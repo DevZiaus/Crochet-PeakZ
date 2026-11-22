@@ -17,6 +17,7 @@ import {
   type CloseReason,
 } from "@/hooks/use-close-on-desktop";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand-logo";
 import { Container } from "@/components/container";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthMenu } from "@/components/auth/auth-menu";
@@ -29,15 +30,28 @@ interface NavLink {
   label: string;
   /** The route path. */
   href: string;
+  /** Path prefix used for active matching. Defaults to `href`; `null` disables active matching. */
+  matchPath?: string | null;
 }
 
 const navLinks: NavLink[] = [
   { label: "Shop", href: "/shop" },
   { label: "Collections", href: "/collections" },
-  { label: "Custom Orders", href: "/shop" },
+  { label: "Custom Orders", href: "/shop", matchPath: null },
   { label: "Patterns", href: "/patterns" },
   { label: "Blog", href: "/blog" },
 ];
+
+/**
+ * Returns whether a navigation link should be marked active for `pathname`.
+ */
+function isNavLinkActive(link: NavLink, pathname: string): boolean {
+  const target = link.matchPath === undefined ? link.href : link.matchPath;
+  if (target === null) {
+    return false;
+  }
+  return pathname === target || pathname.startsWith(`${target}/`);
+}
 
 /**
  * Resolves to `false` during server render and the hydration pass, then `true`
@@ -164,8 +178,7 @@ function MobileNavDrawer({
 
         <nav className="flex flex-col gap-1 p-4" aria-label="Mobile navigation">
           {navLinks.map((link) => {
-            const isActive =
-              pathname === link.href || pathname.startsWith(link.href + "/");
+            const isActive = isNavLinkActive(link, pathname);
             return (
               <Link
                 key={link.label}
@@ -239,12 +252,10 @@ function Header() {
             <Link
               ref={homeLinkRef}
               href="/"
-              className="flex min-h-11 items-center gap-2 transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
-              aria-label="Crochet PeakZ home"
+              className="flex min-h-11 items-center transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
+              aria-label="CrocheT PeakZ home"
             >
-              <span className="font-heading text-xl font-bold text-primary">
-                CrocheT PeakZ
-              </span>
+              <BrandLogo size="sm" />
             </Link>
 
             {/* Desktop navigation */}
@@ -253,9 +264,7 @@ function Header() {
               aria-label="Main navigation"
             >
               {navLinks.map((link) => {
-                const isActive =
-                  pathname === link.href ||
-                  pathname.startsWith(link.href + "/");
+                const isActive = isNavLinkActive(link, pathname);
                 return (
                   <Link
                     key={link.label}

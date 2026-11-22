@@ -7,34 +7,37 @@
   --primary: #0f5c5c;
   --primary-foreground: #ffffff;
   --primary-hover: #0b4a4a;
-  --accent: #b07d22;
-  --accent-foreground: #1a1408;
-  --highlight: #b0445a;
+  --brand-teal: #2b6563;
+  --accent: #bf5570;
+  --accent-foreground: #0a0406;
+  --highlight: #ae4460;
   --highlight-foreground: #ffffff;
 
-  --background: #fbf8f3;
-  --foreground: #1f2a2a;
-  --card: #ffffff;
-  --card-foreground: #1f2a2a;
-  --popover: #ffffff;
-  --popover-foreground: #1f2a2a;
-  --secondary: #e7efee;
-  --secondary-foreground: #0f3b3b;
-  --muted: #efebe3;
-  --muted-foreground: #5b6666;
-  --surface: #f4f0e8;
-  --border: #ddd6c8;
-  --input: #857c6c;
+  --background: #f6f4ed;
+  --foreground: #1f2922;
+  --card: #fffdf8;
+  --card-foreground: #1f2922;
+  --popover: #fffdf8;
+  --popover-foreground: #1f2922;
+  --secondary: #dce6d7;
+  --secondary-foreground: #1f2922;
+  --muted: #f2f0e8;
+  --muted-foreground: #667067;
+  --surface: #f3f1e9;
+  --border: #dfe4da;
+  --input: #667067;
   --ring: #0f5c5c;
   --destructive: #b42318;
   --destructive-foreground: #ffffff;
   --success: #2f7d4f;
   --success-foreground: #ffffff;
-  --overlay: rgb(31 42 42 / 0.55);
+  --facebook: #1877f2;
+  --instagram: #e1306c;
+  --overlay: rgb(31 41 34 / 0.55);
 
-  --elevation-sm: 0 1px 2px rgb(31 42 42 / 0.06);
-  --elevation-md: 0 4px 12px rgb(31 42 42 / 0.08);
-  --elevation-lg: 0 12px 28px rgb(31 42 42 / 0.12);
+  --elevation-sm: 0 1px 2px rgb(31 41 34 / 0.06);
+  --elevation-md: 0 4px 12px rgb(31 41 34 / 0.08);
+  --elevation-lg: 0 12px 28px rgb(31 41 34 / 0.12);
 
   --font-size-xs: 0.75rem;
   --line-height-xs: 1rem;
@@ -61,31 +64,34 @@
 
 [data-theme="dark"] {
   --primary: #5fb8b3;
-  --primary-foreground: #0e1a1a;
+  --primary-foreground: #0e1916;
   --primary-hover: #7ccbc6;
-  --accent: #e0b563;
-  --accent-foreground: #1a1408;
-  --highlight: #d9707f;
-  --highlight-foreground: #1a0a0e;
+  --brand-teal: #62b8b5;
+  --accent: #e58ba2;
+  --accent-foreground: #1d0910;
+  --highlight: #eb98ad;
+  --highlight-foreground: #1d0910;
 
-  --background: #0e1a1a;
-  --foreground: #edf3f1;
-  --card: #152424;
-  --card-foreground: #edf3f1;
-  --popover: #152424;
-  --popover-foreground: #edf3f1;
-  --secondary: #1d3131;
-  --secondary-foreground: #d4ebe7;
-  --muted: #1b2b2b;
-  --muted-foreground: #a3b3b1;
-  --surface: #122020;
-  --border: #2a3d3d;
-  --input: #6a8786;
+  --background: #121814;
+  --foreground: #f1f3ec;
+  --card: #1b241f;
+  --card-foreground: #f1f3ec;
+  --popover: #1b241f;
+  --popover-foreground: #f1f3ec;
+  --secondary: #243328;
+  --secondary-foreground: #dce6d7;
+  --muted: #202b24;
+  --muted-foreground: #a4b0a5;
+  --surface: #161e19;
+  --border: #2e3b32;
+  --input: #78877a;
   --ring: #5fb8b3;
   --destructive: #f97066;
   --destructive-foreground: #1a0606;
   --success: #6fcf97;
   --success-foreground: #0b1f12;
+  --facebook: #6aa9ff;
+  --instagram: #ff6b9d;
   --overlay: rgb(0 0 0 / 0.7);
 
   --elevation-sm: 0 1px 2px rgb(0 0 0 / 0.4);
@@ -97,6 +103,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
+  --color-brand-teal: var(--brand-teal);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-highlight: var(--highlight);
@@ -119,6 +126,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-facebook: var(--facebook);
+  --color-instagram: var(--instagram);
   --color-overlay: var(--overlay);
 
   --radius-sm: 0.25rem;

@@ -5,7 +5,7 @@ import { AuthFormFallback } from "@/components/auth/auth-form-fallback";
 
 export const metadata: Metadata = {
   title: "Choose a new password",
-  description: "Choose a new password for your Crochet PeakZ account.",
+  description: "Choose a new password for your CrocheT PeakZ account.",
   robots: { index: false, follow: false },
 };
 

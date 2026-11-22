@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand-logo";
 import { Container } from "@/components/container";
 import { Divider } from "@/components/divider";
 
@@ -81,14 +83,26 @@ const socialLinks = [
     label: "Facebook",
     href: "https://www.facebook.com/crochet.peakz",
     icon: FacebookIcon,
+    hoverClassName: "hover:text-facebook focus-visible:text-facebook",
   },
   {
     label: "Instagram",
     href: "https://www.instagram.com/crochetpeakz/",
     icon: InstagramIcon,
+    hoverClassName: "hover:text-instagram focus-visible:text-instagram",
   },
-  { label: "YouTube", href: "https://youtube.com", icon: YoutubeIcon },
-  { label: "Email", href: "mailto:hello@crochetpeakz.tech", icon: Mail },
+  {
+    label: "YouTube",
+    href: "https://youtube.com",
+    icon: YoutubeIcon,
+    hoverClassName: "hover:text-foreground focus-visible:text-foreground",
+  },
+  {
+    label: "Email",
+    href: "mailto:hello@crochetpeakz.tech",
+    icon: Mail,
+    hoverClassName: "hover:text-foreground focus-visible:text-foreground",
+  },
 ];
 
 /**
@@ -108,15 +122,13 @@ function Footer() {
         <div className="py-12 sm:py-16">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-5">
             {/* Brand column */}
-            <div className="col-span-2 sm:col-span-4 lg:col-span-1">
+            <div className="col-span-2 sm:col-span-4 lg:col-span-2">
               <Link
                 href="/"
                 className="inline-flex min-h-11 items-center transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
-                aria-label="Crochet PeakZ home"
+                aria-label="CrocheT PeakZ home"
               >
-                <span className="font-heading text-xl font-bold text-primary">
-                  Crochet PeakZ
-                </span>
+                <BrandLogo size="md" />
               </Link>
               <p className="mt-3 max-w-xs text-sm text-muted-foreground">
                 Premium handmade crochet products, patterns, and custom
@@ -131,7 +143,10 @@ function Footer() {
                       href={social.href}
                       target={isExternal ? "_blank" : undefined}
                       rel={isExternal ? "noopener noreferrer" : undefined}
-                      className="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
+                      className={cn(
+                        "flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted motion-reduce:transition-none",
+                        social.hoverClassName,
+                      )}
                       aria-label={social.label}
                     >
                       <social.icon className="size-5" aria-hidden="true" />
@@ -202,7 +217,7 @@ function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            &copy; {copyrightYear} Crochet PeakZ. All rights reserved.
+            &copy; {copyrightYear} CrocheT PeakZ. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-1">
             {footerLinks.legal.map((link) => (
@@ -221,4 +236,4 @@ function Footer() {
   );
 }
 
-export { Footer, footerLinks, socialLinks };
+export { FacebookIcon, Footer, footerLinks, InstagramIcon, socialLinks };

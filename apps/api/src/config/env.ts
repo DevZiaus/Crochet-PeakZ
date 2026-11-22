@@ -216,7 +216,7 @@ function parseWebAppUrl(value: string | undefined): string {
 
 /*
  * An address with a local part, an "@", and a dotted domain. Used only to
- * reject obviously malformed senders such as `foo@` or `Crochet PeakZ`; the
+ * reject obviously malformed senders such as `foo@` or `CrocheT PeakZ`; the
  * address is not otherwise reinterpreted.
  */
 const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -240,7 +240,7 @@ function parseEmailFrom(value: string | undefined, nodeEnv: NodeEnv): string {
   ) {
     throw new Error(
       "Missing required environment variable: EMAIL_FROM. " +
-        "Set it to a verified sender such as Crochet PeakZ <hello@example.com>. " +
+        "Set it to a verified sender such as CrocheT PeakZ <hello@example.com>. " +
         "A localhost sender is allowed outside production.",
     );
   }

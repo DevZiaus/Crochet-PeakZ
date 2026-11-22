@@ -15,7 +15,7 @@ export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
   const title = "Privacy Policy";
   const description =
-    "Read how Crochet PeakZ collects, uses, and protects your personal information.";
+    "Read how CrocheT PeakZ collects, uses, and protects your personal information.";
 
   return {
     title,
@@ -25,7 +25,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: `${webAppUrl}/privacy`,
-      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
     },
   };
 }
@@ -39,11 +39,11 @@ export default function PrivacyPage() {
       <section className="border-b border-border bg-surface">
         <Container className="py-14 sm:py-20">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-highlight">
               The important stuff
             </p>
             <h1 className="mt-3 font-heading text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              Privacy, in <em className="italic text-primary">plain words.</em>
+              Privacy, in <em className="italic text-accent">plain words.</em>
             </h1>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               We believe in being clear about what information we collect and
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
               </h2>
               <p className="text-base leading-relaxed text-muted-foreground">
                 We use information to communicate with you, understand interest
-                in Crochet PeakZ, improve this website, and prepare future
+                in CrocheT PeakZ, improve this website, and prepare future
                 products and services. We do not sell your personal information.
               </p>
             </section>

@@ -6,7 +6,7 @@ export default function StorefrontNotFound() {
   return (
     <Container className="py-20 sm:py-28">
       <div className="mx-auto max-w-xl text-center">
-        <p className="text-sm font-semibold tracking-wide text-primary uppercase">
+        <p className="text-sm font-semibold tracking-wide text-highlight uppercase">
           404
         </p>
         <h1 className="mt-3 font-heading text-3xl font-bold text-foreground sm:text-4xl">

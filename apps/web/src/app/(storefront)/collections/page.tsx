@@ -17,7 +17,7 @@ export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
   const title = "Collections";
   const description =
-    "Explore the Crochet PeakZ collections, from amigurumi to wearables and scarves.";
+    "Explore the CrocheT PeakZ collections, from amigurumi to wearables and scarves.";
 
   return {
     title,
@@ -27,7 +27,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: `${webAppUrl}/collections`,
-      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
     },
   };
 }

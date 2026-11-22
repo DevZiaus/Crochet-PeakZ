@@ -186,7 +186,7 @@ export function LoginForm() {
       </form>
 
       <p className="text-center text-sm text-muted-foreground">
-        New to Crochet PeakZ?{" "}
+        New to CrocheT PeakZ?{" "}
         <Link
           href={`/register?next=${encodeURIComponent(next)}`}
           className="font-medium text-primary underline-offset-4 hover:underline"

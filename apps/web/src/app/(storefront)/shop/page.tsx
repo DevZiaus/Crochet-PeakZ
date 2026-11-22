@@ -66,7 +66,7 @@ export async function generateMetadata({
       title,
       description,
       url: canonical,
-      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
     },
   };
 }

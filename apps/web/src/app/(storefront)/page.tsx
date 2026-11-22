@@ -22,9 +22,9 @@ import { getCatalogEnv } from "@/lib/catalog/env";
  */
 export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
-  const title = "Crochet PeakZ — Feel The Handmade Love";
+  const title = "CrocheT PeakZ — Feel The Handmade Love";
   const description =
-    "Handmade crochet amigurumi, wearables, patterns, and custom pieces from Crochet PeakZ.";
+    "Handmade crochet amigurumi, wearables, patterns, and custom pieces from CrocheT PeakZ.";
 
   return {
     title: { absolute: title },
@@ -34,7 +34,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: webAppUrl,
-      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
     },
   };
 }
@@ -60,7 +60,7 @@ const featureCards = [
 /**
  * Storefront home page.
  *
- * Combines the Crochet PeakZ brand hero, live featured products and
+ * Combines the CrocheT PeakZ brand hero, live featured products and
  * collections from the database, brand story intro, craft pillars, and
  * custom-order call to action. Empty catalog sections are hidden so a fresh
  * catalogue still looks finished.
@@ -87,19 +87,19 @@ export default async function HomePage() {
         <Container className="relative py-14 sm:py-20 lg:py-24">
           <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-6">
-              <p className="inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+              <p className="inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-highlight">
                 <span
                   aria-hidden="true"
-                  className="h-px w-8 shrink-0 bg-current"
+                  className="h-px w-8 shrink-0 bg-accent"
                 />
                 Made slowly, made with love
               </p>
               <h1 className="mt-4 font-heading text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                Little things with a{" "}
-                <em className="italic text-primary">big</em> heart.
+                Little things with a <em className="italic text-accent">big</em>{" "}
+                heart.
               </h1>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Welcome to Crochet PeakZ, a colorful corner for thoughtfully
+                Welcome to CrocheT PeakZ, a colorful corner for thoughtfully
                 handmade crochet pieces, patterns, and the people who love
                 making.
               </p>
@@ -127,14 +127,14 @@ export default async function HomePage() {
                 />
                 <Image
                   src="/logo-square.webp"
-                  alt="Colorful handmade Crochet PeakZ logo"
+                  alt="Colorful handmade CrocheT PeakZ logo"
                   width={768}
                   height={768}
                   sizes="(min-width: 1024px) 360px, (min-width: 640px) 340px, 74vw"
                   priority
                   className="absolute top-[7%] right-[9%] left-[17%] z-10 h-[74%] w-[74%] rounded-[48%_48%_16%_16%] object-cover mix-blend-multiply dark:mix-blend-normal dark:shadow-md"
                 />
-                <div className="absolute left-[1%] top-[10%] z-20 flex size-[4.75rem] -rotate-12 items-center justify-center rounded-full border border-primary/75 bg-surface/85 text-center font-sans text-[9px] font-semibold uppercase leading-snug tracking-[0.14em] text-primary sm:left-[2%] sm:top-[11%] sm:size-24 sm:text-[10px]">
+                <div className="absolute left-[1%] top-[10%] z-20 flex size-[4.75rem] -rotate-12 items-center justify-center rounded-full border border-accent/80 bg-background/90 text-center font-sans text-[9px] font-semibold uppercase leading-snug tracking-[0.14em] text-highlight sm:left-[2%] sm:top-[11%] sm:size-24 sm:text-[10px]">
                   Handmade
                   <br />
                   with care
@@ -201,14 +201,14 @@ export default async function HomePage() {
           <Section>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-10">
               <div className="lg:col-span-4">
-                <h2 className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                <h2 className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-highlight">
                   The PeakZ feeling
                 </h2>
               </div>
               <div className="space-y-5 lg:col-span-8">
                 <p className="font-heading text-2xl leading-snug text-foreground sm:text-3xl">
                   Every loop is a small act of patience. We make{" "}
-                  <strong className="font-bold text-primary">
+                  <strong className="font-bold text-accent">
                     joyful, useful, one-of-a-kind things
                   </strong>{" "}
                   that bring a little more texture and warmth to everyday life.
@@ -235,7 +235,7 @@ export default async function HomePage() {
                 <article key={card.number}>
                   <Card className="h-full bg-card">
                     <CardContent className="space-y-3">
-                      <span className="inline-block font-heading text-sm font-bold tracking-widest text-primary">
+                      <span className="inline-block font-heading text-sm font-bold tracking-widest text-highlight">
                         {card.number}
                       </span>
                       <h3 className="font-heading text-xl font-semibold text-foreground">

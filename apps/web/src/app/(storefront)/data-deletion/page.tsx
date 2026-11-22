@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
   const title = "Data Deletion";
   const description =
-    "How to request deletion of your personal data from Crochet PeakZ.";
+    "How to request deletion of your personal data from CrocheT PeakZ.";
 
   return {
     title,
@@ -26,7 +26,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: `${webAppUrl}/data-deletion`,
-      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
     },
   };
 }
@@ -40,11 +40,11 @@ export default function DataDeletionPage() {
       <section className="border-b border-border bg-surface">
         <Container className="py-14 sm:py-20">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-highlight">
               You’re in control
             </p>
             <h1 className="mt-3 font-heading text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              Want your data <em className="italic text-primary">deleted?</em>
+              Want your data <em className="italic text-accent">deleted?</em>
             </h1>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               We’ll keep the process simple, clear, and respectful.

@@ -6,7 +6,7 @@
  * destination.
  */
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { Footer } from "./footer";
 
 describe("Footer", () => {
@@ -27,8 +27,24 @@ describe("Footer", () => {
     }
   });
 
-  it("exposes the Data Deletion link and Crochet PeakZ social/contact hrefs", () => {
+  it("exposes the rounded CrocheT PeakZ logo, wordmark, copyright, and social/contact hrefs", () => {
     render(<Footer />);
+
+    const homeLink = screen.getByRole("link", { name: "CrocheT PeakZ home" });
+    expect(homeLink).toHaveAttribute("href", "/");
+
+    const logoImage = homeLink.querySelector("img");
+    expect(logoImage).not.toBeNull();
+    expect(logoImage?.getAttribute("src")).toContain("logo.webp");
+    expect(logoImage).toHaveClass("rounded-full");
+
+    expect(within(homeLink).getByText("CrocheT")).toHaveClass(
+      "text-brand-teal",
+    );
+    expect(within(homeLink).getByText("PeakZ")).toHaveClass("text-accent");
+    expect(
+      screen.getByText(/CrocheT PeakZ\. All rights reserved\./),
+    ).toBeInTheDocument();
 
     expect(screen.getByRole("link", { name: "Data Deletion" })).toHaveAttribute(
       "href",
