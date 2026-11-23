@@ -5,7 +5,7 @@ import { AuthFormFallback } from "@/components/auth/auth-form-fallback";
 
 export const metadata: Metadata = {
   title: "Confirm your email",
-  description: "Confirm the email address on your CrocheT PeakZ account.",
+  description: "Confirm the email address on your Crochet PeakZ account.",
   robots: { index: false, follow: false },
 };
 

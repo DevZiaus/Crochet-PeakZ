@@ -242,6 +242,25 @@ export class User {
   }
 
   /**
+   * Whether an OAuth sign in from `provider` may resolve to this account.
+   *
+   * Google explicitly attests `email_verified: true`, so it may sign in to
+   * or link any existing account sharing the same email. Facebook's Graph
+   * API exposes no explicit email-verification claim, so Facebook may only
+   * sign in to accounts originally created with Facebook and never
+   * auto-links to existing local or Google accounts.
+   *
+   * @param provider OAuth provider attempting sign in.
+   * @returns True when `provider` is permitted to sign in to this account.
+   */
+  canLinkOAuthProvider(provider: Exclude<AuthProvider, "LOCAL">): boolean {
+    if (provider === "FACEBOOK") {
+      return this.state.authProvider === "FACEBOOK";
+    }
+    return true;
+  }
+
+  /**
    * Returns the public DTO every user bearing response uses.
    *
    * @returns Fields safe to send to the browser.

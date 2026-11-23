@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
   const title = "Contact";
   const description =
-    "Send a note to CrocheT PeakZ about custom crochet orders, patterns, shipping, or collaborations.";
+    "Send a note to Crochet PeakZ about custom crochet orders, patterns, shipping, or collaborations.";
 
   return {
     title,
@@ -26,7 +26,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: `${webAppUrl}/contact`,
-      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
     },
   };
 }

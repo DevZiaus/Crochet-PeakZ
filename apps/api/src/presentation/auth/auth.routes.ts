@@ -402,7 +402,12 @@ function handleOAuthCallback(
             );
           })
           .catch((linkError: unknown) => {
-            console.error("[auth] OAuth account link failed", linkError);
+            if (!(
+              linkError instanceof AuthError &&
+              linkError.code === "OAUTH_LINK_DISALLOWED"
+            )) {
+              console.error("[auth] OAuth account link failed", linkError);
+            }
             res.redirect(
               302,
               resultUrl(deps.webAppUrl, provider, nextPath, "link_failed"),

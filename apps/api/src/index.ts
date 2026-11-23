@@ -165,7 +165,7 @@ async function main(): Promise<void> {
   }
   const server = app.listen(env.port, env.host, () => {
     console.log(
-      `[API] CrocheT PeakZ API running on http://${env.host}:${env.port}`,
+      `[API] Crochet PeakZ API running on http://${env.host}:${env.port}`,
     );
     console.log(
       `[API] Health check: http://${env.host}:${env.port}/api/health`,

@@ -49,7 +49,7 @@ describe("Header", () => {
   it("renders the home link and every main navigation link", () => {
     render(<Header />);
 
-    const homeLink = screen.getByRole("link", { name: "CrocheT PeakZ home" });
+    const homeLink = screen.getByRole("link", { name: "Crochet PeakZ home" });
     expect(homeLink).toHaveAttribute("href", "/");
 
     const logoImage = homeLink.querySelector("img");
@@ -57,7 +57,7 @@ describe("Header", () => {
     expect(logoImage?.getAttribute("src")).toContain("logo.webp");
     expect(logoImage).toHaveClass("rounded-full");
 
-    expect(within(homeLink).getByText("CrocheT")).toHaveClass(
+    expect(within(homeLink).getByText("Crochet")).toHaveClass(
       "text-brand-teal",
     );
     expect(within(homeLink).getByText("PeakZ")).toHaveClass("text-accent");
@@ -319,7 +319,7 @@ describe("Header", () => {
       });
 
       const homeLink = screen.getByRole("link", {
-        name: "CrocheT PeakZ home",
+        name: "Crochet PeakZ home",
       });
       await waitFor(() => {
         expect(homeLink).toHaveFocus();

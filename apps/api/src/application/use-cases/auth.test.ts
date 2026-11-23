@@ -784,8 +784,8 @@ describe("signInWithOAuth", () => {
     const result = await signInWithOAuth(
       deps,
       {
-        provider: "FACEBOOK",
-        providerId: "facebook-7",
+        provider: "GOOGLE",
+        providerId: "google-7",
         email: "link@example.com",
         name: "Linked Customer",
         avatarUrl: null,
@@ -796,7 +796,7 @@ describe("signInWithOAuth", () => {
     expect(result.user.id).toBe(user.id);
     expect(result.user.emailVerified).toBe(true);
     // The account stays LOCAL, so the record keeps no provider id rather than
-    // mixing the LOCAL name with a Facebook id.
+    // mixing the LOCAL name with a Google id.
     expect(users.oauthLogins.get(user.id)).toMatchObject({
       providerId: null,
       emailVerified: true,
@@ -818,8 +818,8 @@ describe("signInWithOAuth", () => {
     await signInWithOAuth(
       deps,
       {
-        provider: "FACEBOOK",
-        providerId: "facebook-8",
+        provider: "GOOGLE",
+        providerId: "google-8",
         email: "link-reset@example.com",
         name: "Linked Customer",
         avatarUrl: null,
@@ -834,15 +834,15 @@ describe("signInWithOAuth", () => {
     const { deps, users } = createTestDependencies();
     const user = seedUser(users, {
       email: "keep-provider@example.com",
-      authProvider: "GOOGLE",
-      providerId: "google-42",
+      authProvider: "FACEBOOK",
+      providerId: "facebook-42",
     });
 
     await signInWithOAuth(
       deps,
       {
-        provider: "FACEBOOK",
-        providerId: "facebook-99",
+        provider: "GOOGLE",
+        providerId: "google-99",
         email: "keep-provider@example.com",
         name: "Keep Provider",
         avatarUrl: null,
@@ -850,22 +850,22 @@ describe("signInWithOAuth", () => {
       { deviceInfo: null, ipAddress: null },
     );
 
-    expect(users.oauthLogins.get(user.id)?.providerId).toBe("google-42");
+    expect(users.oauthLogins.get(user.id)?.providerId).toBe("facebook-42");
   });
 
   it("leaves the provider id alone when a different provider signs in", async () => {
     const { deps, users } = createTestDependencies();
     const user = seedUser(users, {
       email: "null-provider@example.com",
-      authProvider: "GOOGLE",
+      authProvider: "FACEBOOK",
       providerId: null,
     });
 
     await signInWithOAuth(
       deps,
       {
-        provider: "FACEBOOK",
-        providerId: "facebook-77",
+        provider: "GOOGLE",
+        providerId: "google-77",
         email: "null-provider@example.com",
         name: "Null Provider",
         avatarUrl: null,
@@ -873,8 +873,123 @@ describe("signInWithOAuth", () => {
       { deviceInfo: null, ipAddress: null },
     );
 
-    // The account keeps GOOGLE, so storing a Facebook id would mismatch.
+    // The account keeps FACEBOOK, so storing a Google id would mismatch.
     expect(users.oauthLogins.get(user.id)?.providerId).toBeNull();
+  });
+
+  it("refuses Facebook sign in for an existing verified local account without mutating it", async () => {
+    const { deps, users, sessions } = createTestDependencies();
+    seedUser(users, {
+      email: "verified-local@example.com",
+      authProvider: "LOCAL",
+      emailVerified: true,
+      passwordHash: "hashed:existing secret",
+    });
+
+    await expectAuthError(
+      signInWithOAuth(
+        deps,
+        {
+          provider: "FACEBOOK",
+          providerId: "facebook-10",
+          email: "verified-local@example.com",
+          name: "Facebook Attacker",
+          avatarUrl: null,
+        },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "OAUTH_LINK_DISALLOWED",
+    );
+
+    expect(users.oauthLogins.size).toBe(0);
+    expect(sessions.activeCount()).toBe(0);
+  });
+
+  it("refuses Facebook sign in for an existing unverified local account and keeps its password", async () => {
+    const { deps, users, sessions } = createTestDependencies();
+    const user = seedUser(users, {
+      email: "unverified-local@example.com",
+      authProvider: "LOCAL",
+      emailVerified: false,
+      passwordHash: "hashed:keep me",
+    });
+
+    await expectAuthError(
+      signInWithOAuth(
+        deps,
+        {
+          provider: "FACEBOOK",
+          providerId: "facebook-11",
+          email: "unverified-local@example.com",
+          name: "Facebook Attacker",
+          avatarUrl: null,
+        },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "OAUTH_LINK_DISALLOWED",
+    );
+
+    const persisted = await users.findById(user.id);
+    expect(persisted?.emailVerified).toBe(false);
+    expect(persisted?.passwordHash).toBe("hashed:keep me");
+    expect(users.oauthLogins.size).toBe(0);
+    expect(sessions.activeCount()).toBe(0);
+  });
+
+  it("refuses Facebook sign in for an existing Google account", async () => {
+    const { deps, users, sessions } = createTestDependencies();
+    seedUser(users, {
+      email: "existing-google@example.com",
+      authProvider: "GOOGLE",
+      providerId: "google-42",
+      passwordHash: null,
+    });
+
+    await expectAuthError(
+      signInWithOAuth(
+        deps,
+        {
+          provider: "FACEBOOK",
+          providerId: "facebook-12",
+          email: "existing-google@example.com",
+          name: "Facebook User",
+          avatarUrl: null,
+        },
+        { deviceInfo: null, ipAddress: null },
+      ),
+      "OAUTH_LINK_DISALLOWED",
+    );
+
+    expect(users.oauthLogins.size).toBe(0);
+    expect(sessions.activeCount()).toBe(0);
+  });
+
+  it("signs in a returning Facebook account", async () => {
+    const { deps, users, sessions } = createTestDependencies();
+    const user = seedUser(users, {
+      email: "returning-fb@example.com",
+      authProvider: "FACEBOOK",
+      providerId: "facebook-old",
+      passwordHash: null,
+      avatarUrl: null,
+    });
+
+    const result = await signInWithOAuth(
+      deps,
+      {
+        provider: "FACEBOOK",
+        providerId: "facebook-new",
+        email: "returning-fb@example.com",
+        name: "Returning FB",
+        avatarUrl: "https://cdn.example.com/fb.png",
+      },
+      { deviceInfo: null, ipAddress: null },
+    );
+
+    expect(result.user.id).toBe(user.id);
+    expect(result.user.avatarUrl).toBe("https://cdn.example.com/fb.png");
+    expect(users.oauthLogins.get(user.id)?.providerId).toBe("facebook-new");
+    expect(sessions.activeCount()).toBe(1);
   });
 });
 

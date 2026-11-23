@@ -1,6 +1,6 @@
-# Design System Reference: CrocheT PeakZ
+# Design System Reference: Crochet PeakZ
 
-> Visual language, tokens, components, and accessibility rules for the CrocheT PeakZ storefront and admin panel. Every developer (or AI agent) building a feature reads this file to know what colors, fonts, spacing, and components are available and how to use them.
+> Visual language, tokens, components, and accessibility rules for the Crochet PeakZ storefront and admin panel. Every developer (or AI agent) building a feature reads this file to know what colors, fonts, spacing, and components are available and how to use them.
 
 **Spec**: [0003-design-system](../../docs/specs/0003-design-system/index.md)
 **Tokens source of truth**: [`src/app/globals.css`](src/app/globals.css)
@@ -9,7 +9,7 @@
 
 ## Character
 
-Warm, artisanal, and botanical. The visual personality blends the handcrafted feel of crochet with a clean, modern e-commerce experience. Warm cream (`#f6f4ed`) and paper (`#fffdf8`) surfaces paired with botanical sage (`#dce6d7`) and soft line dividers (`#dfe4da`) ground the storefront; deep teal anchors primary actions and navigation; CrocheT PeakZ rose (`#bf5570`) adds expressive handmade warmth as the brand accent alongside an AA-safe deep rose highlight (`#ae4460`). DM Sans keeps the UI clean and readable; Playfair Display on headings adds editorial elegance.
+Warm, artisanal, and botanical. The visual personality blends the handcrafted feel of crochet with a clean, modern e-commerce experience. Warm cream (`#f6f4ed`) and paper (`#fffdf8`) surfaces paired with botanical sage (`#dce6d7`) and soft line dividers (`#dfe4da`) ground the storefront; deep teal anchors primary actions and navigation; Crochet PeakZ rose (`#bf5570`) adds expressive handmade warmth as the brand accent alongside an AA-safe deep rose highlight (`#ae4460`). DM Sans keeps the UI clean and readable; Playfair Display on headings adds editorial elegance.
 
 ## Build mandate
 
@@ -34,7 +34,7 @@ All colors are CSS custom properties defined in `:root` (light) and `[data-theme
 | `--primary`              | `#0f5c5c` (deep teal)  | `#5fb8b3` (light teal)    | Primary actions, links, active states                                          |
 | `--primary-foreground`   | `#ffffff`              | `#0e1916`                 | Text on primary backgrounds                                                    |
 | `--primary-hover`        | `#0b4a4a`              | `#7ccbc6`                 | Hover state for primary buttons                                                |
-| `--brand-teal`           | `#2b6563` (brand teal) | `#62b8b5` (light teal)    | `"CrocheT"` wordmark text in `BrandLogo` paired with `--accent` `"PeakZ"`      |
+| `--brand-teal`           | `#2b6563` (brand teal) | `#62b8b5` (light teal)    | `"Crochet"` wordmark text in `BrandLogo` paired with `--accent` `"PeakZ"`      |
 | `--accent`               | `#bf5570` (brand rose) | `#e58ba2` (luminous rose) | Brand accent: `"PeakZ"` wordmark, star ratings, large italics, borders, hovers |
 | `--accent-foreground`    | `#0a0406`              | `#1d0910`                 | Text on accent backgrounds                                                     |
 | `--highlight`            | `#ae4460` (deep rose)  | `#eb98ad` (soft rose)     | Small rose eyebrows/numbers, sale prices, attention badges                     |
@@ -222,7 +222,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 
 | Component         | Props                                                                                                                                | Usage                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| `BrandLogo`       | `size?: "sm" \| "md" \| "lg"`, `showWordmark?`, `alt?`, `className?`                                                                 | Rounded `/logo.webp` emblem paired with two-tone `"CrocheT PeakZ"` wordmark |
+| `BrandLogo`       | `size?: "sm" \| "md" \| "lg"`, `showWordmark?`, `alt?`, `className?`                                                                 | Rounded `/logo.webp` emblem paired with two-tone `"Crochet PeakZ"` wordmark |
 | `Header`          | —                                                                                                                                    | Storefront header with nav, theme toggle, search, cart, auth, mobile drawer |
 | `Footer`          | —                                                                                                                                    | Storefront footer with link columns, social, legal                          |
 | `Breadcrumbs`     | `items: BreadcrumbItem[]`, `showHome?: boolean`                                                                                      | Page hierarchy navigation                                                   |

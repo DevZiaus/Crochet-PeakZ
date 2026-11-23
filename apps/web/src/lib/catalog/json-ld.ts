@@ -65,7 +65,7 @@ export function buildProductJsonLd(
       product.images.length > 0
         ? product.images.map((image) => image.url)
         : [fallbackImage],
-    brand: { "@type": "Brand", name: "CrocheT PeakZ" },
+    brand: { "@type": "Brand", name: "Crochet PeakZ" },
     url: productUrl,
     offers,
   };

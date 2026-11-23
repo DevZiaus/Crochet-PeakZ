@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
   const title = "Our Story";
   const description =
-    "Learn about CrocheT PeakZ — a handmade crochet fashion, lifestyle, and pattern studio crafting small-batch pieces with intention.";
+    "Learn about Crochet PeakZ — a handmade crochet fashion, lifestyle, and pattern studio crafting small-batch pieces with intention.";
 
   return {
     title,
@@ -26,7 +26,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: `${webAppUrl}/about`,
-      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
     },
   };
 }
@@ -61,7 +61,7 @@ export default function AboutPage() {
               <em className="italic text-accent">Shared with joy.</em>
             </h1>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              CrocheT PeakZ is a handmade fashion and lifestyle studio built
+              Crochet PeakZ is a handmade fashion and lifestyle studio built
               around the magic of making something with your own two hands.
             </p>
           </div>
@@ -83,7 +83,7 @@ export default function AboutPage() {
 
             <div className="space-y-6 lg:col-span-7">
               <p className="text-base leading-relaxed text-foreground">
-                CrocheT PeakZ began with a simple belief: the things we surround
+                Crochet PeakZ began with a simple belief: the things we surround
                 ourselves with should feel personal. A little imperfect. Made
                 with intention.
               </p>

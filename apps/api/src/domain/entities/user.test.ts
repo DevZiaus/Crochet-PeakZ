@@ -131,6 +131,26 @@ describe("User", () => {
     expect(oauthOnly.shouldClearPasswordOnLink()).toBe(false);
   });
 
+  it("allows Google to link any account while restricting Facebook to Facebook accounts", () => {
+    const localUser = User.reconstitute(
+      makeUserSnapshot({ authProvider: "LOCAL" }),
+    );
+    const googleUser = User.reconstitute(
+      makeUserSnapshot({ authProvider: "GOOGLE", providerId: "google-1" }),
+    );
+    const facebookUser = User.reconstitute(
+      makeUserSnapshot({ authProvider: "FACEBOOK", providerId: "facebook-1" }),
+    );
+
+    expect(localUser.canLinkOAuthProvider("GOOGLE")).toBe(true);
+    expect(googleUser.canLinkOAuthProvider("GOOGLE")).toBe(true);
+    expect(facebookUser.canLinkOAuthProvider("GOOGLE")).toBe(true);
+
+    expect(localUser.canLinkOAuthProvider("FACEBOOK")).toBe(false);
+    expect(googleUser.canLinkOAuthProvider("FACEBOOK")).toBe(false);
+    expect(facebookUser.canLinkOAuthProvider("FACEBOOK")).toBe(true);
+  });
+
   it("keeps an existing avatar on provider sign in", () => {
     const withAvatar = User.reconstitute(
       makeUserSnapshot({

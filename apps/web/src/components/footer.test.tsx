@@ -27,10 +27,10 @@ describe("Footer", () => {
     }
   });
 
-  it("exposes the rounded CrocheT PeakZ logo, wordmark, copyright, and social/contact hrefs", () => {
+  it("exposes the rounded Crochet PeakZ logo, wordmark, copyright, and social/contact hrefs", () => {
     render(<Footer />);
 
-    const homeLink = screen.getByRole("link", { name: "CrocheT PeakZ home" });
+    const homeLink = screen.getByRole("link", { name: "Crochet PeakZ home" });
     expect(homeLink).toHaveAttribute("href", "/");
 
     const logoImage = homeLink.querySelector("img");
@@ -38,12 +38,12 @@ describe("Footer", () => {
     expect(logoImage?.getAttribute("src")).toContain("logo.webp");
     expect(logoImage).toHaveClass("rounded-full");
 
-    expect(within(homeLink).getByText("CrocheT")).toHaveClass(
+    expect(within(homeLink).getByText("Crochet")).toHaveClass(
       "text-brand-teal",
     );
     expect(within(homeLink).getByText("PeakZ")).toHaveClass("text-accent");
     expect(
-      screen.getByText(/CrocheT PeakZ\. All rights reserved\./),
+      screen.getByText(/Crochet PeakZ\. All rights reserved\./),
     ).toBeInTheDocument();
 
     expect(screen.getByRole("link", { name: "Data Deletion" })).toHaveAttribute(

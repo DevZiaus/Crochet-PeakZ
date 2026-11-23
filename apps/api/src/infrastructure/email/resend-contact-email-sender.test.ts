@@ -7,7 +7,7 @@ import {
 } from "./contact-email-template.js";
 import { ResendContactEmailSender } from "./resend-contact-email-sender.js";
 
-const FROM = "CrocheT PeakZ <no-reply@crochetpeakz.tech>";
+const FROM = "Crochet PeakZ <no-reply@crochetpeakz.tech>";
 const TO = "hello@crochetpeakz.tech";
 
 function makeMessage(overrides: Partial<ContactMessage> = {}): ContactMessage {
@@ -54,9 +54,9 @@ describe("composeContactEmail", () => {
       "Line 1 &amp; &lt;tag&gt;<br />Line 2 &quot;quoted&quot; &#39;single&#39;",
     );
     expect(email.html).not.toContain("<script>");
-    expect(email.html).toContain("CrocheT");
+    expect(email.html).toContain("Crochet");
     expect(email.html).toContain("PeakZ");
-    expect(email.text).toContain("New contact message from CrocheT PeakZ");
+    expect(email.text).toContain("New contact message from Crochet PeakZ");
     expect(email.text).toContain("Topic: Custom order & commission");
     expect(email.text).toContain("Line 1 & <tag>\nLine 2 \"quoted\" 'single'");
   });

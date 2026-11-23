@@ -38,18 +38,18 @@ const TEMPLATES: Record<
   }
 > = {
   verification: {
-    subject: "Confirm your CrocheT PeakZ email",
+    subject: "Confirm your Crochet PeakZ email",
     heading: "Confirm your email",
-    body: "Welcome to CrocheT PeakZ. Confirm your email address so your orders and downloads belong to you.",
+    body: "Welcome to Crochet PeakZ. Confirm your email address so your orders and downloads belong to you.",
     action: "Confirm my email",
     footer:
       "This link works once and expires in 24 hours. If you did not create an account, you can ignore this email.",
     keyPrefix: "verify-email",
   },
   "password-reset": {
-    subject: "Reset your CrocheT PeakZ password",
+    subject: "Reset your Crochet PeakZ password",
     heading: "Reset your password",
-    body: "We received a request to reset your CrocheT PeakZ password. Choose a new password with the button below.",
+    body: "We received a request to reset your Crochet PeakZ password. Choose a new password with the button below.",
     action: "Choose a new password",
     footer:
       "This link works once and expires in 1 hour. If you did not request a reset, you can ignore this email; your password stays the same.",
@@ -140,7 +140,7 @@ function renderEmail(input: {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #ddd6c8;border-radius:12px;padding:32px;">
             <tr>
               <td>
-                <p style="margin:0 0 8px;font-size:19px;letter-spacing:-0.01em;font-weight:700;"><span style="color:#2b6563;">CrocheT</span> <span style="color:#bf5570;">PeakZ</span></p>
+                <p style="margin:0 0 8px;font-size:19px;letter-spacing:-0.01em;font-weight:700;"><span style="color:#2b6563;">Crochet</span> <span style="color:#bf5570;">PeakZ</span></p>
                 <h1 style="margin:0 0 16px;font-size:26px;line-height:1.25;color:#1f2a2a;">${escapeHtml(input.heading)}</h1>
                 <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#1f2a2a;">${escapeHtml(input.body)}</p>
                 <p style="margin:0 0 24px;">

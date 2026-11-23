@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
   const title = "Data Deletion";
   const description =
-    "How to request deletion of your personal data from CrocheT PeakZ.";
+    "How to request deletion of your personal data from Crochet PeakZ.";
 
   return {
     title,
@@ -26,7 +26,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: `${webAppUrl}/data-deletion`,
-      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
     },
   };
 }

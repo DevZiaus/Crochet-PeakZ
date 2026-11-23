@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-/** Default public contact email address for Crochet PeakZ. */
+/**
+ * Public storefront display contact email and fallback default for the API's
+ * `CONTACT_EMAIL` delivery inbox.
+ */
 export const DEFAULT_CONTACT_EMAIL = "hello@crochetpeakz.tech";
 
 /** Ordered keys for supported contact form topics. */
@@ -82,6 +85,9 @@ export const contactSubmissionSchema = z.object({
       CONTACT_MESSAGE_MAX,
       `Please write a message between ${String(CONTACT_MESSAGE_MIN)} and ${String(CONTACT_MESSAGE_MAX)} characters.`,
     ),
+  // Client-supplied anti-spam deterrents (honeypot and fill-time), not
+  // authentication or cryptographic bot proof; link limits and server-side
+  // rate limiting enforce the hard boundaries.
   website: z.string().default(""),
   elapsedMs: z.number().default(0),
 });

@@ -7,7 +7,7 @@ import {
 } from "./auth-email-templates.js";
 import { ResendEmailSender } from "./resend-email-sender.js";
 
-const FROM = "CrocheT PeakZ <hello@crochetpeakz.com>";
+const FROM = "Crochet PeakZ <hello@crochetpeakz.com>";
 const VERIFY_URL = "https://shop.example.com/verify-email?token=abc123";
 const RESET_URL = "https://shop.example.com/reset-password?token=xyz789";
 
@@ -31,7 +31,7 @@ describe("composeAuthEmail", () => {
 
     expect(message.from).toBe(FROM);
     expect(message.to).toEqual(["ada@example.com"]);
-    expect(message.subject).toBe("Confirm your CrocheT PeakZ email");
+    expect(message.subject).toBe("Confirm your Crochet PeakZ email");
     expect(message.idempotencyKey).toMatch(
       /^verify-email\/[a-f0-9]{64}\/[a-f0-9]{32}$/,
     );
@@ -49,7 +49,7 @@ describe("composeAuthEmail", () => {
 
     expect(message.from).toBe(FROM);
     expect(message.to).toEqual(["ada@example.com"]);
-    expect(message.subject).toBe("Reset your CrocheT PeakZ password");
+    expect(message.subject).toBe("Reset your Crochet PeakZ password");
     expect(message.idempotencyKey).toMatch(
       /^reset-password\/[a-f0-9]{64}\/[a-f0-9]{32}$/,
     );

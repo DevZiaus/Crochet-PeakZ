@@ -13,7 +13,8 @@ export type AuthErrorCode =
   | "INVALID_LINK"
   | "INVALID_SESSION"
   | "EXPIRED_TOKEN"
-  | "RESEND_TOO_SOON";
+  | "RESEND_TOO_SOON"
+  | "OAUTH_LINK_DISALLOWED";
 
 /** An expected auth failure. */
 export class AuthError extends Error {

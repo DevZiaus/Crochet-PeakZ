@@ -80,7 +80,7 @@ export function composeContactEmail(options: {
   );
 
   const text = [
-    "New contact message from CrocheT PeakZ",
+    "New contact message from Crochet PeakZ",
     "",
     `Name: ${message.name}`,
     `Email: ${message.email}`,
@@ -102,7 +102,7 @@ export function composeContactEmail(options: {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#ffffff;border:1px solid #ddd6c8;border-radius:12px;">
             <tr>
               <td style="padding:28px 32px;border-bottom:1px solid #ddd6c8;">
-                <p style="margin:0 0 8px;font-size:19px;letter-spacing:-0.01em;font-weight:700;"><span style="color:#2b6563;">CrocheT</span> <span style="color:#bf5570;">PeakZ</span></p>
+                <p style="margin:0 0 8px;font-size:19px;letter-spacing:-0.01em;font-weight:700;"><span style="color:#2b6563;">Crochet</span> <span style="color:#bf5570;">PeakZ</span></p>
                 <h1 style="margin:0;font-size:26px;line-height:1.25;color:#1f2a2a;">New contact message</h1>
               </td>
             </tr>

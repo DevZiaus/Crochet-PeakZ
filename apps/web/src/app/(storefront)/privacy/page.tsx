@@ -15,7 +15,7 @@ export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
   const title = "Privacy Policy";
   const description =
-    "Read how CrocheT PeakZ collects, uses, and protects your personal information.";
+    "Read how Crochet PeakZ collects, uses, and protects your personal information.";
 
   return {
     title,
@@ -25,7 +25,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: `${webAppUrl}/privacy`,
-      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
     },
   };
 }
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
               </h2>
               <p className="text-base leading-relaxed text-muted-foreground">
                 We use information to communicate with you, understand interest
-                in CrocheT PeakZ, improve this website, and prepare future
+                in Crochet PeakZ, improve this website, and prepare future
                 products and services. We do not sell your personal information.
               </p>
             </section>

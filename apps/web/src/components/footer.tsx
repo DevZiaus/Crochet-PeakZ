@@ -126,7 +126,7 @@ function Footer() {
               <Link
                 href="/"
                 className="inline-flex min-h-11 items-center transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
-                aria-label="CrocheT PeakZ home"
+                aria-label="Crochet PeakZ home"
               >
                 <BrandLogo size="md" />
               </Link>
@@ -217,7 +217,7 @@ function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            &copy; {copyrightYear} CrocheT PeakZ. All rights reserved.
+            &copy; {copyrightYear} Crochet PeakZ. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-1">
             {footerLinks.legal.map((link) => (

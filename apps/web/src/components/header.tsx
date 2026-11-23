@@ -253,7 +253,7 @@ function Header() {
               ref={homeLinkRef}
               href="/"
               className="flex min-h-11 items-center transition-opacity duration-200 hover:opacity-80 motion-reduce:transition-none"
-              aria-label="CrocheT PeakZ home"
+              aria-label="Crochet PeakZ home"
             >
               <BrandLogo size="sm" />
             </Link>

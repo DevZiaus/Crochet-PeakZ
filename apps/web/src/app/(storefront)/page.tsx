@@ -22,9 +22,9 @@ import { getCatalogEnv } from "@/lib/catalog/env";
  */
 export function generateMetadata(): Metadata {
   const { webAppUrl } = getCatalogEnv();
-  const title = "CrocheT PeakZ — Feel The Handmade Love";
+  const title = "Crochet PeakZ — Feel The Handmade Love";
   const description =
-    "Handmade crochet amigurumi, wearables, patterns, and custom pieces from CrocheT PeakZ.";
+    "Handmade crochet amigurumi, wearables, patterns, and custom pieces from Crochet PeakZ.";
 
   return {
     title: { absolute: title },
@@ -34,7 +34,7 @@ export function generateMetadata(): Metadata {
       title,
       description,
       url: webAppUrl,
-      images: [{ url: "/images/og-default.webp", alt: "CrocheT PeakZ" }],
+      images: [{ url: "/images/og-default.webp", alt: "Crochet PeakZ" }],
     },
   };
 }
@@ -60,7 +60,7 @@ const featureCards = [
 /**
  * Storefront home page.
  *
- * Combines the CrocheT PeakZ brand hero, live featured products and
+ * Combines the Crochet PeakZ brand hero, live featured products and
  * collections from the database, brand story intro, craft pillars, and
  * custom-order call to action. Empty catalog sections are hidden so a fresh
  * catalogue still looks finished.
@@ -99,7 +99,7 @@ export default async function HomePage() {
                 heart.
               </h1>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Welcome to CrocheT PeakZ, a colorful corner for thoughtfully
+                Welcome to Crochet PeakZ, a colorful corner for thoughtfully
                 handmade crochet pieces, patterns, and the people who love
                 making.
               </p>
@@ -127,7 +127,7 @@ export default async function HomePage() {
                 />
                 <Image
                   src="/logo-square.webp"
-                  alt="Colorful handmade CrocheT PeakZ logo"
+                  alt="Colorful handmade Crochet PeakZ logo"
                   width={768}
                   height={768}
                   sizes="(min-width: 1024px) 360px, (min-width: 640px) 340px, 74vw"

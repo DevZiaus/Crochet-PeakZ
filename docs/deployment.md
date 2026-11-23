@@ -263,6 +263,8 @@ are only needed when an upload feature lands.
 | --------------- | ----------------------------------------------------------------------------------- |
 | `CONTACT_EMAIL` | Destination inbox for contact form messages (defaults to `hello@crochetpeakz.tech`) |
 
+`CONTACT_EMAIL` controls the internal delivery destination inbox (useful when Resend is in test mode and only delivers to an authorized address), while the storefront pages always display `hello@crochetpeakz.tech` (`DEFAULT_CONTACT_EMAIL`) as the public contact address.
+
 ### Build time (web)
 
 | Variable              | Purpose                                                          |

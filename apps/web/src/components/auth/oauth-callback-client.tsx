@@ -30,7 +30,7 @@ const ERROR_MESSAGES: Record<OAuthErrorCode, string> = {
   provider_error:
     "The provider did not finish the sign in. This is usually temporary, so try again.",
   link_failed:
-    "We could not link that provider to your account. Sign in with email and try again.",
+    "We could not link that provider to your account. Sign in with email or your original sign in method instead.",
 };
 
 /** Narrows an untrusted query value to a supported provider. */

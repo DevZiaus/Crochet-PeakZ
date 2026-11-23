@@ -6,9 +6,9 @@ type BrandLogoSize = "sm" | "md" | "lg";
 interface BrandLogoProps {
   /** Size preset controlling the emblem dimensions and wordmark scale. Defaults to `"md"`. */
   size?: BrandLogoSize;
-  /** Whether to render the two-tone `"CrocheT PeakZ"` wordmark next to the mark. Defaults to `true`. */
+  /** Whether to render the two-tone `"Crochet PeakZ"` wordmark next to the mark. Defaults to `true`. */
   showWordmark?: boolean;
-  /** Accessible alt text for the emblem. Defaults to `""` when paired with a wordmark, or `"CrocheT PeakZ"` otherwise. */
+  /** Accessible alt text for the emblem. Defaults to `""` when paired with a wordmark, or `"Crochet PeakZ"` otherwise. */
   alt?: string;
   /** Additional CSS classes applied to the outer container. */
   className?: string;
@@ -48,10 +48,10 @@ const sizeMap: Record<
 };
 
 /**
- * Rounded CrocheT PeakZ emblem and two-tone brand wordmark.
+ * Rounded Crochet PeakZ emblem and two-tone brand wordmark.
  *
  * Keeps the wordmark at bold large-text sizes (`>= 19px`) so both `#2B6563`
- * (`CrocheT`) and `#BF5570` (`PeakZ`) meet WCAG 2.1 AA contrast in light and
+ * (`Crochet`) and `#BF5570` (`PeakZ`) meet WCAG 2.1 AA contrast in light and
  * dark themes.
  */
 function BrandLogo({
@@ -61,7 +61,7 @@ function BrandLogo({
   className,
 }: BrandLogoProps) {
   const config = sizeMap[size];
-  const resolvedAlt = alt ?? (showWordmark ? "" : "CrocheT PeakZ");
+  const resolvedAlt = alt ?? (showWordmark ? "" : "Crochet PeakZ");
 
   return (
     <span className={cn("inline-flex items-center", config.wrapper, className)}>
@@ -80,7 +80,7 @@ function BrandLogo({
             config.text,
           )}
         >
-          <span className="text-brand-teal">CrocheT</span>{" "}
+          <span className="text-brand-teal">Crochet</span>{" "}
           <span className="text-accent">PeakZ</span>
         </span>
       )}
