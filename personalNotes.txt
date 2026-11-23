@@ -12,3 +12,8 @@ Plan:
     - Use the logo placed in apps/web/public/logo.webp/png/jpg - done
     - visiting /shop page custom order nav menu get active state - done
     - stop checking email verified status for facebook login/register - done
+
+ - Environment note, worth acting on before launch
+The Resend account is in test mode. The branch default points the destination inbox at hello@crochetpeakz.tech while EMAIL_FROM is onboarding@resend.dev, so real contact mail to the public inbox is rejected with 403 validation_error and the visitor sees the friendly failure message. Delivery works once CONTACT_EMAIL is set to an inbox Resend allows. You may want to verify the sending domain at resend.com, or set CONTACT_EMAIL to an allowed address, before launch. This is configuration, not a code fault: the same run delivered cleanly with CONTACT_EMAIL=astama.jannat@gmail.com.
+
+- A smaller note: the featured product card can look faint in a top anchored full page screenshot because globals.css uses a card-reveal animation tied to view timeline, so it fades in as it scrolls into view. That is intended.
