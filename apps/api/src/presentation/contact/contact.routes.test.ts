@@ -236,4 +236,27 @@ describe("contact router", () => {
     expect(limited.status).toBe(429);
     expect(Number(limited.headers.get("retry-after"))).toBeGreaterThan(0);
   });
+
+  it("buckets rate limits on the last X-Forwarded-For hop so spoofed client headers cannot bypass the limit", async () => {
+    const edgeIp = nextClientIp();
+    const postFromSpoofedClient = (
+      spoofedIp: string,
+    ): Promise<globalThis.Response> =>
+      fetch(`${baseUrl}/api/contact`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://shop.example.com",
+          "x-forwarded-for": `${spoofedIp}, ${edgeIp}`,
+        },
+        body: JSON.stringify(VALID_BODY),
+      });
+
+    expect((await postFromSpoofedClient("203.0.113.1")).status).toBe(200);
+    expect((await postFromSpoofedClient("203.0.113.2")).status).toBe(200);
+
+    const limited = await postFromSpoofedClient("203.0.113.3");
+    expect(limited.status).toBe(429);
+    expect(Number(limited.headers.get("retry-after"))).toBeGreaterThan(0);
+  });
 });

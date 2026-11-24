@@ -224,11 +224,50 @@ const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Loopback domains accepted only outside production. */
 const LOCAL_EMAIL_DOMAINS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
+function extractEmailAddress(raw: string): string {
+  return /<([^>]+)>/.exec(raw)?.[1]?.trim() ?? raw.trim();
+}
+
+/**
+ * Returns a startup warning when `EMAIL_FROM` uses Resend's test-mode
+ * onboarding sender while `CONTACT_EMAIL` is still at the default address.
+ *
+ * Resend test mode rejects mail to unverified recipients with 403
+ * `validation_error`, so fresh deployments fail contact submissions with 502
+ * until a verified domain or authorized `CONTACT_EMAIL` is configured.
+ *
+ * @param env Parsed API environment values.
+ * @returns Warning message, or `null` when no mismatch is detected.
+ */
+export function getContactEmailStartupWarning(
+  env: Pick<ApiEnv, "emailFrom" | "contactEmail">,
+): string | null {
+  const sender = extractEmailAddress(env.emailFrom).toLowerCase();
+  const at = sender.lastIndexOf("@");
+  const senderDomain = at === -1 ? "" : sender.slice(at + 1);
+  const usesResendOnboarding =
+    senderDomain === "resend.dev" || senderDomain.endsWith(".resend.dev");
+  const usesDefaultContactInbox =
+    env.contactEmail.trim().toLowerCase() ===
+    DEFAULT_CONTACT_EMAIL.toLowerCase();
+
+  if (!usesResendOnboarding || !usesDefaultContactInbox) {
+    return null;
+  }
+
+  return (
+    `[API] EMAIL_FROM (${sender}) uses Resend's test-mode domain while ` +
+    `CONTACT_EMAIL is still set to ${DEFAULT_CONTACT_EMAIL}. Contact form ` +
+    "submissions will fail with 502 until you verify a sending domain or " +
+    "override CONTACT_EMAIL to an authorized Resend test address."
+  );
+}
+
 function parseEmailFrom(value: string | undefined, nodeEnv: NodeEnv): string {
   const raw = value?.trim();
   // Accept a bare address or the `Name <address>` form, and validate the
   // address itself rather than only the presence of an "@".
-  const address = /<([^>]+)>/.exec(raw ?? "")?.[1]?.trim() ?? raw ?? "";
+  const address = raw ? extractEmailAddress(raw) : "";
 
   if (
     !raw ||

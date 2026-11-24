@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import type { Router } from "express";
 import type { Server } from "node:http";
 import { createApp } from "./app.js";
-import { loadEnv } from "./config/env.js";
+import { getContactEmailStartupWarning, loadEnv } from "./config/env.js";
 import {
   createDatabase,
   type Database,
@@ -71,6 +71,10 @@ function installShutdownHandlers(server: Server, database: Database): void {
  */
 async function main(): Promise<void> {
   const env = loadEnv();
+  const contactEmailWarning = getContactEmailStartupWarning(env);
+  if (contactEmailWarning && env.nodeEnv !== "test") {
+    console.warn(contactEmailWarning);
+  }
   const database = createDatabase(env.databaseUrl);
 
   try {

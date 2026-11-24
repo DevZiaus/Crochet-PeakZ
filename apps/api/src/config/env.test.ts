@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "./env.js";
+import { getContactEmailStartupWarning, loadEnv } from "./env.js";
 
 /** Minimal environment that satisfies every required value. */
 const baseEnv: NodeJS.ProcessEnv = {
@@ -192,5 +192,47 @@ describe("loadEnv OAuth endpoint overrides", () => {
         GOOGLE_AUTH_URL: "http://127.0.0.1:9099/oauth/google/authorize",
       }),
     ).toThrow(/test-only overrides/);
+  });
+});
+
+describe("getContactEmailStartupWarning", () => {
+  it("warns when EMAIL_FROM uses resend.dev in display-name form with default CONTACT_EMAIL", () => {
+    const env = loadEnv({
+      ...baseEnv,
+      EMAIL_FROM: "Crochet PeakZ <onboarding@resend.dev>",
+    });
+
+    const warning = getContactEmailStartupWarning(env);
+    expect(warning).toContain("onboarding@resend.dev");
+    expect(warning).toContain("hello@crochetpeakz.tech");
+    expect(warning).toContain("CONTACT_EMAIL");
+  });
+
+  it("warns when EMAIL_FROM uses bare onboarding@resend.dev with default CONTACT_EMAIL", () => {
+    const env = loadEnv({
+      ...baseEnv,
+      EMAIL_FROM: "onboarding@resend.dev",
+    });
+
+    expect(getContactEmailStartupWarning(env)).not.toBeNull();
+  });
+
+  it("returns null when CONTACT_EMAIL is overridden away from the default", () => {
+    const env = loadEnv({
+      ...baseEnv,
+      EMAIL_FROM: "Crochet PeakZ <onboarding@resend.dev>",
+      CONTACT_EMAIL: "owner@example.com",
+    });
+
+    expect(getContactEmailStartupWarning(env)).toBeNull();
+  });
+
+  it("returns null when EMAIL_FROM uses a custom domain", () => {
+    const env = loadEnv({
+      ...baseEnv,
+      EMAIL_FROM: "Crochet PeakZ <no-reply@crochetpeakz.tech>",
+    });
+
+    expect(getContactEmailStartupWarning(env)).toBeNull();
   });
 });

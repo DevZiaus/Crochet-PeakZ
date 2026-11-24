@@ -20,6 +20,15 @@
 		reverse_proxy web:3000
 	}
 
+	# Contact payloads are small JSON bodies; enforce the 20KB cap at the edge
+	# to match the Next.js contact proxy limit.
+	handle /api/contact {
+		request_body {
+			max_size 20KB
+		}
+		reverse_proxy api:4000
+	}
+
 	handle /api/* {
 		reverse_proxy api:4000
 	}

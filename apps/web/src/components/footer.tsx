@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import { DEFAULT_CONTACT_EMAIL } from "@crochet-peakz/shared";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { Container } from "@/components/container";
@@ -99,7 +100,7 @@ const socialLinks = [
   },
   {
     label: "Email",
-    href: "mailto:hello@crochetpeakz.tech",
+    href: `mailto:${DEFAULT_CONTACT_EMAIL}`,
     icon: Mail,
     hoverClassName: "hover:text-foreground focus-visible:text-foreground",
   },

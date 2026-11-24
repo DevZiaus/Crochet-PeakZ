@@ -49,12 +49,15 @@ export function createProxyGuard(options: {
 }
 
 /**
- * Returns the client IP the proxy forwarded.
+ * Returns the client IP the edge or web proxy forwarded.
  *
- * The web proxy selects the last hop added by the trusted edge and sends that
- * single value, so the first entry here is the one it chose. The raw API still
- * trusts this header, so it must not be reachable from untrusted networks. This
- * assumes exactly one trusted edge in front of the web app.
+ * Reads the last non-empty `X-Forwarded-For` entry added by the trusted edge
+ * (matching `readClientIp` in `apps/web`), so single-value requests from the
+ * web proxy (`first === last`) and multi-entry chains from a direct appending
+ * edge proxy (such as `/api/contact` behind Nginx) both resolve to the
+ * edge-added client IP. The raw API still trusts this header, so it must not
+ * be reachable from untrusted networks. This assumes at most one trusted edge
+ * appends to `X-Forwarded-For` before the API.
  *
  * @param req Express request.
  * @returns An IP address, or null when no header is present.
@@ -63,6 +66,10 @@ export function getClientIp(req: {
   get(name: string): string | undefined;
 }): string | null {
   const forwarded = req.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first && first.length > 0 ? first.slice(0, 45) : null;
+  const last = forwarded
+    ?.split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
+    .at(-1);
+  return last ? last.slice(0, 45) : null;
 }

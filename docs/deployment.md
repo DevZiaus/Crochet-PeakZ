@@ -75,15 +75,17 @@ curl http://localhost:3000/health
 Stop the stack with `docker compose down`. Add `-v` only when you intentionally
 want to delete the database volume.
 
-The web and API ports are published on loopback only. The auth proxy trusts the
+The web and API ports are published on loopback only. The web proxy trusts the
 client address headers that an edge proxy adds, and the raw API trusts the
-header the web proxy sends, so do not expose port 3000 or port 4000 to another
-machine directly. For public traffic, run the Caddy profile or put Nginx in
-front and do not publish either port beyond loopback. Keep exactly one trusted
-edge proxy in front of the web app: the app reads the last `X-Forwarded-For`
-hop as the client address, so a CDN before Caddy would make every client share
-the CDN address. With no edge proxy at all (the API or web port reachable
-directly), every rate limit bucket collapses to one unknown client, so the auth
+forwarded header from the edge or web proxy, so do not expose port 3000 or port
+4000 to another machine directly. For public traffic, run the Caddy profile or
+put Nginx in front and do not publish either port beyond loopback. Keep exactly
+one trusted edge proxy in front of the stack: both the web proxy and the API
+read the last `X-Forwarded-For` hop as the client address (covering both auth
+and `/api/contact`), so a CDN before Caddy would make every client share the
+CDN address. With no edge proxy at all (the API or web port reachable
+directly), requests routed through the web proxy collapse every rate limit
+bucket (for both auth and the contact form) to one `unknown` client, so those
 limits become per instance global instead of per client. Put a proxy in front
 when you want per client limits.
 
