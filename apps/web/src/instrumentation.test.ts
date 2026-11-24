@@ -40,4 +40,20 @@ describe("register", () => {
 
     await expect(register()).resolves.toBeUndefined();
   });
+
+  it("rejects an invalid TRUSTED_PROXY_HOPS when starting the node runtime", async () => {
+    process.env = {
+      ...originalEnv,
+      NEXT_RUNTIME: "nodejs",
+      API_INTERNAL_URL: "http://api.test/api",
+      PROXY_SHARED_SECRET: "test-secret-0123456789",
+      WEB_APP_URL: "https://shop.example.com",
+      TRUSTED_PROXY_HOPS: "0",
+    };
+    delete process.env["NEXT_PHASE"];
+
+    const { register } = await import("./instrumentation");
+
+    await expect(register()).rejects.toThrow(/Invalid TRUSTED_PROXY_HOPS/);
+  });
 });

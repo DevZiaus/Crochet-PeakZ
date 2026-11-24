@@ -54,6 +54,9 @@ export default defineConfig({
       timeout: 120_000,
       stdout: "ignore",
       stderr: "pipe",
+      env: {
+        CONTACT_EMAIL_TRANSPORT: "log",
+      },
     },
     {
       command:

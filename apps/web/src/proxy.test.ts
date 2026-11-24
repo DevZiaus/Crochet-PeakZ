@@ -239,10 +239,11 @@ describe("admin guard", () => {
     expect(refreshHeaders.get("x-proxy-secret")).toBe("test-secret-0123456789");
     expect(refreshHeaders.get("cookie")).toContain("cp_refresh=live-refresh");
     expect(refreshHeaders.get("x-forwarded-for")).toBe(forwardedFor);
+    expect(refreshHeaders.get("x-proxy-client-ip")).toBe(forwardedFor);
     for (const call of calls) {
-      expect(new Headers(call.init?.headers).get("x-forwarded-for")).toBe(
-        forwardedFor,
-      );
+      const callHeaders = new Headers(call.init?.headers);
+      expect(callHeaders.get("x-forwarded-for")).toBe(forwardedFor);
+      expect(callHeaders.get("x-proxy-client-ip")).toBe(forwardedFor);
     }
 
     // The server render reads the request cookies from this header, not from

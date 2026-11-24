@@ -6,7 +6,7 @@ import {
   readSetCookie,
   writeCookie,
 } from "@/lib/auth/cookies";
-import { readClientIp } from "@/lib/auth/client-ip";
+import { PROXY_CLIENT_IP_HEADER, readClientIp } from "@/lib/auth/client-ip";
 
 /**
  * The six auth screens that must never appear in search results.
@@ -133,6 +133,7 @@ async function fetchRole(
         cookie: cookieHeader,
         "x-proxy-secret": env.proxySharedSecret,
         "x-forwarded-for": clientIp,
+        [PROXY_CLIENT_IP_HEADER]: clientIp,
       },
       cache: "no-store",
       signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),
@@ -173,6 +174,7 @@ async function refreshAccessCookie(
         cookie: cookieHeader,
         "x-proxy-secret": env.proxySharedSecret,
         "x-forwarded-for": clientIp,
+        [PROXY_CLIENT_IP_HEADER]: clientIp,
         origin: env.webAppUrl,
       },
       cache: "no-store",

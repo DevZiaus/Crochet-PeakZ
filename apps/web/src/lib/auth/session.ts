@@ -1,6 +1,6 @@
 import { cookies, headers } from "next/headers";
 import type { AuthUser } from "@crochet-peakz/shared";
-import { readClientIp } from "./client-ip";
+import { PROXY_CLIENT_IP_HEADER, readClientIp } from "./client-ip";
 import { getWebAuthEnv } from "./web-env";
 
 /** How long the server session read may wait for the API. */
@@ -37,6 +37,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
         cookie: cookieHeader,
         "x-proxy-secret": env.proxySharedSecret,
         "x-forwarded-for": clientIp,
+        [PROXY_CLIENT_IP_HEADER]: clientIp,
       },
       cache: "no-store",
       signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),

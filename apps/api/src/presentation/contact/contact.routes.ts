@@ -25,6 +25,10 @@ export interface ContactRouterOptions {
   rateLimitWindowMs?: number;
   /** Optional rate-limit max override (defaults to 5). */
   rateLimitMax?: number;
+  /** Number of trusted appending proxy hops before the API (defaults to 1). */
+  trustedProxyHops?: number;
+  /** Shared secret authorizing `x-proxy-client-ip` forwarded by the web proxy. */
+  proxySharedSecret?: string;
 }
 
 /**
@@ -48,6 +52,12 @@ export function createContactRouter(options: ContactRouterOptions): Router {
   const contactDeps: ContactDependencies = {
     ...options.contact,
     rateLimiter,
+  };
+  const clientIpOptions = {
+    trustedHops: options.trustedProxyHops ?? 1,
+    ...(options.proxySharedSecret
+      ? { proxySharedSecret: options.proxySharedSecret }
+      : {}),
   };
 
   async function handleContactPost(req: Request, res: Response): Promise<void> {
@@ -83,7 +93,7 @@ export function createContactRouter(options: ContactRouterOptions): Router {
       throw new AppError(403, "Invalid request origin.");
     }
 
-    const ip = getClientIp(req) ?? req.ip ?? "unknown";
+    const ip = getClientIp(req, clientIpOptions) ?? req.ip ?? "unknown";
 
     try {
       await submitContact(contactDeps, {

@@ -260,3 +260,126 @@ describe("contact router", () => {
     expect(Number(limited.headers.get("retry-after"))).toBeGreaterThan(0);
   });
 });
+
+describe("contact router behind CDN and web proxy", () => {
+  let server: Server;
+  let baseUrl = "";
+  let sender: FakeContactEmailSender;
+
+  beforeAll(async () => {
+    sender = new FakeContactEmailSender();
+    const app = createApp(
+      env,
+      () => Promise.resolve(true),
+      undefined,
+      undefined,
+      createContactRouter({
+        contact: {
+          emails: sender,
+          clock: {
+            now: () => new Date(Date.parse("2026-11-20T12:00:00.000Z")),
+          },
+        },
+        allowedOrigins: [env.webAppUrl],
+        rateLimitWindowMs: 15 * 60 * 1000,
+        rateLimitMax: 2,
+        trustedProxyHops: 2,
+        proxySharedSecret: env.proxySharedSecret,
+      }),
+    );
+
+    server = app.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const address = server.address() as AddressInfo;
+    baseUrl = `http://127.0.0.1:${String(address.port)}`;
+  });
+
+  beforeEach(() => {
+    sender.sent.length = 0;
+    sender.failNext = false;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        resolve();
+      });
+      server.closeAllConnections();
+    });
+  });
+
+  it("isolates visitors sharing a Cloudflare edge IP using the 2-hop X-Forwarded-For entry", async () => {
+    const post = (forwardedFor: string): Promise<globalThis.Response> =>
+      fetch(`${baseUrl}/api/contact`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://shop.example.com",
+          "x-forwarded-for": forwardedFor,
+        },
+        body: JSON.stringify(VALID_BODY),
+      });
+
+    expect((await post("9.9.9.1, 203.0.113.10, 172.70.1.1")).status).toBe(200);
+    expect((await post("9.9.9.2, 203.0.113.10, 172.70.1.1")).status).toBe(200);
+    expect((await post("9.9.9.3, 203.0.113.10, 172.70.1.1")).status).toBe(429);
+
+    // A second visitor arriving through the exact same Cloudflare edge IP keeps its own bucket.
+    expect((await post("9.9.9.4, 203.0.113.11, 172.70.1.1")).status).toBe(200);
+  });
+
+  it("trusts x-proxy-client-ip only when accompanied by x-proxy-secret across extra router hops", async () => {
+    const post = (
+      headers: Record<string, string>,
+    ): Promise<globalThis.Response> =>
+      fetch(`${baseUrl}/api/contact`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://shop.example.com",
+          ...headers,
+        },
+        body: JSON.stringify(VALID_BODY),
+      });
+
+    expect(
+      (
+        await post({
+          "x-proxy-secret": env.proxySharedSecret,
+          "x-proxy-client-ip": "203.0.113.20",
+          "x-forwarded-for": "203.0.113.20, 76.76.21.1, 172.70.2.2",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await post({
+          "x-proxy-secret": env.proxySharedSecret,
+          "x-proxy-client-ip": "203.0.113.20",
+          "x-forwarded-for": "203.0.113.20, 76.76.21.2, 172.70.2.3",
+        })
+      ).status,
+    ).toBe(200);
+
+    // Even when intermediate router hops change, the authenticated client IP keeps the same bucket.
+    expect(
+      (
+        await post({
+          "x-proxy-secret": env.proxySharedSecret,
+          "x-proxy-client-ip": "203.0.113.20",
+          "x-forwarded-for": "203.0.113.20, 76.76.21.99, 172.70.2.99",
+        })
+      ).status,
+    ).toBe(429);
+
+    // Without x-proxy-secret, a forged x-proxy-client-ip is ignored and the 2-hop XFF IP applies.
+    expect(
+      (
+        await post({
+          "x-proxy-client-ip": "1.2.3.4",
+          "x-forwarded-for": "203.0.113.20, 172.70.3.3",
+        })
+      ).status,
+    ).toBe(429);
+  });
+});

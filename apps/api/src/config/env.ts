@@ -14,6 +14,9 @@ export type NodeEnv = "development" | "test" | "production";
 /** Express `trust proxy` accepts these forms. */
 export type TrustProxy = boolean | number | string;
 
+/** Contact form delivery transport mode (`"log"` is test-only). */
+export type ContactEmailTransportMode = "resend" | "log";
+
 /** Optional endpoint overrides used to point a provider at a local mock. */
 export interface OAuthEndpointsConfig {
   /** Authorization page the browser is sent to. */
@@ -64,6 +67,8 @@ export interface ApiEnv {
   emailFrom: string;
   /** Destination inbox for contact form submissions. */
   contactEmail: string;
+  /** Delivery transport for contact form mail (`"log"` is test-only and rejected in production). */
+  contactEmailTransport?: ContactEmailTransportMode | undefined;
   /** Cloudinary cloud name used to build public delivery URLs. */
   cloudinaryCloudName: string;
 }
@@ -143,6 +148,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     resendApiKey: parseCredential(source, "RESEND_API_KEY"),
     emailFrom: parseEmailFrom(source["EMAIL_FROM"], nodeEnv),
     contactEmail: parseOptionalContactEmail(source["CONTACT_EMAIL"], nodeEnv),
+    contactEmailTransport: parseContactEmailTransport(
+      source["CONTACT_EMAIL_TRANSPORT"],
+      nodeEnv,
+    ),
     cloudinaryCloudName: parseCredential(source, "CLOUDINARY_CLOUD_NAME"),
   };
 }
@@ -230,14 +239,15 @@ function extractEmailAddress(raw: string): string {
 
 /**
  * Returns a startup warning when `EMAIL_FROM` uses Resend's test-mode
- * onboarding sender while `CONTACT_EMAIL` is still at the default address.
+ * `resend.dev` domain.
  *
  * Resend test mode rejects mail to unverified recipients with 403
  * `validation_error`, so fresh deployments fail contact submissions with 502
- * until a verified domain or authorized `CONTACT_EMAIL` is configured.
+ * when `CONTACT_EMAIL` points to an unauthorized address and cannot send
+ * general transactional mail until a verified sending domain is configured.
  *
  * @param env Parsed API environment values.
- * @returns Warning message, or `null` when no mismatch is detected.
+ * @returns Warning message, or `null` when a non-`resend.dev` sender is used.
  */
 export function getContactEmailStartupWarning(
   env: Pick<ApiEnv, "emailFrom" | "contactEmail">,
@@ -247,19 +257,28 @@ export function getContactEmailStartupWarning(
   const senderDomain = at === -1 ? "" : sender.slice(at + 1);
   const usesResendOnboarding =
     senderDomain === "resend.dev" || senderDomain.endsWith(".resend.dev");
-  const usesDefaultContactInbox =
-    env.contactEmail.trim().toLowerCase() ===
-    DEFAULT_CONTACT_EMAIL.toLowerCase();
 
-  if (!usesResendOnboarding || !usesDefaultContactInbox) {
+  if (!usesResendOnboarding) {
     return null;
   }
 
+  const contactInbox = env.contactEmail.trim();
+  const usesDefaultContactInbox =
+    contactInbox.toLowerCase() === DEFAULT_CONTACT_EMAIL.toLowerCase();
+
+  if (usesDefaultContactInbox) {
+    return (
+      `[API] EMAIL_FROM (${sender}) uses Resend's test-mode domain while ` +
+      `CONTACT_EMAIL is still set to ${DEFAULT_CONTACT_EMAIL}. Contact form ` +
+      "submissions will fail with 502 until you verify a sending domain or " +
+      "override CONTACT_EMAIL to an authorized Resend test address."
+    );
+  }
+
   return (
-    `[API] EMAIL_FROM (${sender}) uses Resend's test-mode domain while ` +
-    `CONTACT_EMAIL is still set to ${DEFAULT_CONTACT_EMAIL}. Contact form ` +
-    "submissions will fail with 502 until you verify a sending domain or " +
-    "override CONTACT_EMAIL to an authorized Resend test address."
+    `[API] EMAIL_FROM (${sender}) uses Resend's test-mode domain with ` +
+    `CONTACT_EMAIL=${contactInbox}. Resend test mode restricts delivery ` +
+    "to authorized test recipients; verify a sending domain before launch."
   );
 }
 
@@ -309,6 +328,33 @@ function parseOptionalContactEmail(
   }
 
   return raw;
+}
+
+function parseContactEmailTransport(
+  value: string | undefined,
+  nodeEnv: NodeEnv,
+): ContactEmailTransportMode {
+  const raw = value?.trim();
+  if (!raw) {
+    return "resend";
+  }
+
+  const normalized = raw.toLowerCase();
+  if (normalized === "resend") {
+    return "resend";
+  }
+  if (normalized === "log") {
+    if (nodeEnv === "production") {
+      throw new Error(
+        "CONTACT_EMAIL_TRANSPORT=log is a test-only override and cannot be set when NODE_ENV=production.",
+      );
+    }
+    return "log";
+  }
+
+  throw new Error(
+    `Invalid CONTACT_EMAIL_TRANSPORT "${raw}". Expected resend or log.`,
+  );
 }
 
 /**
@@ -462,6 +508,24 @@ function parseCorsOrigins(value: string | undefined): string[] {
   }
 
   return origins;
+}
+
+/**
+ * Derives how many trailing `X-Forwarded-For` hops belong to trusted proxies.
+ *
+ * Numeric `TRUST_PROXY` values (such as `1` behind one proxy or `2` behind
+ * Cloudflare plus an appending origin proxy) map directly to that hop depth;
+ * non-numeric values (`false`, `true`, or subnet names) fall back to `1`.
+ *
+ * @param trustProxy Parsed `TRUST_PROXY` setting.
+ * @returns Positive integer hop count (at least `1`).
+ */
+export function getTrustedProxyHops(trustProxy: TrustProxy): number {
+  return typeof trustProxy === "number" &&
+    Number.isInteger(trustProxy) &&
+    trustProxy >= 1
+    ? trustProxy
+    : 1;
 }
 
 function parseTrustProxy(value: string | undefined): TrustProxy {

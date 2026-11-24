@@ -77,6 +77,7 @@ describe("getSessionUser", () => {
     expect(call[0]).toBe("http://api.test/api/auth/me");
     const sent = new Headers(call[1].headers);
     expect(sent.get("x-forwarded-for")).toBe("5.6.7.8");
+    expect(sent.get("x-proxy-client-ip")).toBe("5.6.7.8");
     expect(sent.get("x-proxy-secret")).toBe("test-secret-0123456789");
     expect(sent.get("cookie")).toBe("cp_access=abc");
   });

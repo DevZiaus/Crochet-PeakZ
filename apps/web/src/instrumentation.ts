@@ -17,6 +17,10 @@ export async function register(): Promise<void> {
     return;
   }
 
-  const { getWebAuthEnv } = await import("./lib/auth/web-env");
+  const [{ getWebAuthEnv }, { getTrustedProxyHops }] = await Promise.all([
+    import("./lib/auth/web-env"),
+    import("./lib/auth/client-ip"),
+  ]);
   getWebAuthEnv();
+  getTrustedProxyHops();
 }

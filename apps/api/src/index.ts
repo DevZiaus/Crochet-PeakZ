@@ -2,7 +2,11 @@ import dotenv from "dotenv";
 import type { Router } from "express";
 import type { Server } from "node:http";
 import { createApp } from "./app.js";
-import { getContactEmailStartupWarning, loadEnv } from "./config/env.js";
+import {
+  getContactEmailStartupWarning,
+  getTrustedProxyHops,
+  loadEnv,
+} from "./config/env.js";
 import {
   createDatabase,
   type Database,
@@ -71,8 +75,13 @@ function installShutdownHandlers(server: Server, database: Database): void {
  */
 async function main(): Promise<void> {
   const env = loadEnv();
+  const trustedProxyHops = getTrustedProxyHops(env.trustProxy);
   const contactEmailWarning = getContactEmailStartupWarning(env);
-  if (contactEmailWarning && env.nodeEnv !== "test") {
+  if (
+    contactEmailWarning &&
+    env.nodeEnv !== "test" &&
+    env.contactEmailTransport !== "log"
+  ) {
     console.warn(contactEmailWarning);
   }
   const database = createDatabase(env.databaseUrl);
@@ -110,6 +119,15 @@ async function main(): Promise<void> {
         apiKey: env.resendApiKey,
         from: env.emailFrom,
         to: env.contactEmail,
+        transport:
+          env.contactEmailTransport === "log"
+            ? (email) => {
+                console.info(
+                  `[contact] (log transport) "${email.subject}" from ${email.from} to ${email.to.join(", ")} (reply-to ${email.replyTo})`,
+                );
+                return Promise.resolve({ error: null });
+              }
+            : undefined,
       }),
       clock: systemClock,
     };
@@ -117,6 +135,8 @@ async function main(): Promise<void> {
     return createContactRouter({
       contact,
       allowedOrigins: [...new Set([env.webAppUrl, ...env.corsOrigins])],
+      trustedProxyHops,
+      proxySharedSecret: env.proxySharedSecret,
     });
   }
 
@@ -160,6 +180,7 @@ async function main(): Promise<void> {
       proxySharedSecret: env.proxySharedSecret,
       webAppUrl: env.webAppUrl,
       isProduction: env.nodeEnv === "production",
+      trustedProxyHops,
       authenticator: createOAuthAuthenticator({
         webAppUrl: env.webAppUrl,
         google: env.googleClient,

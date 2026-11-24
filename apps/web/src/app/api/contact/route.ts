@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { CONTACT_MAX_BODY_BYTES } from "@crochet-peakz/shared";
-import { readClientIp } from "@/lib/auth/client-ip";
+import { PROXY_CLIENT_IP_HEADER, readClientIp } from "@/lib/auth/client-ip";
 import { getCatalogEnv } from "@/lib/catalog/env";
 
 /** Forces request-time evaluation on every call. */
@@ -119,10 +119,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     return errorResponse("Your message is too large.", 413);
   }
 
+  const clientIp = readClientIp(request.headers);
   const headers = new Headers();
   headers.set("content-type", "application/json");
   headers.set("origin", env.webAppUrl);
-  headers.set("x-forwarded-for", readClientIp(request.headers));
+  headers.set("x-forwarded-for", clientIp);
+
+  const proxySecret = process.env["PROXY_SHARED_SECRET"]?.trim();
+  if (proxySecret) {
+    headers.set("x-proxy-secret", proxySecret);
+    headers.set(PROXY_CLIENT_IP_HEADER, clientIp);
+  }
 
   let upstream: Response;
   try {

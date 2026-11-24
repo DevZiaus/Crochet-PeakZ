@@ -64,10 +64,13 @@ Auth tests never call live Google, Facebook, or Resend:
 
 ### End to end (Playwright)
 
-The browser suite in `e2e/` drives a real browser against the real web app and
-the real API, through the Next.js proxy. It needs PostgreSQL, the seeded
-accounts, and both servers running (`npm run dev`). `webServer` reuses servers
-that are already up.
+The browser suite in `e2e/` (`auth.spec.ts`, `catalog.spec.ts`, `currency.spec.ts`,
+and `contact.spec.ts`) drives a real browser against the real web app and the
+real API, through the Next.js proxy. It needs PostgreSQL, the seeded accounts,
+and both servers running (`npm run dev`). `webServer` builds and starts both with
+`CONTACT_EMAIL_TRANSPORT=log` so contact submissions never call live Resend (pass
+`CONTACT_EMAIL_TRANSPORT=log` if reusing a manual `npm run dev` server).
+`webServer` reuses servers that are already up.
 
 ```bash
 npx playwright test                    # both projects
@@ -108,8 +111,8 @@ docker compose up -d --build
 ```
 
 See [docs/deployment.md](docs/deployment.md) for Docker Compose, one-origin
-reverse proxy, Vercel, Heroku, bare Node, migrations, health checks, and
-troubleshooting.
+reverse proxy, Cloudflare CDN, Vercel, Render, Heroku, bare Node, migrations,
+health checks, and troubleshooting.
 
 ## Documentation
 

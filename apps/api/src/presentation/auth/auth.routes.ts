@@ -55,6 +55,8 @@ export interface AuthRouterDependencies {
   webAppUrl: string;
   isProduction: boolean;
   authenticator: OAuthAuthenticator;
+  /** Number of trusted appending proxy hops before the API (defaults to 1). */
+  trustedProxyHops?: number;
 }
 
 /** The two OAuth providers, keyed by path segment. */
@@ -74,6 +76,14 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
   const router = Router();
   const requireAuth = createRequireAuth(deps.auth.tokens);
   const isProduction = deps.isProduction;
+  const clientIpOptions = {
+    trustedHops: deps.trustedProxyHops ?? 1,
+    proxySharedSecret: deps.proxySharedSecret,
+  };
+  const ipRateLimit = (opts: {
+    windowMs: number;
+    max: number;
+  }): RequestHandler => createRateLimit({ ...opts, clientIp: clientIpOptions });
 
   router.use(
     createProxyGuard({
@@ -84,7 +94,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   const context = (req: Request): SessionContext => ({
     deviceInfo: normalizeDeviceInfo(req.get("user-agent")),
-    ipAddress: getClientIp(req),
+    ipAddress: getClientIp(req, clientIpOptions),
   });
 
   // Keys a resend by the address in the body, so an unknown or verified
@@ -106,7 +116,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/register",
-    createRateLimit({ windowMs: 60 * 60 * 1000, max: 5 }),
+    ipRateLimit({ windowMs: 60 * 60 * 1000, max: 5 }),
     asyncHandler(async (req, res) => {
       const input = registerSchema.parse(req.body);
       const user = await registerUser(deps.auth, input);
@@ -116,7 +126,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/verify-email",
-    createRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
+    ipRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
     asyncHandler(async (req, res) => {
       const { token } = tokenSchema.parse(req.body);
       const user = await verifyEmail(deps.auth, token);
@@ -126,7 +136,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/resend-verification",
-    createRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
+    ipRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
     resendAccountLimit,
     asyncHandler(async (req, res) => {
       const { email } = resendVerificationSchema.parse(req.body);
@@ -151,7 +161,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/login",
-    createRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
+    ipRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
     asyncHandler(async (req, res) => {
       const input = loginSchema.parse(req.body);
       const result = await loginUser(deps.auth, input, context(req));
@@ -162,7 +172,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/refresh",
-    createRateLimit({ windowMs: 60 * 1000, max: 60 }),
+    ipRateLimit({ windowMs: 60 * 1000, max: 60 }),
     asyncHandler(async (req, res) => {
       const raw = readRefreshCookie(req);
       if (!raw) {
@@ -193,7 +203,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/logout",
-    createRateLimit({ windowMs: 60 * 1000, max: 60 }),
+    ipRateLimit({ windowMs: 60 * 1000, max: 60 }),
     asyncHandler(async (req, res) => {
       await logoutSession(deps.auth, readRefreshCookie(req));
       clearAuthCookies(res, isProduction);
@@ -207,7 +217,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
   // signed in customer from spending a shared address's whole budget.
   router.get(
     "/me",
-    createRateLimit({ windowMs: 60 * 1000, max: 120 }),
+    ipRateLimit({ windowMs: 60 * 1000, max: 120 }),
     requireAuth,
     createRateLimit({
       windowMs: 60 * 1000,
@@ -222,7 +232,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/forgot-password",
-    createRateLimit({ windowMs: 15 * 60 * 1000, max: 3 }),
+    ipRateLimit({ windowMs: 15 * 60 * 1000, max: 3 }),
     asyncHandler(async (req, res) => {
       const { email } = forgotPasswordSchema.parse(req.body);
       await forgotPassword(deps.auth, email);
@@ -235,7 +245,7 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 
   router.post(
     "/reset-password",
-    createRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
+    ipRateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
     asyncHandler(async (req, res) => {
       const { token, password } = resetPasswordSchema.parse(req.body);
       await resetPassword(deps.auth, token, password);
@@ -248,12 +258,12 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
   for (const provider of OAUTH_PROVIDERS) {
     router.get(
       `/${provider}`,
-      createRateLimit({ windowMs: 60 * 1000, max: 60 }),
+      ipRateLimit({ windowMs: 60 * 1000, max: 60 }),
       startOAuth(deps, provider),
     );
     router.get(
       `/${provider}/callback`,
-      createRateLimit({ windowMs: 60 * 1000, max: 60 }),
+      ipRateLimit({ windowMs: 60 * 1000, max: 60 }),
       handleOAuthCallback(deps, provider),
     );
   }
@@ -388,7 +398,10 @@ function handleOAuthCallback(
 
         signInWithOAuth(deps.auth, outcome.profile, {
           deviceInfo: normalizeDeviceInfo(req.get("user-agent")),
-          ipAddress: getClientIp(req),
+          ipAddress: getClientIp(req, {
+            trustedHops: deps.trustedProxyHops ?? 1,
+            proxySharedSecret: deps.proxySharedSecret,
+          }),
         })
           .then((result) => {
             setAuthCookies(res, result, deps.isProduction);

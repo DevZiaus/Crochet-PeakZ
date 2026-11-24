@@ -22,6 +22,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("contact proxy route", () => {
@@ -183,5 +184,54 @@ describe("contact proxy route", () => {
       error: { message: string; statusCode: number };
     };
     expect(body.error.statusCode).toBe(502);
+  });
+
+  it("forwards the 2-hop CDN visitor IP and x-proxy-client-ip when TRUSTED_PROXY_HOPS=2", async () => {
+    vi.stubEnv("TRUSTED_PROXY_HOPS", "2");
+    vi.stubEnv("PROXY_SHARED_SECRET", "proxy-secret-0123456789");
+    fetchMock.mockImplementation(
+      (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+        calls.push({ url, init });
+        return Promise.resolve(
+          new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      },
+    );
+
+    const request = new NextRequest("http://web.test/api/contact", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://web.test",
+        "x-forwarded-for": "9.9.9.9, 203.0.113.50, 172.70.1.1",
+      },
+      body: JSON.stringify({
+        name: "Ada",
+        email: "ada@example.com",
+        topic: "general",
+        message: "Hello there!",
+        website: "",
+        elapsedMs: 4000,
+      }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const forwardedHeaders = new Headers(calls[0]?.init?.headers);
+    expect(forwardedHeaders.get("x-forwarded-for")).toBe("203.0.113.50");
+    expect(forwardedHeaders.get("x-proxy-client-ip")).toBe("203.0.113.50");
+    expect(forwardedHeaders.get("x-proxy-secret")).toBe(
+      "proxy-secret-0123456789",
+    );
   });
 });

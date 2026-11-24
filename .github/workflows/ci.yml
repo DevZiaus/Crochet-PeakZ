@@ -103,6 +103,7 @@ jobs:
           # A fake key. The development fallback logs the auth link instead of
           # throwing when Resend rejects the send, so no email leaves CI.
           RESEND_API_KEY: re_ci_key
+          CONTACT_EMAIL_TRANSPORT: log
           GOOGLE_CLIENT_ID: ci-google-client-id
           GOOGLE_CLIENT_SECRET: ci-google-client-secret
           FACEBOOK_APP_ID: ci-facebook-app-id

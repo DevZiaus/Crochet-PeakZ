@@ -5,6 +5,14 @@
 # Build the web image with NEXT_PUBLIC_API_URL=/api so the browser calls the
 # API through this proxy. Caddy obtains a TLS certificate automatically when
 # DOMAIN is a public hostname; localhost is served over plain HTTP.
+#
+# Running behind Cloudflare CDN on a VPS:
+# 1. Firewall ports 80/443 so only Cloudflare IPs (or Cloudflare Tunnel) reach Caddy.
+# 2. Option A (recommended, keep TRUST_PROXY=1 and TRUSTED_PROXY_HOPS=1): add a global
+#    `servers { trusted_proxies static <cloudflare-cidrs> }` + `client_ip_headers CF-Connecting-IP`
+#    block above `{$DOMAIN:localhost}` so Caddy forwards the real visitor IP as 1 hop.
+# 3. Option B (without real_ip): configure `trusted_proxies static <cloudflare-cidrs>`
+#    and set `TRUST_PROXY=2` and `TRUSTED_PROXY_HOPS=2` so the apps read 2 hops back.
 {$DOMAIN:localhost} {
 	encode zstd gzip
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getContactEmailStartupWarning, loadEnv } from "./env.js";
+import {
+  getContactEmailStartupWarning,
+  getTrustedProxyHops,
+  loadEnv,
+} from "./env.js";
 
 /** Minimal environment that satisfies every required value. */
 const baseEnv: NodeJS.ProcessEnv = {
@@ -217,14 +221,29 @@ describe("getContactEmailStartupWarning", () => {
     expect(getContactEmailStartupWarning(env)).not.toBeNull();
   });
 
-  it("returns null when CONTACT_EMAIL is overridden away from the default", () => {
+  it("warns when EMAIL_FROM uses resend.dev even when CONTACT_EMAIL is overridden", () => {
     const env = loadEnv({
       ...baseEnv,
       EMAIL_FROM: "Crochet PeakZ <onboarding@resend.dev>",
       CONTACT_EMAIL: "owner@example.com",
     });
 
-    expect(getContactEmailStartupWarning(env)).toBeNull();
+    const warning = getContactEmailStartupWarning(env);
+    expect(warning).toContain("onboarding@resend.dev");
+    expect(warning).toContain("owner@example.com");
+    expect(warning).toMatch(/verify a sending domain/i);
+  });
+
+  it("warns when EMAIL_FROM uses a resend.dev subdomain", () => {
+    const env = loadEnv({
+      ...baseEnv,
+      EMAIL_FROM: "Crochet PeakZ <hello@mail.resend.dev>",
+      CONTACT_EMAIL: "owner@example.com",
+    });
+
+    const warning = getContactEmailStartupWarning(env);
+    expect(warning).toContain("hello@mail.resend.dev");
+    expect(warning).toContain("owner@example.com");
   });
 
   it("returns null when EMAIL_FROM uses a custom domain", () => {
@@ -234,5 +253,75 @@ describe("getContactEmailStartupWarning", () => {
     });
 
     expect(getContactEmailStartupWarning(env)).toBeNull();
+  });
+});
+
+describe("getTrustedProxyHops", () => {
+  it("maps numeric TRUST_PROXY values and defaults non-numeric settings to 1", () => {
+    expect(getTrustedProxyHops(loadEnv(baseEnv).trustProxy)).toBe(1);
+    expect(
+      getTrustedProxyHops(loadEnv({ ...baseEnv, TRUST_PROXY: "0" }).trustProxy),
+    ).toBe(1);
+    expect(
+      getTrustedProxyHops(
+        loadEnv({ ...baseEnv, TRUST_PROXY: "true" }).trustProxy,
+      ),
+    ).toBe(1);
+    expect(
+      getTrustedProxyHops(
+        loadEnv({ ...baseEnv, TRUST_PROXY: "loopback" }).trustProxy,
+      ),
+    ).toBe(1);
+    expect(
+      getTrustedProxyHops(loadEnv({ ...baseEnv, TRUST_PROXY: "1" }).trustProxy),
+    ).toBe(1);
+    expect(
+      getTrustedProxyHops(loadEnv({ ...baseEnv, TRUST_PROXY: "2" }).trustProxy),
+    ).toBe(2);
+    expect(
+      getTrustedProxyHops(loadEnv({ ...baseEnv, TRUST_PROXY: "3" }).trustProxy),
+    ).toBe(3);
+  });
+});
+
+describe("loadEnv CONTACT_EMAIL_TRANSPORT", () => {
+  it("defaults to resend when unset", () => {
+    expect(loadEnv(baseEnv).contactEmailTransport).toBe("resend");
+  });
+
+  it("accepts log outside production", () => {
+    expect(
+      loadEnv({
+        ...baseEnv,
+        NODE_ENV: "development",
+        CONTACT_EMAIL_TRANSPORT: "log",
+      }).contactEmailTransport,
+    ).toBe("log");
+    expect(
+      loadEnv({
+        ...baseEnv,
+        NODE_ENV: "test",
+        CONTACT_EMAIL_TRANSPORT: "log",
+      }).contactEmailTransport,
+    ).toBe("log");
+  });
+
+  it("rejects log in production", () => {
+    expect(() =>
+      loadEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        CONTACT_EMAIL_TRANSPORT: "log",
+      }),
+    ).toThrow(/test-only override/);
+  });
+
+  it("rejects unknown transport values", () => {
+    expect(() =>
+      loadEnv({
+        ...baseEnv,
+        CONTACT_EMAIL_TRANSPORT: "smtp",
+      }),
+    ).toThrow(/Invalid CONTACT_EMAIL_TRANSPORT/);
   });
 });

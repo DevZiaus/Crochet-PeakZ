@@ -1,6 +1,6 @@
 import type { Request, RequestHandler } from "express";
 import { AppError } from "../middleware/errorHandler.js";
-import { getClientIp } from "../auth/proxy-guard.js";
+import { type ClientIpOptions, getClientIp } from "../auth/proxy-guard.js";
 
 /** One in-memory rate limit rule. */
 export interface RateLimitOptions {
@@ -25,6 +25,8 @@ export interface RateLimitOptions {
    * `maxKeys` is exceeded. Defaults to 1,000.
    */
   pruneIntervalMs?: number;
+  /** Client IP extraction options (trusted hop count and proxy secret). */
+  clientIp?: ClientIpOptions;
 }
 
 /** Largest number of distinct keys retained in memory per limiter instance. */
@@ -79,7 +81,7 @@ export function createRateLimit(options: RateLimitOptions): RequestHandler {
 
   return (req, res, next) => {
     const now = getNow();
-    const ip = getClientIp(req) ?? "unknown";
+    const ip = getClientIp(req, options.clientIp) ?? "unknown";
     const key = keyFor(req, ip);
 
     if (key === null) {
