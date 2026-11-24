@@ -37,28 +37,29 @@ npm run test --workspace=@crochet-peakz/web
 
 ## Key files
 
-| File                                  | Owns                                                                                             |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `src/app/layout.tsx`                  | Root layout: HTML shell, fonts, metadata base, title template, icons, and theme color            |
-| `src/app/(storefront)/`               | Public storefront: home, shop, product detail, collections, and loading/error/not found states   |
-| `src/app/health/route.ts`             | `/health` liveness probe for containers and reverse proxies                                      |
-| `src/app/(auth)/`                     | Six auth screens: sign in, register, verify email, forgot password, reset password, OAuth result |
-| `src/app/api/auth/[...path]/route.ts` | Same origin auth proxy: cookie relay, one time refresh, and replay                               |
-| `src/app/admin/`                      | Admin layout with the server side role guard                                                     |
-| `src/components/auth/`                | Auth forms, OAuth buttons, password input, header menu, and route guards                         |
-| `src/components/catalog/`             | Catalog filters, mobile drawer, sort, pagination, gallery, purchase panel, and error states      |
-| `src/components/currency/`            | Currency provider, header dropdown, and mobile drawer radio control                              |
-| `src/lib/auth/`                       | Server session helper, client session hook, cookies, and the auth API wrapper                    |
-| `src/lib/catalog/`                    | Server catalog client, URL search parsing, catalog labels, JSON-LD, and variant selection        |
-| `src/lib/currency/`                   | Currency cookie parsing, server reader, Server Action, and display labels                        |
-| `src/proxy.ts`                        | Route guard, auth refresh, and security headers                                                  |
-| `src/app/globals.css`                 | Design tokens (light + `[data-theme="dark"]`), Tailwind imports                                  |
-| `design.md`                           | Design system reference: tokens, type scale, component APIs, a11y rules                          |
-| `src/components/ui/`                  | Shadcn UI primitives (Button, Input, Dialog, and the rest)                                       |
-| `src/components/`                     | Composed components built on the primitives                                                      |
-| `next.config.ts`                      | Standalone output, monorepo tracing root, image allowlist                                        |
-| `eslint.config.mjs`                   | ESLint config (Next.js preset)                                                                   |
-| `.env.local` / `.env.local.example`   | Build-time `NEXT_PUBLIC_*` variables                                                             |
+| File                                  | Owns                                                                                                                                   |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/layout.tsx`                  | Root layout: HTML shell, fonts, metadata base, title template, icons, and theme color                                                  |
+| `src/app/(storefront)/`               | Public storefront: home, shop, product detail, collections, about, contact, privacy, data deletion, and loading/error/not found states |
+| `src/app/health/route.ts`             | `/health` liveness probe for containers and reverse proxies                                                                            |
+| `src/app/(auth)/`                     | Six auth screens: sign in, register, verify email, forgot password, reset password, OAuth result                                       |
+| `src/app/api/auth/[...path]/route.ts` | Same origin auth proxy: cookie relay, one time refresh, and replay                                                                     |
+| `src/app/api/contact/route.ts`        | Same origin contact proxy: 20 KB body cap, last hop `X-Forwarded-For` forwarding, and API relay                                        |
+| `src/app/admin/`                      | Admin layout with the server side role guard                                                                                           |
+| `src/components/auth/`                | Auth forms, OAuth buttons, password input, header menu, and route guards                                                               |
+| `src/components/catalog/`             | Catalog filters, mobile drawer, sort, pagination, gallery, purchase panel, and error states                                            |
+| `src/components/currency/`            | Currency provider, header dropdown, and mobile drawer radio control                                                                    |
+| `src/lib/auth/`                       | Server session helper, client session hook, cookies, and the auth API wrapper                                                          |
+| `src/lib/catalog/`                    | Server catalog client, URL search parsing, catalog labels, JSON-LD, and variant selection                                              |
+| `src/lib/currency/`                   | Currency cookie parsing, server reader, Server Action, and display labels                                                              |
+| `src/proxy.ts`                        | Route guard, auth refresh, and security headers                                                                                        |
+| `src/app/globals.css`                 | Design tokens (light + `[data-theme="dark"]`), Tailwind imports                                                                        |
+| `design.md`                           | Design system reference: tokens, type scale, component APIs, a11y rules                                                                |
+| `src/components/ui/`                  | Shadcn UI primitives (Button, Input, Dialog, and the rest)                                                                             |
+| `src/components/`                     | Composed components built on the primitives                                                                                            |
+| `next.config.ts`                      | Standalone output, monorepo tracing root, image allowlist                                                                              |
+| `eslint.config.mjs`                   | ESLint config (Next.js preset)                                                                                                         |
+| `.env.local` / `.env.local.example`   | Build-time `NEXT_PUBLIC_*` variables                                                                                                   |
 
 ## Conventions
 
@@ -71,12 +72,13 @@ npm run test --workspace=@crochet-peakz/web
 - **Auth calls**: the browser never calls the API directly. Auth requests go through `/api/auth/*` route handlers, which forward cookies and the proxy secret, refresh once on a 401, and replay. Server components read the session through `src/lib/auth/session.ts`.
 - **Catalog calls**: server components call `src/lib/catalog/api.ts`; the client uses `API_INTERNAL_URL`, caches reads for 60 seconds, caches a 404 lookup as a value, and aborts after 10 seconds. The browser never calls the catalog API directly.
 - **Catalog URLs**: the shop state lives in URL search params. The web drops unknown categories, types, prices, sorts, and pages before calling the API; the API rejects malformed queries with 400. Canonical URLs normalize the filter state.
+- **Contact calls**: browser submissions target `POST /api/contact` (served directly by Express behind the one origin reverse proxy, or relayed by `src/app/api/contact/route.ts` with a 20 KB byte cap and last hop `X-Forwarded-For` forwarding).
 - **Currency**: the `(storefront)` layout reads `cp_currency` once through `src/lib/currency/server.ts` (`getActiveCurrency()`, BDT default, USD when set) and passes it to `CurrencyProvider`; `setCurrency` in `src/lib/currency/actions.ts` is the only writer, and client components read `useCurrency()`.
 - **Auth screens**: the six screens live under `(auth)`, follow `design.md`, and set `robots: { index: false }`; the proxy adds an `X-Robots-Tag` header.
 - **Route protection**: `src/proxy.ts` sends signed out visitors to `/login?next=<path>`, and the admin layout checks the role on the server before rendering.
 - **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart. Server side `API_INTERNAL_URL` and `WEB_APP_URL` are read by `src/lib/catalog/env.ts`; production boot fails if either is missing.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
-- **Brand assets**: the logo files in `public/` (`logo.png`, `logo-square.png`, `logo.jpg`, `logo-square.jpg`, `logo.webp`, `logo-square.webp`) are intentionally retained for future brand use. The current storefront does not reference them; do not remove them as unused.
+- **Brand assets**: `BrandLogo` (`src/components/brand-logo.tsx`) and `AdminLayout` render `public/logo.webp` across the storefront header, footer, hero, auth layout, and admin sidebar. The remaining logo variants in `public/` (`logo.png`, `logo-square.png`, `logo.jpg`, `logo-square.jpg`, `logo-square.webp`) are intentionally retained for future brand use; do not remove them as unused.
 
 ## Agent skills
 

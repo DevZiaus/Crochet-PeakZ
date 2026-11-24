@@ -70,4 +70,6 @@ The typography pairing (DM Sans + Playfair Display) balances warmth with readabi
 
 The deep teal (#0D7377) and warm gold (#C8A456) palette was chosen over warmer options (terracotta, sage) because teal is gender neutral, sophisticated, and distinctive in the crochet/craft e-commerce space, which tends toward pastels. The warm gold accent adds the artisanal warmth without the palette feeling cold. Rose/coral as a secondary highlight handles sale badges and alerts without clashing.
 
+Subsequent storefront work evolved the palette from warm gold (`#C8A456`) to the botanical cream/paper/sage surfaces paired with deep teal (`#0f5c5c`) primary, brand rose (`#bf5570`) accent, and AA-safe deep rose (`#ae4460`) highlight (see `apps/web/design.md` and `apps/web/src/app/globals.css`) to align with the Crochet PeakZ emblem and hero art.
+
 Dark mode via `next-themes` with `data-theme` attribute was chosen over Tailwind's `dark:` class strategy because CSS custom property switching is more natural for a token based system, avoids coupling dark mode to Tailwind specific syntax, and `next-themes` handles the SSR hydration problem (flash of wrong theme) that a custom solution would need to solve manually.

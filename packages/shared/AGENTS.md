@@ -44,6 +44,7 @@ Root scripts (`npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint
 | `src/catalog/schemas.ts`  | Strict catalog list query schema and catalog sort types                                        |
 | `src/catalog/pricing.ts`  | Variant price helper used by both workspaces                                                   |
 | `src/catalog/labels.ts`   | Catalog stock and lead time labels                                                             |
+| `src/contact/index.ts`    | Contact form Zod schema, topic keys and labels, anti spam limits, and `DEFAULT_CONTACT_EMAIL`  |
 | `src/constants/index.ts`  | Shared constants (`CURRENCIES`, `ORDER_STATUSES`, `PRODUCT_TYPES`) and display metadata        |
 | `tsconfig.json`           | Base config: typecheck only (`noEmit`)                                                         |
 | `tsconfig.build.json`     | Emits `src` to `dist/`, excluding tests                                                        |
@@ -56,6 +57,7 @@ Root scripts (`npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint
 - **Add new exports to the barrel.** Any new type, schema, or constant must be re-exported from `src/index.ts` to be available to consumers.
 - **Auth contracts**: auth schemas and the `AuthUser` DTO live in `src/schemas/auth.ts`; both workspaces import them from the barrel.
 - **Catalog contracts**: catalog DTOs, the list query schema, pricing, and labels live in `src/catalog/` and are exported from the barrel; the API validates with the schema and the web uses the same types.
+- **Contact contracts**: the contact submission schema, topic constants, limits, and `DEFAULT_CONTACT_EMAIL` live in `src/contact/index.ts` and are exported from the barrel for both workspaces.
 - **Rebuild after changing source** when running a consumer that uses the compiled output (`npm run build:shared` at the repo root). The root dev script watches and rebuilds automatically.
 
 ## Related specs
