@@ -67,10 +67,11 @@ Auth tests never call live Google, Facebook, or Resend:
 The browser suite in `e2e/` (`auth.spec.ts`, `catalog.spec.ts`, `currency.spec.ts`,
 and `contact.spec.ts`) drives a real browser against the real web app and the
 real API, through the Next.js proxy. It needs PostgreSQL, the seeded accounts,
-and both servers running (`npm run dev`). `webServer` builds and starts both with
-`CONTACT_EMAIL_TRANSPORT=log` so contact submissions never call live Resend (pass
-`CONTACT_EMAIL_TRANSPORT=log` if reusing a manual `npm run dev` server).
-`webServer` reuses servers that are already up.
+and both servers startable by `webServer`, which builds and starts them with
+`CONTACT_EMAIL_TRANSPORT=log` so contact submissions never call live Resend. A web
+server already up on port 3000 is reused; the API is always started fresh, so stop
+a `npm run dev` API before running the suite: that is what keeps the log transport
+guaranteed rather than inherited from your shell.
 
 ```bash
 npx playwright test                    # both projects

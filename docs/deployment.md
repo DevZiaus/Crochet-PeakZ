@@ -184,24 +184,35 @@ Cloudflare edge IP bucket:
      resolved visitor IP in `x-proxy-client-ip` alongside `x-proxy-secret`, so
      intermediate hops between Vercel and Render/Heroku do not distort rate
      limit keys.
-   - On Render/Heroku, set `TRUST_PROXY=1` when the API host is reached directly
-     behind Render's router (DNS-only in Cloudflare or server-to-server from
-     Vercel), or `TRUST_PROXY=2` if browsers also call the API subdomain directly
-     through Cloudflare orange-cloud proxy.
+   - On Render, set `TRUST_PROXY=1` when the API host is reached directly behind
+     Render's router (DNS-only in Cloudflare, or server-to-server from Vercel).
+     Use `TRUST_PROXY=2` only when browsers really do call the API subdomain
+     through Cloudflare's orange-cloud proxy **and** the `onrender.com` hostname
+     is disabled, which Render allows, so direct requests cannot reach it.
+   - On Heroku the `herokuapp.com` hostname always answers, so a direct request
+     cannot be locked out at the platform. Keep `TRUST_PROXY=1` there unless a
+     proxy in front rejects requests whose `Host` is the platform hostname. At
+     two hops a caller who reaches the host directly can prepend its own address
+     to `X-Forwarded-For` and claim a fresh contact rate limit bucket.
 2. **Cloudflare → VPS with Docker Compose (Caddy or Nginx)**:
    - **Origin firewall (required):** restrict VPS ports `80` and `443` to
      Cloudflare's published IP ranges (or use Cloudflare Tunnel / Authenticated
      Origin Pulls) so callers cannot bypass Cloudflare and forge
      `X-Forwarded-For` or `CF-Connecting-IP` directly against Caddy or Nginx.
-   - **Option A (recommended)**: normalize the real client IP at Caddy
-     (`trusted_proxies static <cloudflare-cidrs>` +
-     `client_ip_headers CF-Connecting-IP`) or Nginx
-     (`set_real_ip_from <cloudflare-cidrs>;` + `real_ip_header CF-Connecting-IP;`)
-     and keep `TRUST_PROXY=1` and `TRUSTED_PROXY_HOPS=1`. See the comments in
-     `deploy/Caddyfile` and `deploy/nginx.conf.example`.
-   - **Option B**: configure the origin proxy to preserve and append
-     `X-Forwarded-For` from trusted Cloudflare CIDRs and set `TRUST_PROXY=2` and
-     `TRUSTED_PROXY_HOPS=2`.
+   - **Nginx: normalize at the edge, one hop**: `set_real_ip_from
+<cloudflare-cidrs>;` plus `real_ip_header CF-Connecting-IP;` rewrites
+     `$remote_addr`, so Nginx appends the real visitor address and the apps keep
+     `TRUST_PROXY=1` and `TRUSTED_PROXY_HOPS=1`. See `deploy/nginx.conf.example`.
+   - **Caddy: keep the CDN header, two hops**: add `trusted_proxies static
+<cloudflare-cidrs>` to the `servers` block of Caddy's global options, so
+     Caddy keeps Cloudflare's inbound `X-Forwarded-For` and appends its own peer
+     (the edge address), then set `TRUST_PROXY=2` and `TRUSTED_PROXY_HOPS=2` to
+     read the visitor two hops back. Caddy's `client_ip_headers` is not a
+     substitute: it changes the address Caddy logs, matches on and forwards as
+     PROXY protocol info, not the `X-Forwarded-For` Caddy sends upstream. See the
+     comments in `deploy/Caddyfile`.
+   - **Either proxy with no CDN in front**: Caddy or Nginx is the only appending
+     hop, so keep `TRUST_PROXY=1` and `TRUSTED_PROXY_HOPS=1`.
 3. **Cloudflare Tunnel (`cloudflared`) directly to containers**:
    - Without Caddy or Nginx in front of the containers, Cloudflare is the sole
      hop, so keep `TRUST_PROXY=1` and `TRUSTED_PROXY_HOPS=1`.
