@@ -126,6 +126,10 @@ describe("contact proxy route", () => {
     const forwardedHeaders = new Headers(calls[0]?.init?.headers);
     expect(forwardedHeaders.get("origin")).toBe("http://web.test");
     expect(forwardedHeaders.get("x-forwarded-for")).toBe("203.0.113.9");
+    // With no secret configured the relay forwards without one, and the API's
+    // contact route, which has no proxy guard, keys on X-Forwarded-For alone.
+    expect(forwardedHeaders.get("x-proxy-secret")).toBeNull();
+    expect(forwardedHeaders.get("x-proxy-client-ip")).toBeNull();
   });
 
   it("relays 429 status and Retry-After header from upstream", async () => {

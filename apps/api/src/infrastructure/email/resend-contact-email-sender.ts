@@ -26,7 +26,7 @@ export interface ResendContactEmailSenderOptions {
   from: string;
   /** Destination inbox address (`CONTACT_EMAIL`). */
   to: string;
-  /** Optional transport override for unit tests. */
+  /** Optional transport override for tests and the E2E log transport. */
   transport?: ContactEmailTransport | undefined;
 }
 

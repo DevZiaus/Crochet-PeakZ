@@ -68,7 +68,7 @@ export interface ApiEnv {
   /** Destination inbox for contact form submissions. */
   contactEmail: string;
   /** Delivery transport for contact form mail (`"log"` is test-only and rejected in production). */
-  contactEmailTransport?: ContactEmailTransportMode | undefined;
+  contactEmailTransport: ContactEmailTransportMode;
   /** Cloudinary cloud name used to build public delivery URLs. */
   cloudinaryCloudName: string;
 }

@@ -89,6 +89,7 @@ describeWithDatabase("auth routes over HTTP", () => {
       resendApiKey: "re_test_key",
       emailFrom: "Crochet PeakZ <hello@shop.example.com>",
       contactEmail: "hello@crochetpeakz.tech",
+      contactEmailTransport: "resend",
       cloudinaryCloudName: "crochet-peakz",
     };
 

@@ -7,8 +7,9 @@ import { defineConfig, devices } from "@playwright/test";
  * auth calls to the real Express API. `webServer` builds and starts both, so a
  * single `npx playwright test` is enough from a clean checkout. The API is
  * expected to have a reachable PostgreSQL database, the same one `npm run dev`
- * uses. When `npm run dev` is already up locally, the servers are reused and no
- * build runs.
+ * uses. A web server already answering on port 3000 is reused; the API is always
+ * built and started, so the suite stops if a `npm run dev` API holds port 4000.
+ * That is what guarantees the `CONTACT_EMAIL_TRANSPORT=log` override below.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -50,7 +51,11 @@ export default defineConfig({
       command:
         "npm run build:shared && npm run build --workspace=@crochet-peakz/api && npm run start --workspace=@crochet-peakz/api",
       url: "http://localhost:4000/api/health",
-      reuseExistingServer: !process.env["CI"],
+      // Never reuse a running dev API. The `CONTACT_EMAIL_TRANSPORT=log`
+      // override below only reaches a server Playwright starts itself, and a
+      // reused dev server can send real contact mail. Stop `npm run dev`
+      // before running the suite.
+      reuseExistingServer: false,
       timeout: 120_000,
       stdout: "ignore",
       stderr: "pipe",

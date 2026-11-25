@@ -20,6 +20,11 @@ import {
   type Page,
 } from "@playwright/test";
 
+/**
+ * Minimum wait before submitting so the server's fill time check passes.
+ * Mirrors CONTACT_MIN_FILL_TIME_MS in packages/shared plus a margin for the
+ * browser round trip. Update both together.
+ */
 const CONTACT_MIN_WAIT_MS = 3_500;
 
 /**
@@ -149,6 +154,9 @@ test("validates inline, enforces per-IP 429 across spoofed X-Forwarded-For chain
   await page.goto("/contact");
   await page.waitForLoadState("load");
   const hydratedAt = Date.now();
+  // Use the origin the browser actually loaded, so a different host or port
+  // does not turn the direct API posts below into cross origin requests.
+  const webOrigin = new URL(page.url()).origin;
 
   let networkPosts = 0;
   page.on("request", (req) => {
@@ -170,7 +178,7 @@ test("validates inline, enforces per-IP 429 across spoofed X-Forwarded-For chain
     const res = await request.post("/api/contact", {
       headers: {
         "content-type": "application/json",
-        origin: "http://localhost:3000",
+        origin: webOrigin,
         "x-forwarded-for": `198.51.100.${String(index)}, ${ipA}`,
       },
       data: {
@@ -219,7 +227,7 @@ test("validates inline, enforces per-IP 429 across spoofed X-Forwarded-For chain
   const otherVisitor = await request.post("/api/contact", {
     headers: {
       "content-type": "application/json",
-      origin: "http://localhost:3000",
+      origin: webOrigin,
       "x-forwarded-for": `198.51.100.99, ${ipB}`,
     },
     data: {

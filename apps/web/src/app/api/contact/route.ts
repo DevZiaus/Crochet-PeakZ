@@ -125,6 +125,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   headers.set("origin", env.webAppUrl);
   headers.set("x-forwarded-for", clientIp);
 
+  // Read directly rather than through `getWebAuthEnv`: the API serves contact
+  // submissions without the proxy guard, so a missing secret is a supported
+  // shape here and the request simply travels without one. See route.test.ts.
   const proxySecret = process.env["PROXY_SHARED_SECRET"]?.trim();
   if (proxySecret) {
     headers.set("x-proxy-secret", proxySecret);

@@ -31,6 +31,7 @@ const env: ApiEnv = {
   resendApiKey: "re_test_key",
   emailFrom: "Crochet PeakZ <hello@example.com>",
   contactEmail: "hello@crochetpeakz.tech",
+  contactEmailTransport: "resend",
   cloudinaryCloudName: "crochet-peakz",
 };
 
