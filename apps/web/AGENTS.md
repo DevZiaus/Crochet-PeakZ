@@ -44,7 +44,7 @@ npm run test --workspace=@crochet-peakz/web
 | `src/app/health/route.ts`             | `/health` liveness probe for containers and reverse proxies                                                                            |
 | `src/app/(auth)/`                     | Six auth screens: sign in, register, verify email, forgot password, reset password, OAuth result                                       |
 | `src/app/api/auth/[...path]/route.ts` | Same origin auth proxy: cookie relay, one time refresh, and replay                                                                     |
-| `src/app/api/contact/route.ts`        | Same origin contact proxy: 20 KB body cap, last hop `X-Forwarded-For` forwarding, and API relay                                        |
+| `src/app/api/contact/route.ts`        | Same origin contact proxy: 20 KB body cap, trusted hop client IP forwarding, and API relay                                             |
 | `src/app/admin/`                      | Admin layout with the server side role guard                                                                                           |
 | `src/components/auth/`                | Auth forms, OAuth buttons, password input, header menu, and route guards                                                               |
 | `src/components/catalog/`             | Catalog filters, mobile drawer, sort, pagination, gallery, purchase panel, and error states                                            |
@@ -76,7 +76,7 @@ npm run test --workspace=@crochet-peakz/web
 - **Currency**: the `(storefront)` layout reads `cp_currency` once through `src/lib/currency/server.ts` (`getActiveCurrency()`, BDT default, USD when set) and passes it to `CurrencyProvider`; `setCurrency` in `src/lib/currency/actions.ts` is the only writer, and client components read `useCurrency()`.
 - **Auth screens**: the six screens live under `(auth)`, follow `design.md`, and set `robots: { index: false }`; the proxy adds an `X-Robots-Tag` header.
 - **Route protection**: `src/proxy.ts` sends signed out visitors to `/login?next=<path>`, and the admin layout checks the role on the server before rendering.
-- **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart. Server side `API_INTERNAL_URL` and `WEB_APP_URL` are read by `src/lib/catalog/env.ts`; production boot fails if either is missing.
+- **Environment**: `NEXT_PUBLIC_*` values are inlined at build time. Changing `NEXT_PUBLIC_API_URL` requires a rebuild, not only a restart. Server side `API_INTERNAL_URL` and `WEB_APP_URL` are read by `src/lib/catalog/env.ts`; production boot fails if either is missing. `src/instrumentation.ts` also validates auth env and `TRUSTED_PROXY_HOPS` at Node server startup.
 - **Deployment**: the root `Dockerfile` `web` target runs the standalone server on `PORT`/`HOSTNAME`. One-origin reverse proxy deployments use `NEXT_PUBLIC_API_URL=/api`.
 - **Brand assets**: `BrandLogo` (`src/components/brand-logo.tsx`) renders `public/logo.webp` with the two tone wordmark in the storefront header, footer, and auth layout; `AdminLayout` renders `public/logo.webp` inline in the admin sidebar and mobile header; the home page hero (`src/app/(storefront)/page.tsx`) renders `public/logo-square.webp` directly via `next/image`. The remaining logo variants in `public/` (`logo.png`, `logo-square.png`, `logo.jpg`, `logo-square.jpg`) are intentionally retained for future brand use; do not remove them as unused.
 
