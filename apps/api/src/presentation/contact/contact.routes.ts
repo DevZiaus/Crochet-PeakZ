@@ -72,15 +72,18 @@ export function createContactRouter(options: ContactRouterOptions): Router {
     // only a post-parse fallback for chunked requests without Content-Length
     // (the web proxy caps raw bytes at 20 KB and global express.json caps at 1 MB).
     const declaredLength = Number(req.get("content-length") ?? 0);
+    if (
+      Number.isFinite(declaredLength) &&
+      declaredLength > CONTACT_MAX_BODY_BYTES
+    ) {
+      throw new AppError(413, "Your message is too large.");
+    }
+
     const bodyBytes = Buffer.byteLength(
       JSON.stringify(req.body ?? null),
       "utf8",
     );
-    if (
-      (Number.isFinite(declaredLength) &&
-        declaredLength > CONTACT_MAX_BODY_BYTES) ||
-      bodyBytes > CONTACT_MAX_BODY_BYTES
-    ) {
+    if (bodyBytes > CONTACT_MAX_BODY_BYTES) {
       throw new AppError(413, "Your message is too large.");
     }
 

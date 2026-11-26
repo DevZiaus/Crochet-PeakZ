@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { CONTACT_MAX_BODY_BYTES } from "@crochet-peakz/shared";
 import { POST } from "./route";
 
 process.env.API_INTERNAL_URL = "http://api.test/api";
@@ -73,6 +74,22 @@ describe("contact proxy route", () => {
         origin: "http://web.test",
       },
       body: JSON.stringify({ message: "a".repeat(25_000) }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(413);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects declared Content-Length larger than 20KB with 413 before reading body", async () => {
+    const request = new NextRequest("http://web.test/api/contact", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "content-length": String(CONTACT_MAX_BODY_BYTES + 1),
+        origin: "http://web.test",
+      },
+      body: JSON.stringify({ message: "hi" }),
     });
 
     const response = await POST(request);

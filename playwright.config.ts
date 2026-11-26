@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -16,7 +18,7 @@ export default defineConfig({
   // Artifacts land outside the repository on purpose. The dev servers watch the
   // repo root, so a trace or screenshot written inside it triggers a rebuild,
   // which reloads the page under test and loops.
-  outputDir: "/tmp/crochet-peakz-playwright",
+  outputDir: join(tmpdir(), "crochet-peakz-playwright"),
   fullyParallel: false,
   forbidOnly: Boolean(process.env["CI"]),
   retries: process.env["CI"] ? 1 : 0,
