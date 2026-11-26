@@ -88,6 +88,8 @@ describeWithDatabase("auth routes over HTTP", () => {
       facebookClient: { id: "facebook-id", secret: "facebook-secret" },
       resendApiKey: "re_test_key",
       emailFrom: "Crochet PeakZ <hello@shop.example.com>",
+      contactEmail: "hello@crochetpeakz.tech",
+      contactEmailTransport: "resend",
       cloudinaryCloudName: "crochet-peakz",
     };
 

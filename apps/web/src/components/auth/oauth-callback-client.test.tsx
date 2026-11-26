@@ -103,4 +103,28 @@ describe("OAuthCallbackClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/The sign in did not finish/)).toBeInTheDocument();
   });
+
+  it("shows readable guidance and recovery links when linking is disallowed", () => {
+    searchParams.set("provider", "facebook");
+    searchParams.set("error", "link_failed");
+    searchParams.set("next", "/orders");
+
+    render(<OAuthCallbackClient />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Could not sign in with Facebook",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/We could not link that provider to your account/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Try again" })).toHaveAttribute(
+      "href",
+      "/api/auth/facebook?next=%2Forders",
+    );
+    expect(
+      screen.getByRole("link", { name: "Sign in with email" }),
+    ).toHaveAttribute("href", "/login?next=%2Forders");
+  });
 });

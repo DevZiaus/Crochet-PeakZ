@@ -75,17 +75,21 @@ curl http://localhost:3000/health
 Stop the stack with `docker compose down`. Add `-v` only when you intentionally
 want to delete the database volume.
 
-The web and API ports are published on loopback only. The auth proxy trusts the
+The web and API ports are published on loopback only. The web proxy trusts the
 client address headers that an edge proxy adds, and the raw API trusts the
-header the web proxy sends, so do not expose port 3000 or port 4000 to another
-machine directly. For public traffic, run the Caddy profile or put Nginx in
-front and do not publish either port beyond loopback. Keep exactly one trusted
-edge proxy in front of the web app: the app reads the last `X-Forwarded-For`
-hop as the client address, so a CDN before Caddy would make every client share
-the CDN address. With no edge proxy at all (the API or web port reachable
-directly), every rate limit bucket collapses to one unknown client, so the auth
-limits become per instance global instead of per client. Put a proxy in front
-when you want per client limits.
+forwarded headers from the edge or web proxy, so do not expose port 3000 or port
+4000 to another machine directly. For public traffic, run the Caddy profile or
+put Nginx in front and do not publish either port beyond loopback. Set
+`TRUST_PROXY` (API) and `TRUSTED_PROXY_HOPS` (web) to match how many trusted
+proxies append to `X-Forwarded-For` in front of each service (`1` behind Caddy,
+Nginx, or Vercel alone; `2` behind Cloudflare plus an appending origin proxy).
+Auth and web-proxied contact requests also carry `x-proxy-client-ip` paired with
+`x-proxy-secret`, so intermediate server-to-server router hops (for example
+Vercel to Render) do not shift the visitor IP. With no edge proxy at all (the
+API or web port reachable directly), honest browsers without forged headers
+collapse every rate limit bucket (for both auth and the contact form) to one
+`unknown` client, so those limits become per instance global instead of per
+client. Put a proxy in front when you want per client limits.
 
 ## One origin with a reverse proxy
 
@@ -114,6 +118,12 @@ The optional Caddy service in `docker-compose.yml` terminates TLS, sends
 secret, sends other `/api/*` requests to the API, and sends everything else to
 the web server. `deploy/Caddyfile` is the configuration. For Nginx, start from
 `deploy/nginx.conf.example`.
+
+> **Behind Cloudflare CDN on a VPS:** restrict inbound ports `80` and `443` on
+> the VPS firewall to Cloudflare's published IP ranges (or use Cloudflare Tunnel
+> / Authenticated Origin Pulls). Otherwise a caller can bypass Cloudflare and
+> forge `X-Forwarded-For` or `CF-Connecting-IP` directly against Caddy or Nginx.
+> See [Cloudflare CDN](#cloudflare-cdn) below for hop settings.
 
 If the web and API are on different origins, set `NEXT_PUBLIC_API_URL` to the
 absolute API URL and list the web origin in `CORS_ORIGIN`:
@@ -160,6 +170,53 @@ Any host that can run a Docker image or a Node process works the same way:
 Render, Fly.io, Railway, a VPS, or Kubernetes. Point the platform at the `api`
 or `web` target and provide the environment variables below.
 
+### Cloudflare CDN
+
+When Cloudflare sits in front of your storefront, match the hop count and origin
+security to your hosting layout so all visitors do not collapse onto a single
+Cloudflare edge IP bucket:
+
+1. **Cloudflare → Vercel (web) + Render / Heroku (API)**:
+   - Set `TRUSTED_PROXY_HOPS=2` on Vercel so `readClientIp` skips Vercel's outer
+     proxy hop and selects the visitor IP appended by Cloudflare.
+   - Set the same `PROXY_SHARED_SECRET` on both Vercel and Render/Heroku.
+     Next.js proxy handlers (`/api/auth/*` and `/api/contact`) stamp the
+     resolved visitor IP in `x-proxy-client-ip` alongside `x-proxy-secret`, so
+     intermediate hops between Vercel and Render/Heroku do not distort rate
+     limit keys.
+   - On Render, set `TRUST_PROXY=1` when the API host is reached directly behind
+     Render's router (DNS-only in Cloudflare, or server-to-server from Vercel).
+     Use `TRUST_PROXY=2` only when browsers really do call the API subdomain
+     through Cloudflare's orange-cloud proxy **and** the `onrender.com` hostname
+     is disabled, which Render allows, so direct requests cannot reach it.
+   - On Heroku the `herokuapp.com` hostname always answers, so a direct request
+     cannot be locked out at the platform. Keep `TRUST_PROXY=1` there unless a
+     proxy in front rejects requests whose `Host` is the platform hostname. At
+     two hops a caller who reaches the host directly can prepend its own address
+     to `X-Forwarded-For` and claim a fresh contact rate limit bucket.
+2. **Cloudflare → VPS with Docker Compose (Caddy or Nginx)**:
+   - **Origin firewall (required):** restrict VPS ports `80` and `443` to
+     Cloudflare's published IP ranges (or use Cloudflare Tunnel / Authenticated
+     Origin Pulls) so callers cannot bypass Cloudflare and forge
+     `X-Forwarded-For` or `CF-Connecting-IP` directly against Caddy or Nginx.
+   - **Nginx: normalize at the edge, one hop**: `set_real_ip_from
+<cloudflare-cidrs>;` plus `real_ip_header CF-Connecting-IP;` rewrites
+     `$remote_addr`, so Nginx appends the real visitor address and the apps keep
+     `TRUST_PROXY=1` and `TRUSTED_PROXY_HOPS=1`. See `deploy/nginx.conf.example`.
+   - **Caddy: keep the CDN header, two hops**: add `trusted_proxies static
+<cloudflare-cidrs>` to the `servers` block of Caddy's global options, so
+     Caddy keeps Cloudflare's inbound `X-Forwarded-For` and appends its own peer
+     (the edge address), then set `TRUST_PROXY=2` and `TRUSTED_PROXY_HOPS=2` to
+     read the visitor two hops back. Caddy's `client_ip_headers` is not a
+     substitute: it changes the address Caddy logs, matches on and forwards as
+     PROXY protocol info, not the `X-Forwarded-For` Caddy sends upstream. See the
+     comments in `deploy/Caddyfile`.
+   - **Either proxy with no CDN in front**: Caddy or Nginx is the only appending
+     hop, so keep `TRUST_PROXY=1` and `TRUSTED_PROXY_HOPS=1`.
+3. **Cloudflare Tunnel (`cloudflared`) directly to containers**:
+   - Without Caddy or Nginx in front of the containers, Cloudflare is the sole
+     hop, so keep `TRUST_PROXY=1` and `TRUSTED_PROXY_HOPS=1`.
+
 ### Bare-metal Node.js
 
 ```bash
@@ -183,15 +240,15 @@ requests to port 4000, and everything else to port 3000.
 
 ### Runtime
 
-| Variable         | Required | Default                 | Purpose                                         |
-| ---------------- | -------- | ----------------------- | ----------------------------------------------- |
-| `DATABASE_URL`   | yes      | —                       | PostgreSQL connection string used by Prisma     |
-| `PORT`           | no       | `4000` (API), `3000`    | HTTP listen port                                |
-| `HOST`           | no       | `0.0.0.0`               | Interface to bind                               |
-| `NODE_ENV`       | no       | `development`           | `development`, `test`, or `production`          |
-| `CORS_ORIGIN`    | no       | `http://localhost:3000` | Comma separated allowed origins; no `*`         |
-| `TRUST_PROXY`    | no       | `false`                 | Express `trust proxy`; use `1` behind one proxy |
-| `RUN_MIGRATIONS` | no       | `false`                 | Docker entrypoint runs `prisma migrate deploy`  |
+| Variable         | Required | Default                 | Purpose                                                                                      |
+| ---------------- | -------- | ----------------------- | -------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | yes      | —                       | PostgreSQL connection string used by Prisma                                                  |
+| `PORT`           | no       | `4000` (API), `3000`    | HTTP listen port                                                                             |
+| `HOST`           | no       | `0.0.0.0`               | Interface to bind                                                                            |
+| `NODE_ENV`       | no       | `development`           | `development`, `test`, or `production`                                                       |
+| `CORS_ORIGIN`    | no       | `http://localhost:3000` | Comma separated allowed origins; no `*`                                                      |
+| `TRUST_PROXY`    | no       | `false`                 | Express `trust proxy` and hop depth (`1` behind one proxy, `2` behind CDN + appending proxy) |
+| `RUN_MIGRATIONS` | no       | `false`                 | Docker entrypoint runs `prisma migrate deploy`                                               |
 
 ### Customer auth (API, required)
 
@@ -257,6 +314,15 @@ The API validates this at startup and rejects missing or placeholder values. The
 cloud name is public information; `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET`
 are only needed when an upload feature lands.
 
+### Contact form (API, optional)
+
+| Variable                  | Purpose                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `CONTACT_EMAIL`           | Destination inbox for contact form messages (defaults to `hello@crochetpeakz.tech`)                  |
+| `CONTACT_EMAIL_TRANSPORT` | Test-only override (`log`) used by Playwright E2E to log mail without Resend; rejected in production |
+
+`CONTACT_EMAIL` controls the internal delivery destination inbox (useful when Resend is in test mode and only delivers to an authorized address), while the storefront pages always display `hello@crochetpeakz.tech` (`DEFAULT_CONTACT_EMAIL`) as the public contact address. `CONTACT_EMAIL_TRANSPORT=log` is rejected when `NODE_ENV=production` and is set automatically by `playwright.config.ts` and CI.
+
 ### Build time (web)
 
 | Variable              | Purpose                                                          |
@@ -270,11 +336,12 @@ new web build; it is not a runtime setting.
 
 Read by the Next.js server on each auth request, never sent to the browser.
 
-| Variable              | Purpose                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------- |
-| `API_INTERNAL_URL`    | API base URL including `/api`, reached from the web server for auth and catalog reads |
-| `PROXY_SHARED_SECRET` | Must equal the API value; the API rejects auth calls without it                       |
-| `WEB_APP_URL`         | Public origin of this web app, used for auth redirects, canonical URLs, and metadata  |
+| Variable              | Purpose                                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `API_INTERNAL_URL`    | API base URL including `/api`, reached from the web server for auth and catalog reads                          |
+| `PROXY_SHARED_SECRET` | Must equal the API value; authenticates auth calls and `x-proxy-client-ip` forwarded to the API                |
+| `WEB_APP_URL`         | Public origin of this web app, used for auth redirects, canonical URLs, and metadata                           |
+| `TRUSTED_PROXY_HOPS`  | Optional integer hop depth in `X-Forwarded-For` (default `1`; set `2` behind Cloudflare + Vercel/origin proxy) |
 
 `NEXT_PUBLIC_API_URL` is only for browser calls to non-auth endpoints. The auth
 screens always talk to the web origin (`/api/auth/*`), and the web server
@@ -320,9 +387,10 @@ Always take a database backup before a production migration.
 
 ## Reverse proxy and cookies
 
-When TLS terminates at a proxy, set `TRUST_PROXY=1` so Express reads
-`X-Forwarded-Proto` and `X-Forwarded-For`. Otherwise secure-cookie and rate
-limit decisions can be wrong.
+When TLS terminates at a proxy, set `TRUST_PROXY=1` (or `2` behind Cloudflare
+plus an appending origin proxy) so Express reads `X-Forwarded-Proto` and the
+right `X-Forwarded-For` hop, and set `TRUSTED_PROXY_HOPS` to match on the web
+server. Otherwise secure-cookie and rate limit decisions can be wrong.
 
 For future authentication:
 

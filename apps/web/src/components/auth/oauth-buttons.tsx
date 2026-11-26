@@ -63,14 +63,14 @@ export function OAuthButtons({ next }: OAuthButtonsProps) {
   const suffix = `?next=${encodeURIComponent(next)}`;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Button asChild variant="outline" className="w-full">
+    <div className="flex flex-col gap-3">
+      <Button asChild variant="outline" className="w-full gap-2.5">
         <Link href={`/api/auth/google${suffix}`}>
           <GoogleIcon />
           Continue with Google
         </Link>
       </Button>
-      <Button asChild variant="outline" className="w-full">
+      <Button asChild variant="outline" className="w-full gap-2.5">
         <Link href={`/api/auth/facebook${suffix}`}>
           <FacebookIcon />
           Continue with Facebook

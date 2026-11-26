@@ -79,3 +79,20 @@ export {
 } from "./catalog/schemas.js";
 export { calculateVariantPrice } from "./catalog/pricing.js";
 export { getStockLabel, getLeadTimeLabel } from "./catalog/labels.js";
+export {
+  DEFAULT_CONTACT_EMAIL,
+  CONTACT_TOPIC_KEYS,
+  CONTACT_TOPICS,
+  CONTACT_NAME_MIN,
+  CONTACT_NAME_MAX,
+  CONTACT_EMAIL_MAX,
+  CONTACT_MESSAGE_MIN,
+  CONTACT_MESSAGE_MAX,
+  CONTACT_MIN_FILL_TIME_MS,
+  CONTACT_MAX_LINKS,
+  CONTACT_MAX_BODY_BYTES,
+  isContactTopic,
+  contactSubmissionSchema,
+  type ContactTopic,
+  type ContactSubmissionInput,
+} from "./contact/index.js";

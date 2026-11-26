@@ -9,7 +9,7 @@
 
 ## Character
 
-Warm, artisanal, and premium. The visual personality blends the handcrafted feel of crochet with a clean, modern e-commerce experience. Deep teal conveys trust and sophistication; warm gold adds a handmade luxury accent; rose/coral highlights bring energy to sale and attention states. DM Sans keeps the UI clean and readable; Playfair Display on headings adds editorial elegance.
+Warm, artisanal, and botanical. The visual personality blends the handcrafted feel of crochet with a clean, modern e-commerce experience. Warm cream (`#f6f4ed`) and paper (`#fffdf8`) surfaces paired with botanical sage (`#dce6d7`) and soft line dividers (`#dfe4da`) ground the storefront; deep teal anchors primary actions and navigation; Crochet PeakZ rose (`#bf5570`) adds expressive handmade warmth as the brand accent alongside an AA-safe deep rose highlight (`#ae4460`). DM Sans keeps the UI clean and readable; Playfair Display on headings adds editorial elegance.
 
 ## Build mandate
 
@@ -29,35 +29,43 @@ All colors are CSS custom properties defined in `:root` (light) and `[data-theme
 
 ### Semantic tokens
 
-| Token                    | Light                 | Dark                   | Usage                                    |
-| ------------------------ | --------------------- | ---------------------- | ---------------------------------------- |
-| `--primary`              | `#0f5c5c` (deep teal) | `#5fb8b3` (light teal) | Primary actions, links, active states    |
-| `--primary-foreground`   | `#ffffff`             | `#0e1a1a`              | Text on primary backgrounds              |
-| `--primary-hover`        | `#0b4a4a`             | `#7ccbc6`              | Hover state for primary buttons          |
-| `--accent`               | `#b07d22` (deep gold) | `#e0b563`              | Star ratings, badges, premium indicators |
-| `--accent-foreground`    | `#1a1408`             | `#1a1408`              | Text on accent backgrounds               |
-| `--highlight`            | `#b0445a` (rose)      | `#d9707f`              | Sale prices, attention badges            |
-| `--highlight-foreground` | `#ffffff`             | `#1a0a0e`              | Text on highlight backgrounds            |
+| Token                    | Light                  | Dark                      | Usage                                                                          |
+| ------------------------ | ---------------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `--primary`              | `#0f5c5c` (deep teal)  | `#5fb8b3` (light teal)    | Primary actions, links, active states                                          |
+| `--primary-foreground`   | `#ffffff`              | `#0e1916`                 | Text on primary backgrounds                                                    |
+| `--primary-hover`        | `#0b4a4a`              | `#7ccbc6`                 | Hover state for primary buttons                                                |
+| `--brand-teal`           | `#2b6563` (brand teal) | `#62b8b5` (light teal)    | `"Crochet"` wordmark text in `BrandLogo` paired with `--accent` `"PeakZ"`      |
+| `--accent`               | `#bf5570` (brand rose) | `#e58ba2` (luminous rose) | Brand accent: `"PeakZ"` wordmark, star ratings, large italics, borders, hovers |
+| `--accent-foreground`    | `#0a0406`              | `#1d0910`                 | Text on accent backgrounds                                                     |
+| `--highlight`            | `#ae4460` (deep rose)  | `#eb98ad` (soft rose)     | Small rose eyebrows/numbers, sale prices, attention badges                     |
+| `--highlight-foreground` | `#ffffff`              | `#1d0910`                 | Text on highlight backgrounds                                                  |
 
 ### Surface tokens
 
-| Token                    | Light                      | Dark                  | Usage                                                                           |
-| ------------------------ | -------------------------- | --------------------- | ------------------------------------------------------------------------------- |
-| `--background`           | `#fbf8f3` (warm off white) | `#0e1a1a` (dark teal) | Page background                                                                 |
-| `--foreground`           | `#1f2a2a`                  | `#edf3f1`             | Primary text                                                                    |
-| `--card`                 | `#ffffff`                  | `#152424`             | Card, header, popover backgrounds                                               |
-| `--card-foreground`      | `#1f2a2a`                  | `#edf3f1`             | Text inside cards                                                               |
-| `--popover`              | `#ffffff`                  | `#152424`             | Popover, dropdown, select and toast surfaces                                    |
-| `--popover-foreground`   | `#1f2a2a`                  | `#edf3f1`             | Text on popover surfaces                                                        |
-| `--secondary`            | `#e7efee`                  | `#1d3131`             | Secondary button backgrounds, alternating rows                                  |
-| `--secondary-foreground` | `#0f3b3b`                  | `#d4ebe7`             | Text on secondary                                                               |
-| `--muted`                | `#efebe3`                  | `#1b2b2b`             | Disabled backgrounds, skeleton base                                             |
-| `--muted-foreground`     | `#5b6666`                  | `#a3b3b1`             | Secondary text, descriptions                                                    |
-| `--surface`              | `#f4f0e8`                  | `#122020`             | Subtle background differentiation                                               |
-| `--border`               | `#ddd6c8`                  | `#2a3d3d`             | Borders, dividers                                                               |
-| `--input`                | `#857c6c`                  | `#6a8786`             | Input borders and control boundaries (3:1 for non text elements in both themes) |
-| `--ring`                 | `#0f5c5c`                  | `#5fb8b3`             | Focus rings                                                                     |
-| `--overlay`              | `rgb(31 42 42 / 0.55)`     | `rgb(0 0 0 / 0.7)`    | Modal, drawer, and mobile menu backdrop scrims                                  |
+| Token                    | Light                  | Dark                           | Usage                                                                            |
+| ------------------------ | ---------------------- | ------------------------------ | -------------------------------------------------------------------------------- |
+| `--background`           | `#f6f4ed` (cream)      | `#121814` (botanical charcoal) | Page background                                                                  |
+| `--foreground`           | `#1f2922`              | `#f1f3ec`                      | Primary text                                                                     |
+| `--card`                 | `#fffdf8` (paper)      | `#1b241f`                      | Card, header, popover backgrounds                                                |
+| `--card-foreground`      | `#1f2922`              | `#f1f3ec`                      | Text inside cards                                                                |
+| `--popover`              | `#fffdf8`              | `#1b241f`                      | Popover, dropdown, select and toast surfaces                                     |
+| `--popover-foreground`   | `#1f2922`              | `#f1f3ec`                      | Text on popover surfaces                                                         |
+| `--secondary`            | `#dce6d7` (sage)       | `#243328`                      | Secondary button backgrounds, hero art backing, alternating rows                 |
+| `--secondary-foreground` | `#1f2922`              | `#dce6d7`                      | Text on secondary                                                                |
+| `--muted`                | `#f2f0e8`              | `#202b24`                      | Disabled backgrounds, skeleton base                                              |
+| `--muted-foreground`     | `#667067` (muted sage) | `#a4b0a5`                      | Secondary text, descriptions                                                     |
+| `--surface`              | `#f3f1e9`              | `#161e19`                      | Subtle background differentiation                                                |
+| `--border`               | `#dfe4da` (soft line)  | `#2e3b32`                      | Borders, dividers                                                                |
+| `--input`                | `#667067`              | `#78877a`                      | Input borders and control boundaries (3:1+ for non text elements in both themes) |
+| `--ring`                 | `#0f5c5c`              | `#5fb8b3`                      | Focus rings                                                                      |
+| `--overlay`              | `rgb(31 41 34 / 0.55)` | `rgb(0 0 0 / 0.7)`             | Modal, drawer, and mobile menu backdrop scrims                                   |
+
+### Social brand tokens
+
+| Token         | Light     | Dark      | Usage                                                                                               |
+| ------------- | --------- | --------- | --------------------------------------------------------------------------------------------------- |
+| `--facebook`  | `#1877f2` | `#6aa9ff` | Facebook social icons and hover tint (3.85–4.17:1 non-text safe in light theme; text safe in dark)  |
+| `--instagram` | `#e1306c` | `#ff6b9d` | Instagram social icons and hover tint (3.94–4.27:1 non-text safe in light theme; text safe in dark) |
 
 ### Status tokens
 
@@ -72,43 +80,43 @@ All colors are CSS custom properties defined in `:root` (light) and `[data-theme
 
 Use this table to choose a color role. Each role is a token pair: the fill and the text or icon that sits on it.
 
-| Role        | Token           | When to use                                                  | Text safe on page background?                                                                                                   |
-| ----------- | --------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Primary     | `--primary`     | Main calls to action, links, active navigation, focus ring   | Yes                                                                                                                             |
-| Accent      | `--accent`      | Decorative emphasis: star ratings, premium or special badges | No in light theme (about 3.4:1, a non text fill only). Use `--accent-foreground` text on accent fills. Dark theme is text safe. |
-| Secondary   | `--secondary`   | Quiet buttons and soft fills that should not pull attention  | Use `--secondary-foreground` text                                                                                               |
-| Highlight   | `--highlight`   | Sale prices and attention badges only                        | Yes (about 5.2:1 on the light background). Use `--highlight-foreground` text on highlight fills.                                |
-| Destructive | `--destructive` | Errors and delete actions only                               | Yes                                                                                                                             |
-| Success     | `--success`     | Confirmations and in stock indicators                        | Yes                                                                                                                             |
+| Role        | Token           | When to use                                                              | Text safe on page background?                                                                                                                                           |
+| ----------- | --------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary     | `--primary`     | Main calls to action, links, active navigation, focus ring               | Yes (7.05:1 on cream, 7.63:1 on paper in light theme)                                                                                                                   |
+| Accent      | `--accent`      | Brand rose `#bf5570`: star ratings, large display italics, rules/borders | Non text & large text only in light theme (4.02:1 on cream, 4.35:1 on paper; >= 3:1). Use `--accent-foreground` (`#0a0406`, 4.60:1) on accent fills. Dark is text safe. |
+| Secondary   | `--secondary`   | Sage fills, quiet buttons, and soft decorative backing                   | Use `--secondary-foreground` text                                                                                                                                       |
+| Highlight   | `--highlight`   | Small rose eyebrows/numbers, sale prices, and attention badges           | Yes (5.03:1 on cream, 5.44:1 on paper, 4.85:1 on surface). Use `--highlight-foreground` text on highlight fills.                                                        |
+| Destructive | `--destructive` | Errors and delete actions only                                           | Yes                                                                                                                                                                     |
+| Success     | `--success`     | Confirmations and in stock indicators                                    | Yes                                                                                                                                                                     |
 
 Rules of thumb:
 
 - Choose primary for anything the shopper should click. Do not use it for prices.
-- Choose highlight for sale prices. Do not use accent for sale prices.
-- Choose accent for decoration, not for information the shopper must read. Star ratings are the one current use, and they also expose the value through `aria-label`.
-- Do not use `--accent` as text color on light backgrounds. Star fills in light theme measure about 3.4:1 against the page background and about 3.6:1 against white cards, which meets the 3:1 guideline for non text elements.
+- Choose highlight for sale prices, attention badges, and small rose editorial labels (eyebrows, card numerals, stamps). Do not use accent (`#bf5570`) for small light-mode text, and do not pair `#ffffff` directly on `--accent` (4.42:1 fails AA).
+- Choose accent for star ratings, non-text decorative strokes/rules, interactive hover fills paired with `--accent-foreground`, and large display italic/bold phrases (`>= 24px` or `>= 18.66px` bold).
+- Use `--facebook` and `--instagram` for social icons and icon hover states only on light backgrounds; keep adjacent link text in `--primary` or `--foreground`.
 
 ### Elevation (shadows)
 
-Values are full CSS shadows. Shadows are token pairs: a light theme value on a warm ink base and a darker value for dark surfaces.
+Values are full CSS shadows. Shadows are token pairs: a light theme value on a warm botanical ink base and a darker value for dark surfaces.
 
 | Token            | Light theme                        | Dark theme                      | Usage                     |
 | ---------------- | ---------------------------------- | ------------------------------- | ------------------------- |
-| `--elevation-sm` | `0 1px 2px rgb(31 42 42 / 0.06)`   | `0 1px 2px rgb(0 0 0 / 0.4)`    | Cards at rest, inputs     |
-| `--elevation-md` | `0 4px 12px rgb(31 42 42 / 0.08)`  | `0 4px 12px rgb(0 0 0 / 0.45)`  | Cards on hover, dropdowns |
-| `--elevation-lg` | `0 12px 28px rgb(31 42 42 / 0.12)` | `0 12px 28px rgb(0 0 0 / 0.55)` | Modals, drawers           |
+| `--elevation-sm` | `0 1px 2px rgb(31 41 34 / 0.06)`   | `0 1px 2px rgb(0 0 0 / 0.4)`    | Cards at rest, inputs     |
+| `--elevation-md` | `0 4px 12px rgb(31 41 34 / 0.08)`  | `0 4px 12px rgb(0 0 0 / 0.45)`  | Cards on hover, dropdowns |
+| `--elevation-lg` | `0 12px 28px rgb(31 41 34 / 0.12)` | `0 12px 28px rgb(0 0 0 / 0.55)` | Modals, drawers           |
 
 Reach them through the Tailwind utilities `shadow-sm`, `shadow-md` and `shadow-lg`, which map to `--shadow-sm`, `--shadow-md` and `--shadow-lg` in `@theme inline`.
 
 ### Radius
 
-| Token           | Value     | Usage                      |
-| --------------- | --------- | -------------------------- |
-| `--radius-sm`   | `0.25rem` | Small badges, chips        |
-| `--radius-md`   | `0.5rem`  | Inputs, small cards        |
-| `--radius-lg`   | `0.75rem` | Cards, modals              |
-| `--radius-xl`   | `1rem`    | Large cards, hero sections |
-| `--radius-full` | `9999px`  | Avatars, round buttons     |
+| Token           | Value     | Usage                                  |
+| --------------- | --------- | -------------------------------------- |
+| `--radius-sm`   | `0.25rem` | Small badges, chips                    |
+| `--radius-md`   | `0.5rem`  | Inputs, small cards                    |
+| `--radius-lg`   | `0.75rem` | Cards, modals                          |
+| `--radius-xl`   | `1rem`    | Large cards, hero sections             |
+| `--radius-full` | `9999px`  | Avatars, badges, pill and icon buttons |
 
 ---
 
@@ -196,7 +204,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 
 | Component          | Variants                                                                                                                                                                    | Notes                                                                                                                                                                                                                                                    |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Button`           | variant: default, destructive, outline, secondary, ghost, link; size: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg                                                  | Uses `asChild` for link buttons                                                                                                                                                                                                                          |
+| `Button`           | variant: default, destructive, outline, secondary, ghost, link; size: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg                                                  | Pill-shaped (`rounded-full`); uses `asChild` for link buttons                                                                                                                                                                                            |
 | `Input`            | —                                                                                                                                                                           | 36px height (`h-9`). Border uses `--input`. On focus the native outline is removed (`outline-none`) and replaced by a 2px `--ring` ring (`focus-visible:ring-2`) with `focus-visible:border-ring`. Invalid state uses `aria-invalid:border-destructive`. |
 | `Textarea`         | —                                                                                                                                                                           | Same styling as Input                                                                                                                                                                                                                                    |
 | `Select`           | —                                                                                                                                                                           | Radix based, scrollable                                                                                                                                                                                                                                  |
@@ -214,6 +222,7 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
 
 | Component         | Props                                                                                                                                | Usage                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `BrandLogo`       | `size?: "sm" \| "md" \| "lg"`, `showWordmark?`, `alt?`, `className?`                                                                 | Rounded `/logo.webp` emblem paired with two-tone `"Crochet PeakZ"` wordmark |
 | `Header`          | —                                                                                                                                    | Storefront header with nav, theme toggle, search, cart, auth, mobile drawer |
 | `Footer`          | —                                                                                                                                    | Storefront footer with link columns, social, legal                          |
 | `Breadcrumbs`     | `items: BreadcrumbItem[]`, `showHome?: boolean`                                                                                      | Page hierarchy navigation                                                   |
@@ -242,9 +251,10 @@ All installed via `npx shadcn@latest` and customized to use project tokens. Use 
    - Links, product cards and the file drop zone use the global `:focus-visible` rule in `globals.css`: `outline: 2px solid var(--ring)` with `outline-offset: 2px`.
    - The Shadcn primitives (Button, Input, Textarea, Select, Checkbox, Switch, Badge) drop the outline with `outline-none` and draw the same 2px ring as a box shadow flush to the control edge (`focus-visible:ring-2 focus-visible:ring-ring`). That is Shadcn's own convention, and it keeps the ring from being clipped by `overflow-hidden` ancestors such as cards and popovers.
    - Every variant keeps the token ring. Do not soften it: a 20% alpha ring measures about 1.15:1 against the page background, far below the 3:1 a focus indicator needs.
-2. **Contrast**: Each foreground token meets WCAG 2.1 AA (4.5:1 normal text, 3:1 large text and non text elements) against the surface it is documented for, in both themes. Text safe tokens: `--foreground`, `--muted-foreground`, `--primary`, `--highlight`, and every `*-foreground` token on its matching fill. Two exceptions:
-   - `--accent` fails as text on light backgrounds (about 3.4:1, below 4.5:1). It is safe only as a non text fill with `--accent-foreground` text, or as text in dark theme.
-   - `--surface` and `--border` are decorative only (about 1.1:1 and 1.36:1 light, 1.1:1 and 1.55:1 dark). They fail the 3:1 rule for non text elements, so never use them alone to show an interactive boundary or state. Use `--input` for control boundaries.
+2. **Contrast**: Each foreground token meets WCAG 2.1 AA (4.5:1 normal text, 3:1 large text and non text elements) against the surface it is documented for, in both themes. Text safe tokens: `--foreground`, `--muted-foreground`, `--primary`, `--highlight`, and every `*-foreground` token on its matching fill. Note these constraints:
+   - `--accent` (`#bf5570`) fails as small normal text on light backgrounds (4.02:1 on cream, 4.35:1 on paper, below 4.5:1). It is safe as a non-text fill/stroke, as large display text (`>= 24px` or `>= 18.66px` bold), with `--accent-foreground` (`#0a0406`, 4.60:1) on top, or as text in dark theme (6.48–7.33:1). Use `--highlight` (`#ae4460`, 4.85–5.44:1) for small rose text in light theme.
+   - `--facebook` (`#1877f2`) and `--instagram` (`#e1306c`) measure 3.85–4.27:1 on cream/paper in light theme, so use them for icons/graphics rather than small link text in light mode (dark theme `#6aa9ff` / `#ff6b9d` measure 5.95–7.49:1).
+   - `--surface` and `--border` are decorative only (1.03:1 and 1.17–1.27:1 light; 1.06:1 and 1.36–1.53:1 dark). They fail the 3:1 rule for non text elements, so never use them alone to show an interactive boundary or state. Use `--input` for control boundaries.
 3. **Touch targets**: 44px in both dimensions for anything interactive, reached with padding so the visual size stays. How each kind gets there:
    - Links and list rows (breadcrumbs, footer columns, header and drawer nav items) carry `min-h-11`, and the whole row is the target.
    - Icon only and social controls are `size-11`.

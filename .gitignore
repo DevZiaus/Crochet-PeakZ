@@ -60,3 +60,4 @@ blob-report/
 #misc
 .claude/settings.local.json
 .claude/*.local.json
+.zwork

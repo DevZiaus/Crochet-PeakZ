@@ -49,9 +49,18 @@ describe("Header", () => {
   it("renders the home link and every main navigation link", () => {
     render(<Header />);
 
-    expect(
-      screen.getByRole("link", { name: "Crochet PeakZ home" }),
-    ).toHaveAttribute("href", "/");
+    const homeLink = screen.getByRole("link", { name: "Crochet PeakZ home" });
+    expect(homeLink).toHaveAttribute("href", "/");
+
+    const logoImage = homeLink.querySelector("img");
+    expect(logoImage).not.toBeNull();
+    expect(logoImage?.getAttribute("src")).toContain("logo.webp");
+    expect(logoImage).toHaveClass("rounded-full");
+
+    expect(within(homeLink).getByText("Crochet")).toHaveClass(
+      "text-brand-teal",
+    );
+    expect(within(homeLink).getByText("PeakZ")).toHaveClass("text-accent");
 
     const mainNavigation = screen.getByRole("navigation", {
       name: "Main navigation",
@@ -94,7 +103,38 @@ describe("Header", () => {
       within(mainNavigation).getByRole("link", { name: "Shop" }),
     ).toHaveAttribute("aria-current", "page");
     expect(
+      within(mainNavigation).getByRole("link", { name: "Custom Orders" }),
+    ).not.toHaveAttribute("aria-current");
+    expect(
       within(mainNavigation).getByRole("link", { name: "Blog" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("marks only Shop active on /shop without highlighting Custom Orders", () => {
+    vi.mocked(usePathname).mockReturnValue("/shop");
+    render(<Header />);
+
+    const mainNavigation = screen.getByRole("navigation", {
+      name: "Main navigation",
+    });
+
+    expect(
+      within(mainNavigation).getByRole("link", { name: "Shop" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      within(mainNavigation).getByRole("link", { name: "Custom Orders" }),
+    ).not.toHaveAttribute("aria-current");
+
+    render(<MobileNavDrawer open onClose={() => undefined} />);
+
+    const mobileNavigation = screen.getByRole("navigation", {
+      name: "Mobile navigation",
+    });
+    expect(
+      within(mobileNavigation).getByRole("link", { name: "Shop" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      within(mobileNavigation).getByRole("link", { name: "Custom Orders" }),
     ).not.toHaveAttribute("aria-current");
   });
 

@@ -180,7 +180,7 @@ Tracer Bullet: the first task proves the whole loop (click, cookie, server rende
 
 ## Follow-up
 
-- [ ] The `nextjs-app-router` skill is installed in `.agents/skills/` but not listed in root `AGENTS.md` `## Agent skills`; its conventions apply to all of `apps/web`, so it belongs in `apps/web/AGENTS.md` (with a pointer from root).
+- [x] The `nextjs-app-router` skill is installed in `.agents/skills/` and listed in `apps/web/AGENTS.md`, with a pointer added to root `AGENTS.md` (2026-11-22).
 - [ ] Feature 8 (cart) and feature 9 (checkout) specs should cite the downstream contract above.
 - [ ] Feature 20 (store settings) lists a "currency exchange rate setting"; with hand set dual prices this feature needs none, so confirm whether that setting is still wanted when feature 20 is designed.
-- [ ] `apps/web/AGENTS.md` line about the currency cookie should point to `src/lib/currency/` and the Server Action once built (/sync).
+- [x] `apps/web/AGENTS.md` currency convention line points to `src/lib/currency/server.ts` and `src/lib/currency/actions.ts` (verified 2026-11-22).

@@ -251,9 +251,29 @@ describe("auth proxy refresh and replay", () => {
 
     await GET(request, { params: Promise.resolve({ path: ["me"] }) });
 
-    expect(new Headers(calls[0]?.init?.headers).get("x-forwarded-for")).toBe(
-      "5.6.7.8",
-    );
+    const sentHeaders = new Headers(calls[0]?.init?.headers);
+    expect(sentHeaders.get("x-forwarded-for")).toBe("5.6.7.8");
+    expect(sentHeaders.get("x-proxy-client-ip")).toBe("5.6.7.8");
+  });
+
+  it("forwards the 2-hop CDN visitor IP when TRUSTED_PROXY_HOPS=2", async () => {
+    vi.stubEnv("TRUSTED_PROXY_HOPS", "2");
+    try {
+      const request = new NextRequest("http://web.test/api/auth/me", {
+        headers: {
+          cookie: "cp_access=new-access",
+          "x-forwarded-for": "1.2.3.4, 203.0.113.50, 172.70.1.1",
+        },
+      });
+
+      await GET(request, { params: Promise.resolve({ path: ["me"] }) });
+
+      const sentHeaders = new Headers(calls[0]?.init?.headers);
+      expect(sentHeaders.get("x-forwarded-for")).toBe("203.0.113.50");
+      expect(sentHeaders.get("x-proxy-client-ip")).toBe("203.0.113.50");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("falls back to X-Real-IP when X-Forwarded-For is absent", async () => {

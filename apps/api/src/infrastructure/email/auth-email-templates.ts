@@ -140,7 +140,7 @@ function renderEmail(input: {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #ddd6c8;border-radius:12px;padding:32px;">
             <tr>
               <td>
-                <p style="margin:0 0 8px;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;color:#0f5c5c;font-weight:700;">Crochet PeakZ</p>
+                <p style="margin:0 0 8px;font-size:19px;letter-spacing:-0.01em;font-weight:700;"><span style="color:#2b6563;">Crochet</span> <span style="color:#bf5570;">PeakZ</span></p>
                 <h1 style="margin:0 0 16px;font-size:26px;line-height:1.25;color:#1f2a2a;">${escapeHtml(input.heading)}</h1>
                 <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#1f2a2a;">${escapeHtml(input.body)}</p>
                 <p style="margin:0 0 24px;">

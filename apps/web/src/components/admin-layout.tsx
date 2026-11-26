@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useState, useCallback, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -86,9 +87,19 @@ function AdminSidebar({
       {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
         {!collapsed && (
-          <span className="font-heading text-lg font-bold text-foreground">
-            Admin
-          </span>
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/logo.webp"
+              alt=""
+              width={28}
+              height={28}
+              sizes="28px"
+              className="size-7 shrink-0 rounded-full object-cover"
+            />
+            <span className="font-heading text-lg font-bold text-foreground">
+              Admin
+            </span>
+          </div>
         )}
         <Button
           variant="ghost"
@@ -237,9 +248,19 @@ function AdminLayout({ children }: AdminLayoutProps) {
           >
             <Menu className="size-5" />
           </Button>
-          <span className="font-heading text-lg font-bold text-foreground">
-            Admin
-          </span>
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/logo.webp"
+              alt=""
+              width={28}
+              height={28}
+              sizes="28px"
+              className="size-7 shrink-0 rounded-full object-cover"
+            />
+            <span className="font-heading text-lg font-bold text-foreground">
+              Admin
+            </span>
+          </div>
         </div>
 
         <main

@@ -1,3 +1,5 @@
+import { DEFAULT_CONTACT_EMAIL } from "@crochet-peakz/shared";
+
 /**
  * Runtime configuration for the API.
  *
@@ -11,6 +13,9 @@ export type NodeEnv = "development" | "test" | "production";
 
 /** Express `trust proxy` accepts these forms. */
 export type TrustProxy = boolean | number | string;
+
+/** Contact form delivery transport mode (`"log"` is test-only). */
+export type ContactEmailTransportMode = "resend" | "log";
 
 /** Optional endpoint overrides used to point a provider at a local mock. */
 export interface OAuthEndpointsConfig {
@@ -60,6 +65,10 @@ export interface ApiEnv {
   resendApiKey: string;
   /** Sender address on every auth email. */
   emailFrom: string;
+  /** Destination inbox for contact form submissions. */
+  contactEmail: string;
+  /** Delivery transport for contact form mail (`"log"` is test-only and rejected in production). */
+  contactEmailTransport: ContactEmailTransportMode;
   /** Cloudinary cloud name used to build public delivery URLs. */
   cloudinaryCloudName: string;
 }
@@ -138,6 +147,11 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     },
     resendApiKey: parseCredential(source, "RESEND_API_KEY"),
     emailFrom: parseEmailFrom(source["EMAIL_FROM"], nodeEnv),
+    contactEmail: parseOptionalContactEmail(source["CONTACT_EMAIL"], nodeEnv),
+    contactEmailTransport: parseContactEmailTransport(
+      source["CONTACT_EMAIL_TRANSPORT"],
+      nodeEnv,
+    ),
     cloudinaryCloudName: parseCredential(source, "CLOUDINARY_CLOUD_NAME"),
   };
 }
@@ -219,11 +233,60 @@ const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Loopback domains accepted only outside production. */
 const LOCAL_EMAIL_DOMAINS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
+function extractEmailAddress(raw: string): string {
+  return /<([^>]+)>/.exec(raw)?.[1]?.trim() ?? raw.trim();
+}
+
+/**
+ * Returns a startup warning when `EMAIL_FROM` uses Resend's test-mode
+ * `resend.dev` domain.
+ *
+ * Resend test mode rejects mail to unverified recipients with 403
+ * `validation_error`, so fresh deployments fail contact submissions with 502
+ * when `CONTACT_EMAIL` points to an unauthorized address and cannot send
+ * general transactional mail until a verified sending domain is configured.
+ *
+ * @param env Parsed API environment values.
+ * @returns Warning message, or `null` when a non-`resend.dev` sender is used.
+ */
+export function getContactEmailStartupWarning(
+  env: Pick<ApiEnv, "emailFrom" | "contactEmail">,
+): string | null {
+  const sender = extractEmailAddress(env.emailFrom).toLowerCase();
+  const at = sender.lastIndexOf("@");
+  const senderDomain = at === -1 ? "" : sender.slice(at + 1);
+  const usesResendOnboarding =
+    senderDomain === "resend.dev" || senderDomain.endsWith(".resend.dev");
+
+  if (!usesResendOnboarding) {
+    return null;
+  }
+
+  const contactInbox = env.contactEmail.trim();
+  const usesDefaultContactInbox =
+    contactInbox.toLowerCase() === DEFAULT_CONTACT_EMAIL.toLowerCase();
+
+  if (usesDefaultContactInbox) {
+    return (
+      `[API] EMAIL_FROM (${sender}) uses Resend's test-mode domain while ` +
+      `CONTACT_EMAIL is still set to ${DEFAULT_CONTACT_EMAIL}. Contact form ` +
+      "submissions will fail with 502 until you verify a sending domain or " +
+      "override CONTACT_EMAIL to an authorized Resend test address."
+    );
+  }
+
+  return (
+    `[API] EMAIL_FROM (${sender}) uses Resend's test-mode domain with ` +
+    `CONTACT_EMAIL=${contactInbox}. Resend test mode restricts delivery ` +
+    "to authorized test recipients; verify a sending domain before launch."
+  );
+}
+
 function parseEmailFrom(value: string | undefined, nodeEnv: NodeEnv): string {
   const raw = value?.trim();
   // Accept a bare address or the `Name <address>` form, and validate the
   // address itself rather than only the presence of an "@".
-  const address = /<([^>]+)>/.exec(raw ?? "")?.[1]?.trim() ?? raw ?? "";
+  const address = raw ? extractEmailAddress(raw) : "";
 
   if (
     !raw ||
@@ -240,6 +303,58 @@ function parseEmailFrom(value: string | undefined, nodeEnv: NodeEnv): string {
     );
   }
   return raw;
+}
+
+function parseOptionalContactEmail(
+  value: string | undefined,
+  nodeEnv: NodeEnv,
+): string {
+  const raw = value?.trim();
+  if (!raw) {
+    return DEFAULT_CONTACT_EMAIL;
+  }
+
+  if (
+    PLACEHOLDER_PATTERN.test(raw) ||
+    !(
+      EMAIL_ADDRESS_PATTERN.test(raw) ||
+      (nodeEnv !== "production" && isLocalEmailAddress(raw))
+    )
+  ) {
+    throw new Error(
+      "Invalid environment variable: CONTACT_EMAIL. " +
+        "Set it to a valid destination address such as hello@crochetpeakz.tech.",
+    );
+  }
+
+  return raw;
+}
+
+function parseContactEmailTransport(
+  value: string | undefined,
+  nodeEnv: NodeEnv,
+): ContactEmailTransportMode {
+  const raw = value?.trim();
+  if (!raw) {
+    return "resend";
+  }
+
+  const normalized = raw.toLowerCase();
+  if (normalized === "resend") {
+    return "resend";
+  }
+  if (normalized === "log") {
+    if (nodeEnv === "production") {
+      throw new Error(
+        "CONTACT_EMAIL_TRANSPORT=log is a test-only override and cannot be set when NODE_ENV=production.",
+      );
+    }
+    return "log";
+  }
+
+  throw new Error(
+    `Invalid CONTACT_EMAIL_TRANSPORT "${raw}". Expected resend or log.`,
+  );
 }
 
 /**
@@ -393,6 +508,24 @@ function parseCorsOrigins(value: string | undefined): string[] {
   }
 
   return origins;
+}
+
+/**
+ * Derives how many trailing `X-Forwarded-For` hops belong to trusted proxies.
+ *
+ * Numeric `TRUST_PROXY` values (such as `1` behind one proxy or `2` behind
+ * Cloudflare plus an appending origin proxy) map directly to that hop depth;
+ * non-numeric values (`false`, `true`, or subnet names) fall back to `1`.
+ *
+ * @param trustProxy Parsed `TRUST_PROXY` setting.
+ * @returns Positive integer hop count (at least `1`).
+ */
+export function getTrustedProxyHops(trustProxy: TrustProxy): number {
+  return typeof trustProxy === "number" &&
+    Number.isInteger(trustProxy) &&
+    trustProxy >= 1
+    ? trustProxy
+    : 1;
 }
 
 function parseTrustProxy(value: string | undefined): TrustProxy {

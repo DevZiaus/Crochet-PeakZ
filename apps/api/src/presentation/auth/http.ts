@@ -56,6 +56,10 @@ export function toHttpError(error: unknown): unknown {
       });
       return appError;
     }
+    case "OAUTH_LINK_DISALLOWED":
+      return new AppError(409, error.message, {
+        code: "OAUTH_LINK_DISALLOWED",
+      });
   }
 }
 

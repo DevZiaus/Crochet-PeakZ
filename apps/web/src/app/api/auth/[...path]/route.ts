@@ -7,7 +7,7 @@ import {
   readSetCookie,
   writeCookie,
 } from "@/lib/auth/cookies";
-import { readClientIp } from "@/lib/auth/client-ip";
+import { PROXY_CLIENT_IP_HEADER, readClientIp } from "@/lib/auth/client-ip";
 
 /** Forces request time evaluation on every call. */
 export const dynamic = "force-dynamic";
@@ -336,6 +336,7 @@ function buildHeaders(
 
   headers.set("x-proxy-secret", env.proxySharedSecret);
   headers.set("x-forwarded-for", input.ip);
+  headers.set(PROXY_CLIENT_IP_HEADER, input.ip);
 
   if (input.isWrite) {
     // The API rejects a write without the exact web origin. The proxy already

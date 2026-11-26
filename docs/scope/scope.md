@@ -364,7 +364,7 @@ Public page metadata (title tags, meta descriptions), sitemap.xml generation, so
 
 ### 29. Cookie consent & legal pages
 
-Cookie consent banner (GDPR/CCPA compliant), privacy policy page, terms of service page. Consent gates analytics and tracking pixels.
+Cookie consent banner (GDPR/CCPA compliant), privacy policy page, terms of service page. Consent gates analytics and tracking pixels. Privacy policy (`/privacy`) and data deletion (`/data-deletion`) pages already shipped in `apps/web/src/app/(storefront)/`; cookie consent banner, tracking gating, and Terms of Service (`/terms`) remain.
 
 **Done when:** a cookie consent banner appears for new visitors; tracking fires only after consent; privacy policy and terms pages are accessible from the footer; consent preference persists.
 
@@ -396,7 +396,7 @@ English as the default language, Bangla (bn) as the second language, with infras
 
 ### 33. Rate limiting & abuse protection · needs a decision
 
-Protect the public catalog, contact, and auth routes from abuse with rate limits at the reverse proxy or WAF, and add an application level limiter if the proxy cannot cover a route.
+Protect the public catalog, contact, and auth routes from abuse with rate limits at the reverse proxy or WAF, and add an application level limiter if the proxy cannot cover a route. Bounded in memory per IP limiters already cover auth (`apps/api/src/presentation/auth/rate-limit.ts`) and the contact form (`apps/api/src/presentation/contact/contact-rate-limit.ts`), keyed on the last `X-Forwarded-For` hop; edge/WAF limits, public catalog coverage, and per environment configuration remain.
 
 **Done when:** public routes have a documented rate limit; repeated abuse is blocked or slowed; the limit is configurable per environment; the contact form and auth endpoints are covered.
 

@@ -2,7 +2,11 @@ import dotenv from "dotenv";
 import type { Router } from "express";
 import type { Server } from "node:http";
 import { createApp } from "./app.js";
-import { loadEnv } from "./config/env.js";
+import {
+  getContactEmailStartupWarning,
+  getTrustedProxyHops,
+  loadEnv,
+} from "./config/env.js";
 import {
   createDatabase,
   type Database,
@@ -12,12 +16,15 @@ import { PrismaSessionRepository } from "./infrastructure/database/session.repos
 import { BcryptPasswordHasher } from "./infrastructure/auth/bcrypt-password-hasher.js";
 import { JwtTokenService } from "./infrastructure/auth/jwt-token-service.js";
 import { ResendEmailSender } from "./infrastructure/email/resend-email-sender.js";
+import { ResendContactEmailSender } from "./infrastructure/email/resend-contact-email-sender.js";
 import { createOAuthAuthenticator } from "./infrastructure/oauth/passport.js";
 import { systemClock } from "./domain/ports/clock.js";
 import type { AuthDependencies } from "./application/dependencies.js";
 import type { CatalogDependencies } from "./application/catalog/dependencies.js";
+import type { ContactDependencies } from "./application/contact/dependencies.js";
 import { createAuthRouter } from "./presentation/auth/auth.routes.js";
 import { createCatalogRouter } from "./presentation/catalog/catalog.routes.js";
+import { createContactRouter } from "./presentation/contact/contact.routes.js";
 import { PrismaCatalogRepository } from "./infrastructure/database/catalog.repository.js";
 import { CloudinaryImageUrlResolver } from "./infrastructure/cloudinary/image-url-resolver.js";
 
@@ -68,6 +75,15 @@ function installShutdownHandlers(server: Server, database: Database): void {
  */
 async function main(): Promise<void> {
   const env = loadEnv();
+  const trustedProxyHops = getTrustedProxyHops(env.trustProxy);
+  const contactEmailWarning = getContactEmailStartupWarning(env);
+  if (
+    contactEmailWarning &&
+    env.nodeEnv !== "test" &&
+    env.contactEmailTransport !== "log"
+  ) {
+    console.warn(contactEmailWarning);
+  }
   const database = createDatabase(env.databaseUrl);
 
   try {
@@ -85,7 +101,44 @@ async function main(): Promise<void> {
 
   const authRouter = buildAuthRouter();
   const catalogRouter = buildCatalogRouter();
-  const app = createApp(env, database.checkHealth, authRouter, catalogRouter);
+  const contactRouter = buildContactRouter();
+  const app = createApp(
+    env,
+    database.checkHealth,
+    authRouter,
+    catalogRouter,
+    contactRouter,
+  );
+
+  /**
+   * Builds the contact form dependencies and Express router.
+   */
+  function buildContactRouter(): Router {
+    const contact: ContactDependencies = {
+      emails: new ResendContactEmailSender({
+        apiKey: env.resendApiKey,
+        from: env.emailFrom,
+        to: env.contactEmail,
+        transport:
+          env.contactEmailTransport === "log"
+            ? (email) => {
+                console.info(
+                  `[contact] (log transport) "${email.subject}" from ${email.from} to ${email.to.join(", ")} (reply-to ${email.replyTo})`,
+                );
+                return Promise.resolve({ error: null });
+              }
+            : undefined,
+      }),
+      clock: systemClock,
+    };
+
+    return createContactRouter({
+      contact,
+      allowedOrigins: [...new Set([env.webAppUrl, ...env.corsOrigins])],
+      trustedProxyHops,
+      proxySharedSecret: env.proxySharedSecret,
+    });
+  }
 
   /**
    * Builds the catalog dependencies from the validated environment and the
@@ -127,6 +180,7 @@ async function main(): Promise<void> {
       proxySharedSecret: env.proxySharedSecret,
       webAppUrl: env.webAppUrl,
       isProduction: env.nodeEnv === "production",
+      trustedProxyHops,
       authenticator: createOAuthAuthenticator({
         webAppUrl: env.webAppUrl,
         google: env.googleClient,

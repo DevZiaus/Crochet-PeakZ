@@ -47,4 +47,16 @@ describe("AuthLayout", () => {
       within(drawer).queryByRole("group", { name: "Currency" }),
     ).not.toBeInTheDocument();
   });
+
+  it("offers a skip link targeting the main landmark", () => {
+    render(
+      <AuthLayout>
+        <p>Sign in form</p>
+      </AuthLayout>,
+    );
+
+    const link = screen.getByRole("link", { name: "Skip to content" });
+    expect(link).toHaveAttribute("href", "#main-content");
+    expect(document.querySelector("main#main-content")).not.toBeNull();
+  });
 });

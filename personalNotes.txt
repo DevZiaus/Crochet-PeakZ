@@ -1,8 +1,26 @@
-next: /check review product catalog storefront
+FIX: 
+
+- Stale spec → /architect: docs/specs/0003-design-system/index.md lines 59 and 130 still describe a Zustand currency store; spec 0007 uses a Server Action cookie and React context. - done
+- Stale spec → /architect: docs/specs/0001-stack-and-architecture/index.md line 30 lists "currency toggle" as a Zustand responsibility. - done
+- Small follow-ups not enrolled: auth fetch timeouts and skip links (spec 0005); root pointer for the nextjs-app-router skill (spec 0007). - done
+
 
 Plan:
     - add a new topic on the contact form called 'data-deletion' - done
-    - update message on the data deletin page to send a message from contact form on topic data deletion or send an email - done
-    - use landing page home page as inspration for home page colors
-    - Use the logo placed in apps/web/public/logo.webp/png/jpg
-    - stop checking email verified status for facebook login/register
+    - update message on the data deletion page to send a message from contact form on topic data deletion or send an email - done
+    - use landing page home page as inspration for home page colors - done
+    - Use the logo placed in apps/web/public/logo.webp/png/jpg - done
+    - visiting /shop page custom order nav menu get active state - done
+    - stop checking email verified status for facebook login/register - done
+
+ - Environment note, worth acting on before launch
+The Resend account is in test mode. The branch default points the destination inbox at hello@crochetpeakz.tech while EMAIL_FROM is onboarding@resend.dev, so real contact mail to the public inbox is rejected with 403 validation_error and the visitor sees the friendly failure message. Delivery works once CONTACT_EMAIL is set to an inbox Resend allows. You may want to verify the sending domain at resend.com, or set CONTACT_EMAIL to an allowed address, before launch. This is configuration, not a code fault: the same run delivered cleanly with CONTACT_EMAIL=astama.jannat@gmail.com.
+
+- A smaller note: the featured product card can look faint in a top anchored full page screenshot because globals.css uses a card-reveal animation tied to view timeline, so it fades in as it scrolls into view. That is intended.
+
+1. Fix the two documentation items (spec 0005 and the hero logo). They are quick and they protect future work. -done
+2. Decide the CDN question. If you deploy behind one edge, document the consequence prominently. If a CDN is in scope, implement the trusted hop count. This is the only item with real production risk. - done 
+3. Add the contact Playwright spec before launch. It covers the exact class of bug this branch has produced twice. - done
+4. Take the nginx body cap and the Resend warning scope as quick hardening. - done
+5. Record the Facebook premise decision in spec 0005. Decide whether a confirmation step is needed before launch. - done
+6. Leave the remaining nits for later. Do the hero visual pass in /check verify.

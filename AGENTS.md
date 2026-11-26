@@ -141,6 +141,10 @@ Installed for customer auth (spec 0005):
 - [resend-cli](.agents/skills/resend-cli/): terminal commands for the Resend platform
 - [agent-email-inbox](.agents/skills/agent-email-inbox/): safe handling for inbound email that triggers actions
 
+Workspace skills (also listed in their nested `AGENTS.md`):
+
+- [nextjs-app-router](.agents/skills/nextjs-app-router/): Next.js App Router routing, Server Actions, route handlers, data fetching, and caching conventions for `apps/web` (see [apps/web/AGENTS.md](apps/web/AGENTS.md))
+
 MCP servers: resend (`https://mcp.resend.com/mcp`, OAuth sign in required; used to inspect verification and reset mail in development)
 
 Declined: Vitest · React Testing Library · Radix UI · Sonner (offered 2026-10-24, no Agent Skill installed)

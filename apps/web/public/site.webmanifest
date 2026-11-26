@@ -1,6 +1,6 @@
 {
-  "name": "CrocheT PeakZ - Feel The Handmade Love",
-  "short_name": "CrocheT PeakZ",
+  "name": "Crochet PeakZ — Feel The Handmade Love",
+  "short_name": "Crochet PeakZ",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -13,7 +13,7 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#f6f4ed",
+  "background_color": "#f6f4ed",
   "display": "standalone"
 }

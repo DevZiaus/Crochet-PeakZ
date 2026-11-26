@@ -46,35 +46,38 @@ npm run db:studio --workspace=@crochet-peakz/api
 
 ## Key files
 
-| File                                                  | Owns                                                                                 |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `src/index.ts`                                        | Composition root: env + database setup, Express app, listen, graceful shutdown       |
-| `src/app.ts`                                          | Express app factory shared by `index.ts` and integration tests                       |
-| `src/domain/entities/`                                | `User` and `Session` entities with the auth invariants                               |
-| `src/application/use-cases/`                          | Auth use cases: register, login, refresh, verify, reset, OAuth, me, and logout       |
-| `src/infrastructure/auth/`                            | bcrypt password hasher and `jose` access token service                               |
-| `src/infrastructure/email/`                           | Resend sender and the auth email templates                                           |
-| `src/infrastructure/oauth/`                           | Passport Google and Facebook strategies                                              |
-| `src/presentation/auth/`                              | Auth routes, middleware, cookies, proxy guard, and throttling                        |
-| `src/domain/catalog/`                                 | Catalog visibility, stock, pricing, image, variant, and category tree rules          |
-| `src/application/catalog/`                            | Catalog list/detail use cases and DTO mappers                                        |
-| `src/infrastructure/database/catalog.repository.ts`   | Prisma catalog reads with visibility and subtree counts                              |
-| `src/infrastructure/cloudinary/image-url-resolver.ts` | Cloudinary public id to delivery URL resolver                                        |
-| `src/presentation/catalog/`                           | Public catalog routes and strict query validation                                    |
-| `src/config/env.ts`                                   | Environment parsing and validation (runtime, auth, OAuth, email, and proxy settings) |
-| `src/infrastructure/database/prisma.ts`               | Prisma client + `@prisma/adapter-pg` factory, health check, disconnect helper        |
-| `src/generated/prisma/`                               | Generated Prisma Client (gitignored; recreated by `prisma generate`)                 |
-| `prisma/schema.prisma`                                | Database schema (PostgreSQL, single `DATABASE_URL`)                                  |
-| `prisma.config.ts`                                    | Prisma CLI config: datasource URL, schema path, migrations path, and seed command    |
-| `prisma/seed.ts`                                      | Seed script for realistic local data (users, categories, products, settings)         |
-| `src/presentation/routes/health.routes.ts`            | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)              |
-| `src/presentation/middleware/errorHandler.ts`         | Centralized error handler and `AppError` class                                       |
-| `src/presentation/auth/oauth.integration.test.ts`     | Full OAuth round trip against the local mock provider                                |
-| `src/test-support/mock-oauth-provider.ts`             | In-process authorize, token, and profile provider for tests                          |
-| `scripts/mock-oauth-provider.ts`                      | Manual mock provider started by `npm run dev:mock-oauth`                             |
-| `tsconfig.json`                                       | Typecheck config: `src` + `scripts` + `prisma`, no emit                              |
-| `tsconfig.build.json`                                 | Build config: emits `src` to `dist/` only                                            |
-| `.env` / `.env.example`                               | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)       |
+| File                                                  | Owns                                                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/index.ts`                                        | Composition root: env + database setup, Express app, listen, graceful shutdown             |
+| `src/app.ts`                                          | Express app factory shared by `index.ts` and integration tests                             |
+| `src/domain/entities/`                                | `User` and `Session` entities with the auth invariants                                     |
+| `src/application/use-cases/`                          | Auth use cases: register, login, refresh, verify, reset, OAuth, me, and logout             |
+| `src/infrastructure/auth/`                            | bcrypt password hasher and `jose` access token service                                     |
+| `src/infrastructure/email/`                           | Resend senders and email templates for auth and contact submissions                        |
+| `src/infrastructure/oauth/`                           | Passport Google and Facebook strategies                                                    |
+| `src/presentation/auth/`                              | Auth routes, middleware, cookies, proxy guard, and throttling                              |
+| `src/domain/catalog/`                                 | Catalog visibility, stock, pricing, image, variant, and category tree rules                |
+| `src/application/catalog/`                            | Catalog list/detail use cases and DTO mappers                                              |
+| `src/infrastructure/database/catalog.repository.ts`   | Prisma catalog reads with visibility and subtree counts                                    |
+| `src/infrastructure/cloudinary/image-url-resolver.ts` | Cloudinary public id to delivery URL resolver                                              |
+| `src/presentation/catalog/`                           | Public catalog routes and strict query validation                                          |
+| `src/domain/contact/`                                 | Contact message validation rules, anti spam checks, and email/rate limiter ports           |
+| `src/application/contact/`                            | `submitContact` orchestrator coordinating validation, rate limiting, and delivery rollback |
+| `src/presentation/contact/`                           | Public `POST /api/contact` router and bounded in memory rate limiter                       |
+| `src/config/env.ts`                                   | Environment parsing and validation (runtime, auth, OAuth, email, and proxy settings)       |
+| `src/infrastructure/database/prisma.ts`               | Prisma client + `@prisma/adapter-pg` factory, health check, disconnect helper              |
+| `src/generated/prisma/`                               | Generated Prisma Client (gitignored; recreated by `prisma generate`)                       |
+| `prisma/schema.prisma`                                | Database schema (PostgreSQL, single `DATABASE_URL`)                                        |
+| `prisma.config.ts`                                    | Prisma CLI config: datasource URL, schema path, migrations path, and seed command          |
+| `prisma/seed.ts`                                      | Seed script for realistic local data (users, categories, products, settings)               |
+| `src/presentation/routes/health.routes.ts`            | `/api/health` (liveness) and `/api/health/ready` (PostgreSQL readiness)                    |
+| `src/presentation/middleware/errorHandler.ts`         | Centralized error handler and `AppError` class                                             |
+| `src/presentation/auth/oauth.integration.test.ts`     | Full OAuth round trip against the local mock provider                                      |
+| `src/test-support/mock-oauth-provider.ts`             | In-process authorize, token, and profile provider for tests                                |
+| `scripts/mock-oauth-provider.ts`                      | Manual mock provider started by `npm run dev:mock-oauth`                                   |
+| `tsconfig.json`                                       | Typecheck config: `src` + `scripts` + `prisma`, no emit                                    |
+| `tsconfig.build.json`                                 | Build config: emits `src` to `dist/` only                                                  |
+| `.env` / `.env.example`                               | Backend environment variables (DATABASE_URL, JWT, OAuth, Cloudinary, payments)             |
 
 ## Conventions
 
@@ -83,6 +86,7 @@ npm run db:studio --workspace=@crochet-peakz/api
 - **Env validation**: `loadEnv()` in `src/config/env.ts` runs at startup and throws on invalid values. Add new variables there and document them in `.env.example` and `docs/deployment.md`.
 - **Auth boundary**: all auth routes mount under `/api/auth`, require the proxy shared secret, and reject state changing requests whose `Origin` does not match `WEB_APP_URL`. Auth logic stays in the Clean Architecture layers; presentation only translates HTTP.
 - **Public catalog boundary**: `/api/products`, `/api/products/:slug`, `/api/categories`, and `/api/categories/:slug` are public GET routes with no session or proxy secret. The list query is validated with the shared Zod schema (400 `INVALID_QUERY`); missing or invisible slugs return 404. Category slugs expand to subtrees in the application layer, and the repository applies visibility on every read.
+- **Public contact boundary**: `POST /api/contact` is a public JSON route (20 KB max body, same origin check, honeypot/fill time/link limits, and a bounded in memory per IP rate limit keyed via `getClientIp` using `x-proxy-client-ip` when `x-proxy-secret` matches or the configured `TRUST_PROXY` hop from `X-Forwarded-For`).
 - **Route mounting**: all routers mount under `/api` (e.g. `app.use("/api", createHealthRouter(...))`).
 - **Health probes**: keep `/api/health` dependency-free (liveness) and back `/api/health/ready` with a real dependency check.
 - **Module system**: ESM (`"type": "module"`, `module: NodeNext`, `moduleResolution: NodeNext`). `tsx` runs TypeScript in dev; `tsc -p tsconfig.build.json` emits `dist/index.js` for production.
@@ -99,8 +103,9 @@ npm run db:studio --workspace=@crochet-peakz/api
 - The build emits only `src/`; `prisma/seed.ts` is typechecked but not compiled. Use `tsx` for seeding locally.
 - `@crochet-peakz/shared` resolves to compiled JavaScript in `packages/shared/dist`. Build it first (`npm run build:shared` at the repo root) or run commands through the root scripts, which do it automatically.
 - `CORS_ORIGIN` accepts a comma separated list and rejects `*` because credentials are enabled.
-- Behind a reverse proxy or a PaaS router, set `TRUST_PROXY=1` so Express reads `X-Forwarded-Proto` and `X-Forwarded-For`.
+- Behind a reverse proxy or a PaaS router, set `TRUST_PROXY=1` (or `2` behind Cloudflare plus an appending origin proxy) so Express and `getClientIp` read `X-Forwarded-Proto` and the right `X-Forwarded-For` hop. Web-proxied requests carrying a valid `x-proxy-secret` use `x-proxy-client-ip` directly.
 - The six `GOOGLE_*` / `FACEBOOK_*` endpoint URLs are test-only overrides for the local mock provider. `loadEnv()` rejects them when `NODE_ENV=production`. The OAuth integration suite starts its own mock; `npm run dev:mock-oauth` prints the values for a manual browser run.
+- `CONTACT_EMAIL` defaults to `hello@crochetpeakz.tech`. On non-test startup (unless `CONTACT_EMAIL_TRANSPORT=log`), the API logs a warning whenever `EMAIL_FROM` uses Resend's `@resend.dev` test domain—flagging the default inbox when `CONTACT_EMAIL` is unset—because Resend test mode restricts delivery to authorized test recipients until a sending domain is verified. `CONTACT_EMAIL_TRANSPORT=log` is a test-only non-production override used by Playwright E2E to log contact messages instead of calling Resend.
 
 ## Related specs
 

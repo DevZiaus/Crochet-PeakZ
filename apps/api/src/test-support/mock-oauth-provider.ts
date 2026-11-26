@@ -16,7 +16,7 @@ export interface MockOAuthProfile {
   name: string;
   /** Email address, or null to simulate a provider that withholds it. */
   email: string | null;
-  /** Google's `email_verified` or Facebook's `verified` claim. */
+  /** Google's `email_verified` claim (Facebook has no `verified` field and omits `email` when unconfirmed). */
   emailVerified: boolean;
   /**
    * When true, the mock omits the email verification claim from the Google
@@ -265,9 +265,7 @@ export async function startMockOAuthProvider(
     sendJson(response, 200, {
       id: profile.id,
       name: profile.name,
-      ...(profile.email
-        ? { email: profile.email, verified: profile.emailVerified }
-        : {}),
+      ...(profile.email ? { email: profile.email } : {}),
       ...(profile.pictureUrl
         ? { picture: { data: { url: profile.pictureUrl } } }
         : {}),

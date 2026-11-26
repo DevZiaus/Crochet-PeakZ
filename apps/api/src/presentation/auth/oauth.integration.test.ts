@@ -122,6 +122,8 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
       },
       resendApiKey: "re_integration_key",
       emailFrom: "Crochet PeakZ <hello@shop.example.com>",
+      contactEmail: "hello@crochetpeakz.tech",
+      contactEmailTransport: "resend",
       cloudinaryCloudName: "crochet-peakz",
     };
 
@@ -296,17 +298,25 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
     expect(row.avatarUrl).toBe(facebookProfile.pictureUrl);
     expect(row.emailVerified).toBe(true);
     expect(row.passwordHash).toBeNull();
+
+    const facebookProfileRequest = [...provider.requests.profile]
+      .reverse()
+      .find((entry) => entry.provider === "facebook");
+    expect(facebookProfileRequest?.url.searchParams.get("fields")).toBe(
+      "id,name,email,picture",
+    );
+    expect(
+      facebookProfileRequest?.url.searchParams.get("appsecret_proof"),
+    ).toBeTruthy();
   });
 
-  it("refuses a Facebook email the provider has not verified (M1)", async () => {
-    const email = uniqueEmail("facebook-unverified");
+  it("refuses a Facebook profile when no email is returned (AC-8)", async () => {
     provider.setProfile(
       "facebook",
       makeProfile({
-        id: "facebook-sub-unverified",
-        name: "Unproven Nadia",
-        email,
-        emailVerified: false,
+        id: "facebook-sub-no-email",
+        name: "Phone Only Nadia",
+        email: null,
       }),
     );
 
@@ -316,12 +326,9 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
     expect(response.status).toBe(302);
     const result = resultOf(response);
     expect(result.searchParams.get("provider")).toBe("facebook");
-    expect(result.searchParams.get("error")).toBe("email_unverified");
+    expect(result.searchParams.get("error")).toBe("email_missing");
     expect(hasCookie(response, "cp_access")).toBe(false);
     expect(hasCookie(response, "cp_refresh")).toBe(false);
-    expect(
-      await database.client.user.findUnique({ where: { email } }),
-    ).toBeNull();
   });
 
   it("refuses a Google email the provider has not explicitly verified (M1)", async () => {
@@ -333,6 +340,32 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
         name: "Unproven Ada",
         email,
         omitEmailVerified: true,
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("google");
+    const response = await completeRoundTrip("google", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("google");
+    expect(result.searchParams.get("error")).toBe("email_unverified");
+    expect(hasCookie(response, "cp_access")).toBe(false);
+    expect(hasCookie(response, "cp_refresh")).toBe(false);
+    expect(
+      await database.client.user.findUnique({ where: { email } }),
+    ).toBeNull();
+  });
+
+  it("refuses a Google email with email_verified set to false (AC-8)", async () => {
+    const email = uniqueEmail("google-unverified");
+    provider.setProfile(
+      "google",
+      makeProfile({
+        id: "google-sub-unverified",
+        name: "Unverified Ada",
+        email,
+        emailVerified: false,
       }),
     );
 
@@ -397,6 +430,160 @@ describeWithDatabase("OAuth sign in against a mock provider", () => {
     const again = await beginRoundTrip("google");
     const againResponse = await completeRoundTrip("google", again);
     expect(resultOf(againResponse).searchParams.get("status")).toBe("success");
+  });
+
+  it("refuses Facebook sign in for an existing verified local account with link_failed", async () => {
+    const email = uniqueEmail("fb-block-verified-local");
+    const local = await deps.users.createLocal({
+      name: "Verified Local",
+      email,
+      passwordHash: await deps.passwords.hash("local password 123"),
+    });
+    await database.client.user.update({
+      where: { id: local.id },
+      data: { emailVerified: true },
+    });
+
+    provider.setProfile(
+      "facebook",
+      makeProfile({
+        id: "facebook-block-1",
+        name: "Facebook User",
+        email,
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("facebook");
+    const response = await completeRoundTrip("facebook", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("facebook");
+    expect(result.searchParams.get("error")).toBe("link_failed");
+    expect(hasCookie(response, "cp_access")).toBe(false);
+    expect(hasCookie(response, "cp_refresh")).toBe(false);
+
+    const row = await database.client.user.findUniqueOrThrow({
+      where: { id: local.id },
+    });
+    expect(row.authProvider).toBe("LOCAL");
+    expect(row.providerId).toBeNull();
+    expect(row.passwordHash).not.toBeNull();
+    expect(row.lastLoginAt).toBeNull();
+  });
+
+  it("refuses Facebook sign in for an existing unverified local account and keeps its password", async () => {
+    const email = uniqueEmail("fb-block-unverified-local");
+    const local = await deps.users.createLocal({
+      name: "Unverified Local",
+      email,
+      passwordHash: await deps.passwords.hash("local password 123"),
+    });
+
+    provider.setProfile(
+      "facebook",
+      makeProfile({
+        id: "facebook-block-2",
+        name: "Facebook User",
+        email,
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("facebook");
+    const response = await completeRoundTrip("facebook", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("facebook");
+    expect(result.searchParams.get("error")).toBe("link_failed");
+    expect(hasCookie(response, "cp_access")).toBe(false);
+    expect(hasCookie(response, "cp_refresh")).toBe(false);
+
+    const row = await database.client.user.findUniqueOrThrow({
+      where: { id: local.id },
+    });
+    expect(row.authProvider).toBe("LOCAL");
+    expect(row.emailVerified).toBe(false);
+    expect(row.providerId).toBeNull();
+    expect(row.passwordHash).not.toBeNull();
+  });
+
+  it("refuses Facebook sign in for an existing Google account with link_failed", async () => {
+    const email = uniqueEmail("fb-block-google");
+    const googleUser = await deps.users.createOAuth({
+      name: "Google Ada",
+      email,
+      provider: "GOOGLE",
+      providerId: "google-orig-1",
+      avatarUrl: null,
+      lastLoginAt: clock.now(),
+    });
+
+    provider.setProfile(
+      "facebook",
+      makeProfile({
+        id: "facebook-block-3",
+        name: "Facebook User",
+        email,
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("facebook");
+    const response = await completeRoundTrip("facebook", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("facebook");
+    expect(result.searchParams.get("error")).toBe("link_failed");
+    expect(hasCookie(response, "cp_access")).toBe(false);
+    expect(hasCookie(response, "cp_refresh")).toBe(false);
+
+    const row = await database.client.user.findUniqueOrThrow({
+      where: { id: googleUser.id },
+    });
+    expect(row.authProvider).toBe("GOOGLE");
+    expect(row.providerId).toBe("google-orig-1");
+  });
+
+  it("signs in a returning Facebook account and updates lastLoginAt", async () => {
+    const email = uniqueEmail("fb-returning");
+    const fbUser = await deps.users.createOAuth({
+      name: "Returning Nadia",
+      email,
+      provider: "FACEBOOK",
+      providerId: "facebook-orig-1",
+      avatarUrl: null,
+      lastLoginAt: clock.now(),
+    });
+
+    clock.advance(60_000);
+    provider.setProfile(
+      "facebook",
+      makeProfile({
+        id: "facebook-orig-1",
+        name: "Returning Nadia",
+        email,
+        pictureUrl: "https://cdn.example.com/fb-returning.png",
+      }),
+    );
+
+    const roundTrip = await beginRoundTrip("facebook");
+    const response = await completeRoundTrip("facebook", roundTrip);
+
+    expect(response.status).toBe(302);
+    const result = resultOf(response);
+    expect(result.searchParams.get("provider")).toBe("facebook");
+    expect(result.searchParams.get("status")).toBe("success");
+    expect(hasCookie(response, "cp_access")).toBe(true);
+    expect(hasCookie(response, "cp_refresh")).toBe(true);
+
+    const row = await database.client.user.findUniqueOrThrow({
+      where: { id: fbUser.id },
+    });
+    expect(row.authProvider).toBe("FACEBOOK");
+    expect(row.providerId).toBe("facebook-orig-1");
+    expect(row.avatarUrl).toBe("https://cdn.example.com/fb-returning.png");
+    expect(row.lastLoginAt?.getTime()).toBe(clock.now().getTime());
   });
 
   it("returns the access denied result without opening a session (U20)", async () => {

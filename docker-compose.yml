@@ -43,6 +43,7 @@ services:
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-}
       # Product catalog images (required; the API fails fast when it is missing).
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
     ports:
@@ -70,6 +71,7 @@ services:
       API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:4000/api}
       PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:-}
       WEB_APP_URL: ${WEB_APP_URL:-http://localhost:3000}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
     ports:
       # The auth proxy trusts the client address headers added by the edge
       # proxy. Keep the direct port on loopback so those headers cannot be

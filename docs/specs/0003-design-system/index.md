@@ -5,7 +5,7 @@
 
 ## Summary
 
-Crochet PeakZ adopts a warm, artisanal visual language built on a deep teal and warm gold color palette, DM Sans and Playfair Display typography, and Shadcn UI components customized to the brand. This spec defines every design token (colors, type scale, spacing, radii, shadows), the dark mode system (via `next-themes`), and the full base component inventory that every later feature builds on. The foundation ships before Slice 1 so the storefront and admin panel share a cohesive, accessible, premium look from day one.
+Crochet PeakZ adopts a warm, artisanal visual language built on a botanical palette of deep teal, brand rose, and warm cream/sage surfaces, DM Sans and Playfair Display typography, and Shadcn UI components customized to the brand. This spec defines every design token (colors, type scale, spacing, radii, shadows), the dark mode system (via `next-themes`), and the full base component inventory that every later feature builds on. The foundation ships before Slice 1 so the storefront and admin panel share a cohesive, accessible, premium look from day one.
 
 ## Requirements
 
@@ -18,7 +18,7 @@ Crochet PeakZ adopts a warm, artisanal visual language built on a deep teal and 
 
 **Acceptance criteria** (the contract, each criterion is IDed and independently checkable):
 
-- **AC-1**: Design tokens are defined as CSS custom properties in `globals.css` under `:root` (light) and `[data-theme="dark"]` (dark), covering: primary (teal), accent (gold), secondary highlight (rose/coral), surface colors, foreground colors, border colors, radius values, shadow values, and the full typography scale.
+- **AC-1**: Design tokens are defined as CSS custom properties in `globals.css` under `:root` (light) and `[data-theme="dark"]` (dark), covering: primary (deep teal), brand teal, accent (brand rose), highlight (deep rose), botanical surfaces (cream, paper, sage), foreground colors, border colors, radius values, shadow values, and the full typography scale.
 - **AC-2**: Tailwind CSS v4 consumes the tokens via `@theme` inline declarations so that `bg-primary`, `text-accent`, `font-heading`, and similar utility classes resolve to the design token values.
 - **AC-3**: Typography uses DM Sans (body/UI, variable `--font-dm-sans`) and Playfair Display (headings/display, variable `--font-playfair`) loaded via `next/font/google`, replacing Geist as the default body font.
 - **AC-4**: The type scale defines at least 7 sizes (xs through 3xl) with corresponding line heights and letter spacing values, documented in `design.md`.
@@ -34,7 +34,7 @@ Crochet PeakZ adopts a warm, artisanal visual language built on a deep teal and 
 
 ## Decision
 
-**Chosen option**: Shadcn UI with custom theme on Tailwind CSS v4, deep teal and warm gold palette, DM Sans + Playfair Display typography, `next-themes` for dark mode.
+**Chosen option**: Shadcn UI with custom theme on Tailwind CSS v4, botanical palette (deep teal primary, brand rose accent, warm cream/sage surfaces), DM Sans + Playfair Display typography, `next-themes` for dark mode.
 
 The design system is built as a layer on top of Shadcn UI (which provides accessible Radix UI primitives as owned source code) with a fully custom theme applied through CSS custom properties consumed by Tailwind v4's `@theme` system. This gives full control over every visual detail while inheriting Radix's battle tested accessibility (keyboard navigation, ARIA attributes, focus management). The warm artisanal personality comes from the color palette and typography, not from fighting the component library.
 
@@ -54,14 +54,14 @@ No API endpoints. The design system produces React components and CSS tokens con
 
 **Value sourcing**:
 
-| Action                   | Value produced / displayed                  | Source                                                                                                                                                                                 |
-| ------------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PriceDisplay render      | Formatted price string with currency symbol | `priceBdt` / `priceUsd` from product entity (spec 0002), active currency from Zustand store (future currency switcher feature). Defaults to `"BDT"` when no currency store is provided |
-| ProductCard image render | Product thumbnail                           | `url` field from `ProductImage` entity (spec 0002), loaded via Next.js `Image` component with Cloudinary domain configured in `next.config.ts`                                         |
-| StarRating render        | Average rating display                      | `averageRating` computed from Review entity (spec 0002)                                                                                                                                |
-| Dark mode toggle         | Current theme                               | `next-themes` reads from localStorage, falls back to `prefers-color-scheme` media query                                                                                                |
-| Header logo display      | Brand logo / wordmark                       | Static SVG asset in `public/logo.svg` (or `src/assets/`), provided by the engineer. If not yet created, a text wordmark placeholder renders                                            |
-| Skeleton shimmer color   | Shimmer gradient                            | Derived from `--muted` and `--muted-foreground` CSS tokens                                                                                                                             |
+| Action                   | Value produced / displayed                  | Source                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PriceDisplay render      | Formatted price string with currency symbol | `priceBdt` / `priceUsd` from product entity (spec 0002), active currency from the `cp_currency` cookie via `getActiveCurrency()` on the server or `useCurrency()` in client components (spec 0007). Defaults to `"BDT"` when unset                                                                                                                                                     |
+| ProductCard image render | Product thumbnail                           | `url` field from `ProductImage` entity (spec 0002), loaded via Next.js `Image` component with Cloudinary domain configured in `next.config.ts`                                                                                                                                                                                                                                         |
+| StarRating render        | Average rating display                      | `averageRating` computed from Review entity (spec 0002)                                                                                                                                                                                                                                                                                                                                |
+| Dark mode toggle         | Current theme                               | `next-themes` reads from localStorage, falls back to `prefers-color-scheme` media query                                                                                                                                                                                                                                                                                                |
+| Header logo display      | Brand logo / wordmark                       | `BrandLogo` (`src/components/brand-logo.tsx`) renders `public/logo.webp` with the two tone `Crochet PeakZ` wordmark (`--brand-teal` + `--accent`) in the storefront header, footer, and auth layout; `AdminLayout` renders `public/logo.webp` inline in the admin sidebar; the home hero (`src/app/(storefront)/page.tsx`) renders `public/logo-square.webp` directly via `next/image` |
+| Skeleton shimmer color   | Shimmer gradient                            | Derived from `--muted` and `--muted-foreground` CSS tokens                                                                                                                                                                                                                                                                                                                             |
 
 **Key invariants**:
 
@@ -94,7 +94,7 @@ Ordered by Tracer Bullet: prove the full pipe (tokens → primitives → compose
 
 1. **Install dependencies and initialize Shadcn UI**: install `next-themes`, `lucide-react`, `class-variance-authority`, `clsx`, `tailwind-merge`; run `npx shadcn@latest init` with the New York style and custom theme; create `src/lib/utils.ts` with the `cn()` helper, satisfies **AC-6**, **AC-7**
 2. **Replace fonts**: swap Geist/Geist Mono for DM Sans (body) and Playfair Display (headings) via `next/font/google` in `layout.tsx`; set CSS variables `--font-dm-sans` and `--font-playfair`; update `@theme` to register `--font-sans` and `--font-heading`, satisfies **AC-3**
-3. **Define design tokens in globals.css**: write the full CSS custom property set under `:root` and `[data-theme="dark"]` covering the complete palette (primary teal scale, accent gold scale, secondary rose, surfaces, foreground, muted, border, ring, radius, shadows) and the type scale (7 sizes with line heights), satisfies **AC-1**, **AC-2**, **AC-4**
+3. **Define design tokens in globals.css**: write the full CSS custom property set under `:root` and `[data-theme="dark"]` covering the complete palette (primary teal, brand teal, brand rose accent, deep rose highlight, botanical surfaces, foreground, muted, border, ring, radius, shadows) and the type scale (7 sizes with line heights), satisfies **AC-1**, **AC-2**, **AC-4**
 4. **Wire up next-themes**: add `ThemeProvider` in the root layout with `attribute="data-theme"`, `defaultTheme="system"`, `enableSystem`; verify no FOUC, satisfies **AC-5**
 5. **Install and customize Shadcn primitives**: add Button, Input, Textarea, Select, Checkbox, Switch, Badge, Card, Dialog, Toast (Sonner), DropdownMenu, Avatar, Skeleton via the Shadcn CLI; restyle each to use the project's tokens and verify CVA variant definitions, satisfies **AC-6**, **AC-7**, **AC-9**
 6. **Build accessibility foundations**: apply visible focus ring styles (2px offset, primary teal), verify 4.5:1 contrast on all token pairs, set 44px minimum touch targets on interactive elements, add `prefers-reduced-motion` guard to all transition utilities, satisfies **AC-9**, **AC-13**
@@ -127,6 +127,6 @@ Ordered by Tracer Bullet: prove the full pipe (tokens → primitives → compose
 ## Follow-up
 
 - [ ] After this ships, each Slice 1 feature should import from the component library rather than creating new primitives. The ProductCard, PriceDisplay, and Header are specifically designed to be consumed by Feature #6 (Product catalog storefront) and Feature #7 (Currency switcher).
-- [ ] The currency switcher Zustand store (Feature #7) will feed the `activeCurrency` prop to PriceDisplay. Until then, PriceDisplay defaults to BDT.
+- [x] Currency switching shipped in Feature #7 (spec 0007) using a Server Action (`setCurrency`), the `cp_currency` HttpOnly cookie, server `getActiveCurrency()`, and client `CurrencyProvider` / `useCurrency()` rather than a Zustand store.
 - [ ] Consider adding a Storybook instance later for visual component documentation. Not worth the setup cost at foundation stage, but valuable once the component count grows past 30.
-- [ ] A brand logo SVG is needed for the Header component. If one does not exist yet, create or commission it before the storefront goes live. The Header renders a text wordmark placeholder until then.
+- [x] Brand logo shipped: `BrandLogo` (`apps/web/src/components/brand-logo.tsx`) renders `public/logo.webp` with the two tone wordmark in the storefront header, footer, and auth layout, `AdminLayout` renders `public/logo.webp` inline, and the home hero (`apps/web/src/app/(storefront)/page.tsx`) renders `public/logo-square.webp` directly.

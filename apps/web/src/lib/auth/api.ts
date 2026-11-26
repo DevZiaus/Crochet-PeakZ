@@ -13,6 +13,9 @@ export interface AuthApiError {
   details?: Record<string, unknown>;
 }
 
+/** Upper bound for one browser auth request, so a stalled proxy or network cannot hang a form. */
+const AUTH_FETCH_TIMEOUT_MS = 10_000;
+
 /** Success or failure of an auth call. */
 export type AuthApiResult<T> =
   | { ok: true; status: number; data: T }
@@ -35,6 +38,7 @@ export async function postAuthJson<T>(
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),
     });
 
     if (response.status === 204) {

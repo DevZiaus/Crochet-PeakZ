@@ -6,8 +6,8 @@
  * origin so a cross site form post cannot ride a customer's cookies. These
  * tests lock in that a caller without the secret is refused, that a write from
  * a lookalike origin is refused, and that the forwarded client address is read
- * from the first header value only so a caller cannot pick its own rate limit
- * bucket.
+ * from the last header value added by the edge so a caller cannot pick its own
+ * rate limit bucket.
  */
 import type { NextFunction, Request, Response } from "express";
 import { describe, expect, it } from "vitest";
@@ -171,12 +171,12 @@ describe("getClientIp", () => {
     expect(getClientIp(makeRequest({}))).toBeNull();
   });
 
-  it("uses only the first forwarded address", () => {
+  it("uses only the last forwarded address added by the edge", () => {
     const request = makeRequest({
       headers: { "x-forwarded-for": "203.0.113.10, 198.51.100.7, 10.0.0.1" },
     });
 
-    expect(getClientIp(request)).toBe("203.0.113.10");
+    expect(getClientIp(request)).toBe("10.0.0.1");
   });
 
   it("trims the forwarded address", () => {
@@ -187,9 +187,21 @@ describe("getClientIp", () => {
     expect(getClientIp(request)).toBe("203.0.113.10");
   });
 
-  it("treats an empty first value as no address", () => {
-    const request = makeRequest({
+  it("ignores empty leading or trailing entries and picks the last real address", () => {
+    const leadingEmpty = makeRequest({
       headers: { "x-forwarded-for": " , 10.0.0.1" },
+    });
+    const trailingEmpty = makeRequest({
+      headers: { "x-forwarded-for": "10.0.0.1,   " },
+    });
+
+    expect(getClientIp(leadingEmpty)).toBe("10.0.0.1");
+    expect(getClientIp(trailingEmpty)).toBe("10.0.0.1");
+  });
+
+  it("returns null when every forwarded entry is blank", () => {
+    const request = makeRequest({
+      headers: { "x-forwarded-for": " ,   " },
     });
 
     expect(getClientIp(request)).toBeNull();
@@ -201,5 +213,50 @@ describe("getClientIp", () => {
     });
 
     expect(getClientIp(request)).toHaveLength(45);
+  });
+
+  it("picks the Nth hop from the end when trustedHops is configured for a CDN chain", () => {
+    const cdnChain = makeRequest({
+      headers: { "x-forwarded-for": "9.9.9.9, 203.0.113.10, 172.70.1.1" },
+    });
+    const twoEntryChain = makeRequest({
+      headers: { "x-forwarded-for": "203.0.113.10, 172.70.1.1" },
+    });
+    const singleEntry = makeRequest({
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+
+    expect(getClientIp(cdnChain, { trustedHops: 2 })).toBe("203.0.113.10");
+    expect(getClientIp(twoEntryChain, { trustedHops: 2 })).toBe("203.0.113.10");
+    expect(getClientIp(singleEntry, { trustedHops: 2 })).toBe("203.0.113.10");
+  });
+
+  it("trusts x-proxy-client-ip only when x-proxy-secret matches", () => {
+    const authenticated = makeRequest({
+      headers: {
+        "x-proxy-secret": SHARED_SECRET,
+        "x-proxy-client-ip": `  ${"203.0.113.42".padEnd(60, "0")}  `,
+        "x-forwarded-for": "203.0.113.42, 76.76.21.1, 172.70.2.2",
+      },
+    });
+    const unauthenticated = makeRequest({
+      headers: {
+        "x-proxy-client-ip": "1.2.3.4",
+        "x-forwarded-for": "203.0.113.42, 172.70.2.2",
+      },
+    });
+    const wrongSecret = makeRequest({
+      headers: {
+        "x-proxy-secret": "wrong-secret-01234567",
+        "x-proxy-client-ip": "1.2.3.4",
+        "x-forwarded-for": "203.0.113.42, 172.70.2.2",
+      },
+    });
+
+    const opts = { trustedHops: 2, proxySharedSecret: SHARED_SECRET };
+    expect(getClientIp(authenticated, opts)).toHaveLength(45);
+    expect(getClientIp(authenticated, opts)).toMatch(/^203\.0\.113\.42/);
+    expect(getClientIp(unauthenticated, opts)).toBe("203.0.113.42");
+    expect(getClientIp(wrongSecret, opts)).toBe("203.0.113.42");
   });
 });

@@ -182,4 +182,14 @@ describe("AdminLayout", () => {
       within(drawer).queryByRole("group", { name: "Currency" }),
     ).not.toBeInTheDocument();
   });
+
+  it("offers a skip link targeting the main landmark", async () => {
+    mockedGetSessionUser.mockResolvedValue(admin);
+
+    render(await renderShell());
+
+    const link = screen.getByRole("link", { name: "Skip to content" });
+    expect(link).toHaveAttribute("href", "#main-content");
+    expect(document.querySelector("main#main-content")).not.toBeNull();
+  });
 });

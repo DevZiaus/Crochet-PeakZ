@@ -5,6 +5,17 @@ import { timingSafeStringEquals } from "./timing-safe.js";
 /** Header the web proxy uses to prove it sent the request. */
 export const PROXY_SECRET_HEADER = "x-proxy-secret";
 
+/** Authenticated client IP header forwarded by the Next.js proxy. */
+export const PROXY_CLIENT_IP_HEADER = "x-proxy-client-ip";
+
+/** Options controlling how {@link getClientIp} resolves the caller address. */
+export interface ClientIpOptions {
+  /** Number of trusted reverse proxies appending to `X-Forwarded-For` before the API. Defaults to `1`. */
+  trustedHops?: number;
+  /** Shared secret authorizing `x-proxy-client-ip` from the Next.js proxy. */
+  proxySharedSecret?: string;
+}
+
 /**
  * Rejects requests that did not come through the web proxy.
  *
@@ -49,20 +60,49 @@ export function createProxyGuard(options: {
 }
 
 /**
- * Returns the client IP the proxy forwarded.
+ * Returns the client IP the edge or web proxy forwarded.
  *
- * The web proxy selects the last hop added by the trusted edge and sends that
- * single value, so the first entry here is the one it chose. The raw API still
- * trusts this header, so it must not be reachable from untrusted networks. This
- * assumes exactly one trusted edge in front of the web app.
+ * When a request proves it came from the Next.js proxy via `x-proxy-secret` and
+ * carries `x-proxy-client-ip`, that authenticated visitor IP takes precedence so
+ * intermediate server-to-server platform routers (for example Vercel to Render)
+ * cannot shift the `X-Forwarded-For` hop count. Otherwise it reads the entry
+ * `trustedHops` positions from the end of `X-Forwarded-For` (default `1`,
+ * clamped to index `0` for single-entry requests). The raw API still trusts
+ * these headers, so it must not be reachable directly past the trusted edge.
  *
  * @param req Express request.
+ * @param options Optional hop count and proxy shared secret.
  * @returns An IP address, or null when no header is present.
  */
-export function getClientIp(req: {
-  get(name: string): string | undefined;
-}): string | null {
+export function getClientIp(
+  req: {
+    get(name: string): string | undefined;
+  },
+  options?: ClientIpOptions,
+): string | null {
+  if (
+    options?.proxySharedSecret &&
+    timingSafeStringEquals(
+      req.get(PROXY_SECRET_HEADER) ?? "",
+      options.proxySharedSecret,
+    )
+  ) {
+    const proxiedIp = req.get(PROXY_CLIENT_IP_HEADER)?.trim();
+    if (proxiedIp && proxiedIp.length > 0) {
+      return proxiedIp.slice(0, 45);
+    }
+  }
+
   const forwarded = req.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first && first.length > 0 ? first.slice(0, 45) : null;
+  const entries = forwarded
+    ?.split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  if (!entries || entries.length === 0) {
+    return null;
+  }
+
+  const hops = Math.max(1, Math.trunc(options?.trustedHops ?? 1));
+  const selected = entries[Math.max(0, entries.length - hops)];
+  return selected ? selected.slice(0, 45) : null;
 }

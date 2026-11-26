@@ -1,6 +1,6 @@
 import type { Request, RequestHandler } from "express";
 import { AppError } from "../middleware/errorHandler.js";
-import { getClientIp } from "../auth/proxy-guard.js";
+import { type ClientIpOptions, getClientIp } from "../auth/proxy-guard.js";
 
 /** One in-memory rate limit rule. */
 export interface RateLimitOptions {
@@ -13,10 +13,25 @@ export interface RateLimitOptions {
    * limiting a request that has nothing safe to key on.
    */
   key?: (req: Request, ip: string) => string | null;
+  /** Optional clock override for deterministic tests. */
+  now?: () => number;
+  /**
+   * Maximum distinct keys retained in memory before evicting the least
+   * recently active entry. Defaults to 10,000.
+   */
+  maxKeys?: number;
+  /**
+   * Minimum interval in milliseconds between full expired-key sweeps when
+   * `maxKeys` is exceeded. Defaults to 1,000.
+   */
+  pruneIntervalMs?: number;
+  /** Client IP extraction options (trusted hop count and proxy secret). */
+  clientIp?: ClientIpOptions;
 }
 
-/** Largest number of distinct keys kept before stale entries are pruned. */
-const PRUNE_THRESHOLD = 10_000;
+/** Largest number of distinct keys retained in memory per limiter instance. */
+const DEFAULT_MAX_KEYS = 10_000;
+const DEFAULT_PRUNE_INTERVAL_MS = 1_000;
 
 /**
  * Builds a fixed window, in-memory rate limiter.
@@ -25,16 +40,48 @@ const PRUNE_THRESHOLD = 10_000;
  * so a horizontally scaled API needs a shared store later. Every rejection
  * carries `Retry-After` in seconds.
  *
- * @param options Window, limit, and optional key builder.
+ * @param options Window, limit, and optional key builder or memory bounds.
  * @returns Express middleware.
  */
 export function createRateLimit(options: RateLimitOptions): RequestHandler {
   const hits = new Map<string, number[]>();
   const keyFor = options.key ?? ((_req: Request, ip: string) => ip);
+  const getNow = options.now ?? Date.now;
+  const maxKeys = Math.max(1, options.maxKeys ?? DEFAULT_MAX_KEYS);
+  const pruneIntervalMs = Math.max(
+    0,
+    options.pruneIntervalMs ?? DEFAULT_PRUNE_INTERVAL_MS,
+  );
+  let lastPruneAt = Number.NEGATIVE_INFINITY;
+
+  function pruneAndEvict(now: number, currentKey: string): void {
+    if (hits.size <= maxKeys) {
+      return;
+    }
+
+    if (now - lastPruneAt >= pruneIntervalMs) {
+      for (const [entryKey, timestamps] of hits) {
+        if (
+          timestamps.every((timestamp) => now - timestamp >= options.windowMs)
+        ) {
+          hits.delete(entryKey);
+        }
+      }
+      lastPruneAt = now;
+    }
+
+    while (hits.size > maxKeys) {
+      const oldestKey = hits.keys().next().value;
+      if (oldestKey === undefined || oldestKey === currentKey) {
+        break;
+      }
+      hits.delete(oldestKey);
+    }
+  }
 
   return (req, res, next) => {
-    const now = Date.now();
-    const ip = getClientIp(req) ?? "unknown";
+    const now = getNow();
+    const ip = getClientIp(req, options.clientIp) ?? "unknown";
     const key = keyFor(req, ip);
 
     if (key === null) {
@@ -52,6 +99,9 @@ export function createRateLimit(options: RateLimitOptions): RequestHandler {
         1,
         Math.ceil((options.windowMs - (now - oldest)) / 1000),
       );
+      // Re-insert so actively rate-limited keys stay at the tail of LRU order.
+      hits.delete(key);
+      hits.set(key, recent);
       res.setHeader("Retry-After", String(retryAfterSeconds));
       next(
         new AppError(429, "Too many requests. Please try again later.", {
@@ -63,20 +113,10 @@ export function createRateLimit(options: RateLimitOptions): RequestHandler {
     }
 
     recent.push(now);
+    hits.delete(key);
     hits.set(key, recent);
 
-    // Pruning drops only fully stale keys, so a sustained burst of unique keys
-    // keeps the map at up to PRUNE_THRESHOLD live entries for a whole window.
-    // Bounded, and every entry is dropped once its own window passes.
-    if (hits.size > PRUNE_THRESHOLD) {
-      for (const [entryKey, timestamps] of hits) {
-        if (
-          timestamps.every((timestamp) => now - timestamp >= options.windowMs)
-        ) {
-          hits.delete(entryKey);
-        }
-      }
-    }
+    pruneAndEvict(now, key);
 
     next();
   };
