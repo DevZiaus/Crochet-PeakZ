@@ -61,3 +61,7 @@ blob-report/
 .claude/settings.local.json
 .claude/*.local.json
 .zwork
+
+.claude
+.agents
+opencode.json
