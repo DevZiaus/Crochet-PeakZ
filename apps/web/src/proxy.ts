@@ -22,6 +22,7 @@ const NOINDEX_PATHS = new Set([
   "/forgot-password",
   "/reset-password",
   "/auth/callback",
+  "/cart",
 ]);
 
 /** What the admin guard decided, and the cookies to relay either way. */
@@ -266,6 +267,7 @@ export const config = {
     "/forgot-password",
     "/reset-password",
     "/auth/callback",
+    "/cart",
     "/admin",
     "/admin/:path*",
   ],

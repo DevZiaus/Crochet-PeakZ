@@ -1,44 +1,69 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { XIcon } from "lucide-react";
-import {
-  calculateCartLineTotal,
-  calculateCartSubtotal,
-} from "@crochet-peakz/shared";
+import { usePathname } from "next/navigation";
+import { ShoppingBag } from "lucide-react";
 import { useCurrency } from "@/components/currency/currency-provider";
-import { formatPrice } from "@/components/price-display";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { CartErrorState } from "@/components/cart/cart-error-state";
+import { CartLineItem } from "@/components/cart/cart-line-item";
+import { CartMergeBanner } from "@/components/cart/cart-merge-banner";
+import { CartLinesSkeleton } from "@/components/cart/cart-skeleton";
+import { CartSummary } from "@/components/cart/cart-summary";
 import { useCart } from "@/components/cart/cart-provider";
 
 /**
- * Minimal Milestone 1 shopping cart drawer proving the visitor thread end to
- * end (live quoted lines, active currency subtotal, polite announcements).
- * Upgraded to the full Sheet surface in Milestone 2.
+ * Slide out shopping cart drawer built on the Shadcn `Sheet` primitive.
+ *
+ * Traps focus while open, closes on `Escape`, close button, or route change,
+ * restores focus to the trigger that opened it, announces cart updates in a
+ * polite live region inside the dialog, and renders full loading, error,
+ * empty, and populated states (AC-4, AC-5, AC-6, AC-7, AC-14, AC-17).
  */
 export function CartDrawer() {
+  const pathname = usePathname();
+  const previousPathRef = useRef(pathname);
   const {
     lines,
     loading,
+    revalidating,
     loadError,
     drawerOpen,
-    closeDrawer,
-    refreshCart,
-    removeItem,
+    pendingVariantIds,
+    atLimitVariantId,
+    mergeAdjustments,
     announcement,
     drawerTriggerEl,
+    closeDrawer,
+    refreshCart,
+    setItemQuantity,
+    removeItem,
+    dismissMergeBanner,
   } = useCart();
   const currency = useCurrency();
-  const subtotal = calculateCartSubtotal(lines, currency);
+
+  // Close the drawer automatically whenever the shopper navigates to another route (AC-4).
+  useEffect(() => {
+    if (previousPathRef.current !== pathname) {
+      previousPathRef.current = pathname;
+      if (drawerOpen) {
+        closeDrawer();
+      }
+    }
+  }, [closeDrawer, drawerOpen, pathname]);
 
   return (
-    <Dialog
+    <Sheet
       open={drawerOpen}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -46,145 +71,101 @@ export function CartDrawer() {
         }
       }}
     >
-      <DialogContent
-        showCloseButton={false}
-        className="fixed inset-y-0 right-0 left-auto z-50 flex h-full w-full max-w-md translate-x-0 translate-y-0 flex-col rounded-none border-y-0 border-r-0 border-l border-border bg-card p-0 shadow-lg outline-none sm:max-w-md"
+      <SheetContent
+        side="right"
+        closeLabel="Close shopping cart"
+        className="w-full max-w-md p-0"
         onCloseAutoFocus={(event) => {
-          if (drawerTriggerEl) {
+          if (drawerTriggerEl && document.contains(drawerTriggerEl)) {
             event.preventDefault();
             drawerTriggerEl.focus();
           }
         }}
       >
-        <div className="flex h-16 items-center justify-between border-b border-border px-6">
-          <DialogTitle className="font-heading text-xl font-semibold text-foreground">
-            Shopping cart
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Review items in your shopping cart.
-          </DialogDescription>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={closeDrawer}
-            aria-label="Close shopping cart"
-            className="min-h-[44px] min-w-[44px]"
-          >
-            <XIcon className="size-5" aria-hidden="true" />
-          </Button>
-        </div>
+        <SheetHeader className="pr-16">
+          <SheetTitle>Shopping cart</SheetTitle>
+          <SheetDescription className="sr-only">
+            Review items, adjust quantities, and check live stock and prices in
+            your shopping cart.
+          </SheetDescription>
+        </SheetHeader>
 
+        {/* Polite live region lives inside the modal focus scope when open (AC-1, AC-17). */}
         <div
           role="status"
           aria-live="polite"
           aria-atomic="true"
           className="sr-only"
         >
-          {announcement}
+          {drawerOpen ? announcement : ""}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {loading ? (
-            <p className="text-sm text-muted-foreground">
-              Loading your cart...
-            </p>
-          ) : loadError ? (
-            <div className="space-y-3 py-8 text-center">
-              <p className="text-sm text-foreground">
-                We couldn&apos;t load your cart right now
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  void refreshCart();
-                }}
-              >
-                Try again
-              </Button>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {mergeAdjustments.length > 0 ? (
+            <div className="mb-5">
+              <CartMergeBanner
+                adjustments={mergeAdjustments}
+                onDismiss={dismissMergeBanner}
+              />
             </div>
+          ) : null}
+
+          {loading ? (
+            <CartLinesSkeleton count={3} />
+          ) : loadError ? (
+            <CartErrorState
+              retrying={revalidating}
+              onRetry={() => {
+                void refreshCart();
+              }}
+            />
           ) : lines.length === 0 ? (
-            <div className="space-y-4 py-12 text-center">
-              <p className="text-base font-medium text-foreground">
-                Your cart is empty
-              </p>
-              <Button asChild>
+            <EmptyState
+              icon={ShoppingBag}
+              heading="Your cart is empty"
+              description="Explore handmade crochet pieces crafted to order and ready to ship."
+              className="py-12"
+            >
+              <Button asChild variant="outline" className="mt-2 min-h-[44px]">
                 <Link href="/shop" onClick={closeDrawer}>
                   Continue shopping
                 </Link>
               </Button>
-            </div>
+            </EmptyState>
           ) : (
-            <ul className="divide-y divide-border">
-              {lines.map((line) => {
-                const unitPrice =
-                  currency === "BDT" ? line.unitPriceBdt : line.unitPriceUsd;
-                const lineTotal =
-                  unitPrice !== null
-                    ? calculateCartLineTotal(unitPrice, line.quantity)
-                    : null;
-
-                return (
-                  <li
-                    key={line.variantId}
-                    className="flex items-start justify-between gap-4 py-4"
-                  >
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="font-medium text-foreground">
-                        {line.title ?? "Unavailable item"}
-                      </p>
-                      {line.variantLabel ? (
-                        <p className="text-xs text-muted-foreground">
-                          {line.variantLabel}
-                        </p>
-                      ) : null}
-                      <p className="text-sm text-muted-foreground">
-                        Qty {line.quantity}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <p className="text-sm font-semibold text-foreground">
-                        {lineTotal !== null
-                          ? formatPrice(lineTotal, currency)
-                          : "Unavailable"}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Remove ${line.title ?? "Unavailable item"} from cart`}
-                        onClick={() => {
-                          void removeItem(line.variantId);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
+            <ul className="divide-y divide-border" aria-label="Cart items">
+              {lines.map((line) => (
+                <CartLineItem
+                  key={line.variantId}
+                  line={line}
+                  currency={currency}
+                  surface="drawer"
+                  pending={pendingVariantIds.has(line.variantId)}
+                  atLimit={atLimitVariantId === line.variantId}
+                  onChangeQuantity={(variantId, quantity) => {
+                    void setItemQuantity(variantId, quantity);
+                  }}
+                  onRemove={(variantId) => {
+                    void removeItem(variantId);
+                  }}
+                  onNavigate={closeDrawer}
+                />
+              ))}
             </ul>
           )}
         </div>
 
-        {lines.length > 0 && !loadError ? (
-          <div className="space-y-3 border-t border-border px-6 py-4">
-            <div className="flex items-center justify-between text-base font-semibold text-foreground">
-              <span>Subtotal</span>
-              <span>{formatPrice(subtotal, currency)}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Shipping and any discounts are calculated at checkout
-            </p>
-            <Button type="button" disabled className="w-full">
-              Checkout
-            </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              Checkout is coming soon
-            </p>
-          </div>
+        {!loading && !loadError && lines.length > 0 ? (
+          <SheetFooter>
+            <CartSummary
+              lines={lines}
+              currency={currency}
+              surface="drawer"
+              onViewCart={closeDrawer}
+            />
+          </SheetFooter>
         ) : null}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

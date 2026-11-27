@@ -15,6 +15,8 @@ interface QuantityStepperProps {
   max?: number;
   /** Whether the stepper is disabled. */
   disabled?: boolean;
+  /** Optional item name used to build item specific accessible labels. */
+  itemTitle?: string;
   /** Additional CSS class names. */
   className?: string;
 }
@@ -30,30 +32,41 @@ function QuantityStepper({
   min = 1,
   max = 99,
   disabled = false,
+  itemTitle,
   className,
 }: QuantityStepperProps) {
   const canDecrement = value > min;
   const canIncrement = value < max;
+  const groupLabel = itemTitle
+    ? `Quantity for ${itemTitle}`
+    : "Quantity selector";
+  const decreaseLabel = itemTitle
+    ? `Decrease quantity of ${itemTitle}`
+    : "Decrease quantity";
+  const increaseLabel = itemTitle
+    ? `Increase quantity of ${itemTitle}`
+    : "Increase quantity";
 
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border border-border",
+        "inline-flex items-center rounded-full border border-input",
         disabled && "opacity-50",
         className,
       )}
       role="group"
-      aria-label="Quantity selector"
+      aria-label={groupLabel}
     >
       <Button
+        type="button"
         variant="ghost"
         size="icon-sm"
         onClick={() => {
           onChange(Math.min(max, Math.max(min, value - 1)));
         }}
         disabled={disabled || !canDecrement}
-        aria-label="Decrease quantity"
-        className="min-h-[44px] min-w-[44px] rounded-r-none border-r border-border"
+        aria-label={decreaseLabel}
+        className="min-h-[44px] min-w-[44px] rounded-r-none border-r border-input"
       >
         <Minus className="size-4" aria-hidden="true" />
       </Button>
@@ -67,14 +80,15 @@ function QuantityStepper({
       </span>
 
       <Button
+        type="button"
         variant="ghost"
         size="icon-sm"
         onClick={() => {
           onChange(Math.min(max, Math.max(min, value + 1)));
         }}
         disabled={disabled || !canIncrement}
-        aria-label="Increase quantity"
-        className="min-h-[44px] min-w-[44px] rounded-l-none border-l border-border"
+        aria-label={increaseLabel}
+        className="min-h-[44px] min-w-[44px] rounded-l-none border-l border-input"
       >
         <Plus className="size-4" aria-hidden="true" />
       </Button>

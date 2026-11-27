@@ -155,6 +155,12 @@ export function CartProvider({ children }: CartProviderProps) {
   const [announcement, setAnnouncement] = useState("");
 
   const requestCounterRef = useRef(0);
+  const hasResolvedLinesRef = useRef(false);
+
+  const updateResolvedLines = useCallback((nextLines: CartLineDto[]) => {
+    hasResolvedLinesRef.current = nextLines.length > 0;
+    setResolvedLines(nextLines);
+  }, []);
 
   const announce = useCallback((message: string) => {
     // Clearing before setting ensures repeated identical announcements still
@@ -194,12 +200,15 @@ export function CartProvider({ children }: CartProviderProps) {
   }, []);
 
   const quoteCurrentGuestCart = useCallback(async (): Promise<void> => {
+    if (!useGuestCartStore.persist.hasHydrated()) {
+      void useGuestCartStore.persist.rehydrate();
+    }
     const store = useGuestCartStore.getState();
     store.expireIfNeeded();
     const currentLines = useGuestCartStore.getState().lines;
 
     if (currentLines.length === 0) {
-      setResolvedLines([]);
+      updateResolvedLines([]);
       setLoadError(false);
       setLoading(false);
       setRevalidating(false);
@@ -209,7 +218,7 @@ export function CartProvider({ children }: CartProviderProps) {
     const requestId = ++requestCounterRef.current;
     setRevalidating(true);
     setLoadError(false);
-    if (resolvedLines.length === 0) {
+    if (!hasResolvedLinesRef.current) {
       setLoading(true);
     }
 
@@ -219,7 +228,7 @@ export function CartProvider({ children }: CartProviderProps) {
         return;
       }
       recordLoweredFromLines(response.data.lines);
-      setResolvedLines(response.data.lines);
+      updateResolvedLines(response.data.lines);
       setLoadError(false);
     } catch {
       if (requestId !== requestCounterRef.current) {
@@ -232,7 +241,7 @@ export function CartProvider({ children }: CartProviderProps) {
         setRevalidating(false);
       }
     }
-  }, [recordLoweredFromLines, resolvedLines.length]);
+  }, [recordLoweredFromLines, updateResolvedLines]);
 
   // Hydrate Zustand persist store strictly after mount to avoid SSR mismatch (AC-9).
   useEffect(() => {
@@ -343,7 +352,7 @@ export function CartProvider({ children }: CartProviderProps) {
         if (existing && existing.quantity >= targetQuoted.maxQuantity) {
           // Shopper already holds the maximum sellable count for this variant.
           recordLoweredFromLines(quotedLines);
-          setResolvedLines(quotedLines);
+          updateResolvedLines(quotedLines);
           setLoadError(false);
           setAtLimitVariantId(input.variantId);
           if (input.triggerEl !== undefined) {
@@ -372,7 +381,7 @@ export function CartProvider({ children }: CartProviderProps) {
         }
 
         clearLineNotices(input.variantId);
-        setResolvedLines(quotedLines);
+        updateResolvedLines(quotedLines);
         setLoadError(false);
         if (input.triggerEl !== undefined) {
           setDrawerTriggerEl(input.triggerEl);
@@ -385,7 +394,13 @@ export function CartProvider({ children }: CartProviderProps) {
         setAddingVariantId(null);
       }
     },
-    [addingVariantId, announce, clearLineNotices, recordLoweredFromLines],
+    [
+      addingVariantId,
+      announce,
+      clearLineNotices,
+      recordLoweredFromLines,
+      updateResolvedLines,
+    ],
   );
 
   const setItemQuantity = useCallback(
@@ -419,7 +434,7 @@ export function CartProvider({ children }: CartProviderProps) {
         );
 
         if (!targetQuoted || targetQuoted.maxQuantity === 0) {
-          setResolvedLines(quotedLines);
+          updateResolvedLines(quotedLines);
           toast.error(CART_ITEM_UNAVAILABLE_TOAST);
           return;
         }
@@ -451,7 +466,7 @@ export function CartProvider({ children }: CartProviderProps) {
           setLoweredNotices((prev) => ({ ...prev, ...otherLowered }));
         }
 
-        setResolvedLines(quotedLines);
+        updateResolvedLines(quotedLines);
         setLoadError(false);
       } catch {
         toast.error(CART_UPDATE_ERROR_TOAST);
@@ -463,7 +478,7 @@ export function CartProvider({ children }: CartProviderProps) {
         });
       }
     },
-    [announce, clearLineNotices],
+    [announce, clearLineNotices, updateResolvedLines],
   );
 
   const removeItem = useCallback(
@@ -475,9 +490,10 @@ export function CartProvider({ children }: CartProviderProps) {
           "item";
         useGuestCartStore.getState().removeLine(variantId);
         clearLineNotices(variantId);
-        setResolvedLines((prev) =>
-          prev.filter((line) => line.variantId !== variantId),
+        const remaining = resolvedLines.filter(
+          (line) => line.variantId !== variantId,
         );
+        updateResolvedLines(remaining);
         announce(`Removed ${existingTitle} from cart`);
       } finally {
         setPendingVariantIds((prev) => {
@@ -488,14 +504,14 @@ export function CartProvider({ children }: CartProviderProps) {
       }
       return Promise.resolve();
     },
-    [announce, clearLineNotices, resolvedLines],
+    [announce, clearLineNotices, resolvedLines, updateResolvedLines],
   );
 
   const clearCart = useCallback((): Promise<boolean> => {
     setClearing(true);
     try {
       useGuestCartStore.getState().clearGuestCart();
-      setResolvedLines([]);
+      updateResolvedLines([]);
       setLoweredNotices({});
       setAtLimitVariantId(null);
       setLoadError(false);
@@ -504,7 +520,7 @@ export function CartProvider({ children }: CartProviderProps) {
     } finally {
       setClearing(false);
     }
-  }, [announce]);
+  }, [announce, updateResolvedLines]);
 
   const dismissMergeBanner = useCallback(() => {
     setMergeAdjustments([]);
@@ -588,7 +604,20 @@ export function CartProvider({ children }: CartProviderProps) {
     ],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      {/* Page level polite live region active whenever the drawer is closed (AC-17). */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {drawerOpen ? "" : announcement}
+      </div>
+    </CartContext.Provider>
+  );
 }
 
 /**
