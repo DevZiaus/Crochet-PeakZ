@@ -92,8 +92,28 @@ describe("useGuestCartStore", () => {
     );
 
     void useGuestCartStore.persist.rehydrate();
+    const rotatedId = useGuestCartStore.getState().guestCartId;
     expect(useGuestCartStore.getState().lines).toEqual([]);
-    expect(useGuestCartStore.getState().guestCartId).not.toBe(originalId);
+    expect(rotatedId).not.toBe(originalId);
+
+    const rawAfter = window.localStorage.getItem(GUEST_CART_STORAGE_KEY);
+    expect(rawAfter).not.toBeNull();
+    const persisted = JSON.parse(rawAfter ?? "{}") as {
+      version: number;
+      state: {
+        guestCartId: string;
+        updatedAt: string;
+        lines: unknown[];
+      };
+    };
+    expect(persisted.version).toBe(GUEST_CART_VERSION);
+    expect(persisted.state.lines).toEqual([]);
+    expect(persisted.state.guestCartId).toBe(rotatedId);
+    expect(persisted.state.guestCartId).not.toBe(originalId);
+    expect(persisted.state.updatedAt).not.toBe(oldTime);
+
+    void useGuestCartStore.persist.rehydrate();
+    expect(useGuestCartStore.getState().guestCartId).toBe(rotatedId);
   });
 
   it("lowers quantities passively without advancing updatedAt and rotates guestCartId on clear", () => {

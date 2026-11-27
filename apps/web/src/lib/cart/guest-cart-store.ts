@@ -120,7 +120,7 @@ export function isGuestCartExpired(
 
 /**
  * Validates and sanitizes an unknown parsed payload from storage.
- * Returns `null` when corrupt, wrong version, or structurally invalid.
+ * Returns `null` when corrupt, wrong version, structurally invalid, or expired.
  */
 function parsePersistedState(
   raw: string,
@@ -164,10 +164,7 @@ function parsePersistedState(
   }
 
   if (isGuestCartExpired(updatedAt, nowMs)) {
-    return {
-      state: createEmptyGuestCart(new Date(nowMs).toISOString()),
-      version: GUEST_CART_VERSION,
-    };
+    return null;
   }
 
   const seenVariants = new Set<string>();

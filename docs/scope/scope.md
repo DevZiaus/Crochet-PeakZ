@@ -180,7 +180,7 @@ Persistent client side shopping cart (Zustand) with variant selection, quantity 
   - [x] Server cart for accounts: `Cart` and `CartItem` migration, row locked repository, account use cases and routes, PostgreSQL tests, `CartProvider` account mode and tab sync (AC-5, AC-7, AC-10, AC-13, AC-14, AC-16, AC-18)
   - [x] Sign in merge, sign out transition, and reverse proxy routing in Caddy, Nginx, and deployment docs (AC-11, AC-12, AC-16)
   - [x] Full test pass: component suites and Playwright cart end to end flow with axe checks in light and dark themes (AC-17, AC-18)
-- [ ] Verify it: `/check verify shopping cart`
+- [x] Verify it: `/check verify shopping cart`
 - [ ] Test it: `/test shopping cart`
 - [ ] Review it (fresh model): `/check review shopping cart`
 - [ ] Document it: `/document shopping cart`
