@@ -24,6 +24,7 @@ import {
   addAccountCartItem,
   clearAccountCart,
   fetchAccountCart,
+  mergeGuestCart,
   quoteCartLines,
   removeAccountCartItem,
   updateAccountCartItem,
@@ -324,6 +325,73 @@ export function CartProvider({ children }: CartProviderProps) {
     [handleUnauthorized, recordLoweredFromLines, updateResolvedLines],
   );
 
+  const syncOrMergeAccountCart = useCallback(
+    async (userId: string, showSkeleton: boolean): Promise<void> => {
+      if (!useGuestCartStore.persist.hasHydrated()) {
+        void useGuestCartStore.persist.rehydrate();
+      }
+      useGuestCartStore.getState().expireIfNeeded();
+      const { guestCartId, lines: localLines } = useGuestCartStore.getState();
+
+      if (localLines.length === 0) {
+        await loadAccountCart(showSkeleton);
+        return;
+      }
+
+      const requestId = ++requestCounterRef.current;
+      setRevalidating(true);
+      setLoadError(false);
+      if (showSkeleton) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await mergeGuestCart({
+          guestCartId,
+          lines: localLines,
+        });
+        if (requestId !== requestCounterRef.current) {
+          return;
+        }
+
+        // Clear local browser cart and rotate guestCartId ONLY after merge succeeds (AC-11).
+        useGuestCartStore.getState().clearGuestCart();
+        recordLoweredFromLines(response.data.lines, false);
+        updateResolvedLines(response.data.lines);
+        setAccountLoaded(true);
+        setLoadError(false);
+        broadcastAccountSync(userId);
+
+        if (response.data.adjustments.length > 0) {
+          setMergeAdjustments(response.data.adjustments);
+          setDrawerOpen(true);
+          announce("Some items in your cart changed when you signed in");
+        }
+      } catch (error) {
+        if (requestId !== requestCounterRef.current) {
+          return;
+        }
+        if (handleUnauthorized(error)) {
+          return;
+        }
+        // Keep browser cart intact so the next load or retry merges it (AC-11).
+        setLoadError(true);
+      } finally {
+        if (requestId === requestCounterRef.current) {
+          setLoading(false);
+          setRevalidating(false);
+        }
+      }
+    },
+    [
+      announce,
+      handleUnauthorized,
+      loadAccountCart,
+      recordLoweredFromLines,
+      updateResolvedLines,
+    ],
+  );
+
   // Hydrate Zustand persist store strictly after mount to avoid SSR mismatch (AC-9).
   useEffect(() => {
     void useGuestCartStore.persist.rehydrate();
@@ -343,7 +411,7 @@ export function CartProvider({ children }: CartProviderProps) {
     };
   }, []);
 
-  // Coordinate session transitions between visitor and account mode (AC-10, AC-12).
+  // Coordinate session transitions between visitor and account mode (AC-10, AC-11, AC-12).
   useEffect(() => {
     if (sessionLoading) {
       return;
@@ -363,7 +431,7 @@ export function CartProvider({ children }: CartProviderProps) {
           setAccountLoaded(false);
           setLoweredNotices({});
           setAtLimitVariantId(null);
-          void loadAccountCart(true);
+          void syncOrMergeAccountCart(activeUserId, true);
         });
         return () => {
           cancelled = true;
@@ -372,8 +440,8 @@ export function CartProvider({ children }: CartProviderProps) {
       return;
     }
 
-    // Signed out: drop account lines from memory immediately and show the
-    // empty browser cart (AC-12).
+    // Signed out: drop account lines from memory immediately and show an empty
+    // browser cart with a fresh guestCartId while leaving server cart intact (AC-12).
     if (prevUserId !== null) {
       requestCounterRef.current += 1;
       let cancelled = false;
@@ -381,6 +449,7 @@ export function CartProvider({ children }: CartProviderProps) {
         if (cancelled) {
           return;
         }
+        useGuestCartStore.getState().clearGuestCart();
         updateResolvedLines([]);
         setAccountLoaded(false);
         setLoweredNotices({});
@@ -396,7 +465,12 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     return;
-  }, [activeUserId, loadAccountCart, sessionLoading, updateResolvedLines]);
+  }, [
+    activeUserId,
+    sessionLoading,
+    syncOrMergeAccountCart,
+    updateResolvedLines,
+  ]);
 
   // Cross tab BroadcastChannel + tab focus sync for signed in accounts (AC-10).
   useEffect(() => {
@@ -434,11 +508,19 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const refreshCart = useCallback(async (): Promise<void> => {
     if (activeUserId !== null) {
-      await loadAccountCart(!accountLoaded && !hasResolvedLinesRef.current);
+      await syncOrMergeAccountCart(
+        activeUserId,
+        !accountLoaded && !hasResolvedLinesRef.current,
+      );
       return;
     }
     await quoteCurrentGuestCart();
-  }, [accountLoaded, activeUserId, loadAccountCart, quoteCurrentGuestCart]);
+  }, [
+    accountLoaded,
+    activeUserId,
+    quoteCurrentGuestCart,
+    syncOrMergeAccountCart,
+  ]);
 
   const openDrawer = useCallback(
     (triggerEl?: HTMLElement | null) => {

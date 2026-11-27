@@ -3,6 +3,7 @@ import type {
   CartAddItemResponse,
   CartAdjustmentDto,
   CartLineDto,
+  CartMergeBody,
   CartResponse,
   CartUpdateItemBody,
 } from "@crochet-peakz/shared";
@@ -10,6 +11,7 @@ import {
   applyAdd,
   applySetQuantity,
   isCartExpired,
+  mergeLines,
   resolveLine,
   sortLinesNewestFirst,
 } from "../../domain/cart/rules.js";
@@ -359,5 +361,86 @@ export async function clearCart(
   return dependencies.carts.withLockedCart(userId, now, async (tx) => {
     await tx.deleteAllItems({ touchUpdatedAt: true, now });
     return { data: { lines: [], adjustments: [] } };
+  });
+}
+
+/**
+ * Merges a visitor browser cart into the signed in user's account cart
+ * atomically and idempotently on `guestCartId` (AC-11).
+ *
+ * If `guestCartId` already matches `Cart.lastMergedGuestCartId`, no items are
+ * changed and the current account cart is returned with empty `adjustments`.
+ *
+ * @param dependencies Account cart dependencies.
+ * @param userId Session user UUID.
+ * @param input Validated merge body (`guestCartId` and `0..20` visitor lines).
+ * @returns Merged cart DTO with any merge `adjustments`.
+ */
+export async function mergeCart(
+  dependencies: AccountCartDependencies,
+  userId: string,
+  input: CartMergeBody,
+): Promise<CartResponse> {
+  const now = dependencies.clock.now();
+
+  return dependencies.carts.withLockedCart(userId, now, async (tx) => {
+    const activeLines = await loadActiveLines(tx, now);
+
+    if (tx.cart.lastMergedGuestCartId === input.guestCartId) {
+      if (activeLines.length === 0) {
+        return { data: { lines: [], adjustments: [] } };
+      }
+
+      const lookup = await tx.findCatalogSnapshots({
+        productIds: activeLines.map((line) => line.productId),
+        variantIds: activeLines.map((line) => line.variantId),
+      });
+
+      const { lineDtos } = await resolveAndLower(
+        tx,
+        activeLines,
+        lookup,
+        dependencies.imageUrls,
+      );
+
+      return { data: { lines: lineDtos, adjustments: [] } };
+    }
+
+    const visitorLines: CartLineInput[] = input.lines.map((line) => ({
+      productId: line.productId,
+      variantId: line.variantId,
+      quantity: line.quantity,
+      addedAt: line.addedAt ? new Date(line.addedAt) : now,
+    }));
+
+    const lookup = await tx.findCatalogSnapshots({
+      productIds: [
+        ...activeLines.map((line) => line.productId),
+        ...visitorLines.map((line) => line.productId),
+      ],
+      variantIds: [
+        ...activeLines.map((line) => line.variantId),
+        ...visitorLines.map((line) => line.variantId),
+      ],
+    });
+
+    const merged = mergeLines(activeLines, visitorLines, lookup, now);
+
+    await tx.applyMerge({
+      guestCartId: input.guestCartId,
+      lines: merged.nextLines,
+      now,
+    });
+
+    const lineDtos = merged.nextLines.map((line) =>
+      toCartLineDto(resolveLine(line, lookup), dependencies.imageUrls),
+    );
+
+    return {
+      data: {
+        lines: lineDtos,
+        adjustments: merged.adjustments.map(toCartAdjustmentDto),
+      },
+    };
   });
 }

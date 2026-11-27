@@ -7,8 +7,8 @@ reference self-hosted deployment.
 
 ```
 Browser ──► reverse proxy (optional) ──► web (Next.js, :3000)
-                   │                         └──► /api/auth/* ──► api (Express, :4000)
-                   └──► other /api/* ──────────────────────────► api (Express, :4000)
+                   │                         └──► /api/auth/*, /api/cart, /api/cart/* ──► api (Express, :4000)
+                   └──► other /api/* ───────────────────────────────────────────────────► api (Express, :4000)
 
 api ──► PostgreSQL
 ```
@@ -114,9 +114,10 @@ docker compose --profile proxy up -d --build
 ```
 
 The optional Caddy service in `docker-compose.yml` terminates TLS, sends
-`/api/auth/*` to the web server so the Next.js auth proxy can add the shared
-secret, sends other `/api/*` requests to the API, and sends everything else to
-the web server. `deploy/Caddyfile` is the configuration. For Nginx, start from
+`/api/auth/*`, `/api/cart`, and `/api/cart/*` (16 KB body cap) to the web server
+so the Next.js proxy can add the shared secret and relay session cookies, sends
+other `/api/*` requests to the API, and sends everything else to the web server.
+`deploy/Caddyfile` is the configuration. For Nginx, start from
 `deploy/nginx.conf.example`.
 
 > **Behind Cloudflare CDN on a VPS:** restrict inbound ports `80` and `443` on
@@ -180,10 +181,10 @@ Cloudflare edge IP bucket:
    - Set `TRUSTED_PROXY_HOPS=2` on Vercel so `readClientIp` skips Vercel's outer
      proxy hop and selects the visitor IP appended by Cloudflare.
    - Set the same `PROXY_SHARED_SECRET` on both Vercel and Render/Heroku.
-     Next.js proxy handlers (`/api/auth/*` and `/api/contact`) stamp the
-     resolved visitor IP in `x-proxy-client-ip` alongside `x-proxy-secret`, so
-     intermediate hops between Vercel and Render/Heroku do not distort rate
-     limit keys.
+     Next.js proxy handlers (`/api/auth/*`, `/api/cart`, `/api/cart/*`, and
+     `/api/contact`) stamp the resolved visitor IP in `x-proxy-client-ip`
+     alongside `x-proxy-secret`, so intermediate hops between Vercel and
+     Render/Heroku do not distort rate limit keys.
    - On Render, set `TRUST_PROXY=1` when the API host is reached directly behind
      Render's router (DNS-only in Cloudflare, or server-to-server from Vercel).
      Use `TRUST_PROXY=2` only when browsers really do call the API subdomain
@@ -233,8 +234,9 @@ the standalone artifact, copy `apps/web/.next/static` and `apps/web/public` into
 `node apps/web/.next/standalone/apps/web/server.js`.
 
 Run the web and API as separate processes behind Nginx, Caddy, or another
-reverse proxy. The proxy should send `/api/auth/*` to port 3000, other `/api/*`
-requests to port 4000, and everything else to port 3000.
+reverse proxy. The proxy should send `/api/auth/*`, `/api/cart`, and
+`/api/cart/*` (16 KB body cap) to port 3000, other `/api/*` requests to port
+4000, and everything else to port 3000.
 
 ## Environment variables
 
@@ -343,9 +345,10 @@ Read by the Next.js server on each auth request, never sent to the browser.
 | `WEB_APP_URL`         | Public origin of this web app, used for auth redirects, canonical URLs, and metadata                           |
 | `TRUSTED_PROXY_HOPS`  | Optional integer hop depth in `X-Forwarded-For` (default `1`; set `2` behind Cloudflare + Vercel/origin proxy) |
 
-`NEXT_PUBLIC_API_URL` is only for browser calls to non-auth endpoints. The auth
-screens always talk to the web origin (`/api/auth/*`), and the web server
-forwards them to `API_INTERNAL_URL` with the shared secret.
+`NEXT_PUBLIC_API_URL` is only for browser calls to non-auth, non-cart endpoints.
+The auth and shopping cart flows always talk to the web origin (`/api/auth/*`,
+`/api/cart`, and `/api/cart/*`), and the web server forwards them to
+`API_INTERNAL_URL` with the shared secret.
 
 ## Health checks
 

@@ -7,6 +7,7 @@ import {
 } from "express";
 import {
   cartAddItemBodySchema,
+  cartMergeBodySchema,
   cartQuoteBodySchema,
   cartUpdateItemBodySchema,
   cartVariantParamSchema,
@@ -16,6 +17,7 @@ import {
   addItem,
   clearCart,
   getCart,
+  mergeCart,
   removeItem,
   setItemQuantity,
 } from "../../application/cart/account-cart.js";
@@ -269,6 +271,22 @@ export function createCartRouter(options: CartRouterOptions): Router {
       asyncCartHandler(async (request, response) => {
         const userId = requireAuthUserId(request);
         const result = await clearCart(accountDeps, userId);
+        response.json(result);
+      }),
+    );
+
+    router.post(
+      "/merge",
+      requireAuth,
+      writeRateLimit,
+      asyncCartHandler(async (request, response) => {
+        const userId = requireAuthUserId(request);
+        const parsed = cartMergeBodySchema.safeParse(request.body);
+        if (!parsed.success) {
+          throw toInvalidCartError(parsed.error);
+        }
+
+        const result = await mergeCart(accountDeps, userId, parsed.data);
         response.json(result);
       }),
     );

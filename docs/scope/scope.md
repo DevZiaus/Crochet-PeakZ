@@ -178,7 +178,7 @@ Persistent client side shopping cart (Zustand) with variant selection, quantity 
   - [x] Thin visitor thread: shared cart contracts, quote API, shared web proxy, Zustand store, add to cart, header badge, minimal drawer (AC-1, AC-2, AC-3, AC-5, AC-6, AC-7, AC-8, AC-9, AC-11, AC-12, AC-13, AC-16)
   - [x] Full cart UI: Sheet primitive, drawer and `/cart` page, limits and notices, skeletons, retry error state, clear cart dialog, live regions (AC-4, AC-5, AC-6, AC-7, AC-14, AC-15, AC-17)
   - [x] Server cart for accounts: `Cart` and `CartItem` migration, row locked repository, account use cases and routes, PostgreSQL tests, `CartProvider` account mode and tab sync (AC-5, AC-7, AC-10, AC-13, AC-14, AC-16, AC-18)
-  - [ ] Sign in merge, sign out transition, and reverse proxy routing in Caddy, Nginx, and deployment docs (AC-11, AC-12, AC-16)
+  - [x] Sign in merge, sign out transition, and reverse proxy routing in Caddy, Nginx, and deployment docs (AC-11, AC-12, AC-16)
   - [ ] Full test pass: component suites and Playwright cart end to end flow with axe checks in light and dark themes (AC-17, AC-18)
 - [ ] Verify it: `/check verify shopping cart`
 - [ ] Test it: `/test shopping cart`

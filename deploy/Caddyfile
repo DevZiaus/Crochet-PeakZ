@@ -39,6 +39,24 @@
 		reverse_proxy web:3000
 	}
 
+	# Shopping cart calls also go through the Next.js proxy so it can attach
+	# the shared secret, enforce the 16KB body cap, relay cookies, and refresh
+	# an expired access token once. Both exact /api/cart and /api/cart/* are
+	# matched explicitly so Caddy sorts them ahead of /api/*.
+	handle /api/cart {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy web:3000
+	}
+
+	handle /api/cart/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy web:3000
+	}
+
 	# Contact payloads are small JSON bodies; enforce the 20KB cap at the edge
 	# to match the Next.js contact proxy limit.
 	handle /api/contact {

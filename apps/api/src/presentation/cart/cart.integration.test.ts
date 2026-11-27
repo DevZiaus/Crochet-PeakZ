@@ -501,4 +501,140 @@ describeWithDatabase("Account cart API + PostgreSQL integration", () => {
     expect(remaining).toBe(0);
     currentNow = new Date("2026-11-27T12:00:00.000Z");
   });
+
+  it("merges visitor lines into account cart with adjustments and enforces guestCartId idempotency (AC-11)", async () => {
+    currentNow = new Date("2026-11-27T12:00:00.000Z");
+    const { accessToken } = await createTestUser();
+
+    const product = await createTestProduct({
+      title: "Merge Cardigan",
+      variants: [
+        { colorName: "Oat", stockQuantity: 4 },
+        { colorName: "Moss", stockQuantity: 5 },
+        { colorName: "SoldOut", stockQuantity: 0 },
+      ],
+    });
+    const inactiveProduct = await createTestProduct({
+      title: "Archived Hat",
+      isActive: false,
+      variants: [{ colorName: "Navy", stockQuantity: 5 }],
+    });
+
+    const oat = product.variants.find((v) => v.colorName === "Oat");
+    const moss = product.variants.find((v) => v.colorName === "Moss");
+    const soldOut = product.variants.find((v) => v.colorName === "SoldOut");
+    const archived = inactiveProduct.variants[0];
+    if (!oat || !moss || !soldOut || !archived) {
+      throw new Error("variants missing");
+    }
+
+    // Seed 2 of Oat in the existing account cart.
+    await fetch(`${baseUrl}/api/cart/items`, {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({ productId: product.id, variantId: oat.id }),
+    });
+    await fetch(`${baseUrl}/api/cart/items/${oat.id}`, {
+      method: "PATCH",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({ quantity: 2 }),
+    });
+
+    const guestCartId = randomUUID();
+    const mergePayload = {
+      guestCartId,
+      lines: [
+        // 2 + 3 = 5, stock is 4 -> lowered to 4
+        {
+          productId: product.id,
+          variantId: oat.id,
+          quantity: 3,
+          addedAt: "2026-11-27T11:30:00.000Z",
+        },
+        // New valid visitor item (newest addedAt -> sorts first)
+        {
+          productId: product.id,
+          variantId: moss.id,
+          quantity: 2,
+          addedAt: "2026-11-27T11:59:00.000Z",
+        },
+        // Zero stock visitor item -> dropped OUT_OF_STOCK
+        {
+          productId: product.id,
+          variantId: soldOut.id,
+          quantity: 1,
+          addedAt: "2026-11-27T11:45:00.000Z",
+        },
+        // Inactive product visitor item -> dropped UNAVAILABLE
+        {
+          productId: inactiveProduct.id,
+          variantId: archived.id,
+          quantity: 1,
+          addedAt: "2026-11-27T11:40:00.000Z",
+        },
+      ],
+    };
+
+    const firstMerge = await fetch(`${baseUrl}/api/cart/merge`, {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify(mergePayload),
+    });
+    expect(firstMerge.status).toBe(200);
+    const firstBody = (await firstMerge.json()) as {
+      data: {
+        lines: Array<{ variantId: string; quantity: number }>;
+        adjustments: Array<{
+          variantId: string;
+          kind: string;
+          quantity: number;
+        }>;
+      };
+    };
+
+    expect(firstBody.data.lines).toHaveLength(2);
+    expect(
+      firstBody.data.lines.find((l) => l.variantId === oat.id)?.quantity,
+    ).toBe(4);
+    expect(
+      firstBody.data.lines.find((l) => l.variantId === moss.id)?.quantity,
+    ).toBe(2);
+    expect(firstBody.data.adjustments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          variantId: oat.id,
+          kind: "LOWERED",
+          quantity: 4,
+        }),
+        expect.objectContaining({
+          variantId: soldOut.id,
+          kind: "OUT_OF_STOCK",
+          quantity: 0,
+        }),
+        expect.objectContaining({
+          variantId: archived.id,
+          kind: "UNAVAILABLE",
+          quantity: 0,
+        }),
+      ]),
+    );
+
+    // Repeating the exact same guestCartId is a complete no op.
+    const replayMerge = await fetch(`${baseUrl}/api/cart/merge`, {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify(mergePayload),
+    });
+    expect(replayMerge.status).toBe(200);
+    const replayBody = (await replayMerge.json()) as {
+      data: {
+        lines: Array<{ variantId: string; quantity: number }>;
+        adjustments: unknown[];
+      };
+    };
+    expect(replayBody.data.adjustments).toEqual([]);
+    expect(
+      replayBody.data.lines.find((l) => l.variantId === moss.id)?.quantity,
+    ).toBe(2);
+  });
 });
