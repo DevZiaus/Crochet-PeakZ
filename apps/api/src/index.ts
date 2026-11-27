@@ -26,6 +26,7 @@ import { createAuthRouter } from "./presentation/auth/auth.routes.js";
 import { createCartRouter } from "./presentation/cart/cart.routes.js";
 import { createCatalogRouter } from "./presentation/catalog/catalog.routes.js";
 import { createContactRouter } from "./presentation/contact/contact.routes.js";
+import { PrismaCartRepository } from "./infrastructure/database/cart.repository.js";
 import { PrismaCatalogRepository } from "./infrastructure/database/catalog.repository.js";
 import { CloudinaryImageUrlResolver } from "./infrastructure/cloudinary/image-url-resolver.js";
 
@@ -117,12 +118,24 @@ async function main(): Promise<void> {
    * Builds the shopping cart router.
    */
   function buildCartRouter(): Router {
+    const imageUrls = new CloudinaryImageUrlResolver(env.cloudinaryCloudName);
+    const tokens = new JwtTokenService({
+      jwtSecret: env.jwtSecret,
+      refreshSecret: env.jwtRefreshSecret,
+    });
+
     return createCartRouter({
       quote: {
         catalog: new PrismaCatalogRepository(database.client),
-        imageUrls: new CloudinaryImageUrlResolver(env.cloudinaryCloudName),
+        imageUrls,
         clock: systemClock,
       },
+      account: {
+        carts: new PrismaCartRepository(database.client),
+        imageUrls,
+        clock: systemClock,
+      },
+      tokens,
       proxySharedSecret: env.proxySharedSecret,
       webAppUrl: env.webAppUrl,
       trustedProxyHops,

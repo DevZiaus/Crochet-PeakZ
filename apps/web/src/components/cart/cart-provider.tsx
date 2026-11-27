@@ -19,7 +19,15 @@ import {
   type CartLineDto,
 } from "@crochet-peakz/shared";
 import { useSession } from "@/lib/auth/use-session";
-import { quoteCartLines } from "@/lib/cart/api";
+import {
+  CartApiError,
+  addAccountCartItem,
+  clearAccountCart,
+  fetchAccountCart,
+  quoteCartLines,
+  removeAccountCartItem,
+  updateAccountCartItem,
+} from "@/lib/cart/api";
 import {
   GUEST_CART_STORAGE_KEY,
   useGuestCartStore,
@@ -32,6 +40,15 @@ import {
 
 /** Operating mode for `CartProvider`. */
 export type CartMode = "visitor" | "account";
+
+/** BroadcastChannel topic keeping account carts aligned across open tabs. */
+export const CART_BROADCAST_CHANNEL = "cp_cart";
+
+/** Message broadcast across open tabs after an account cart mutation. */
+interface CartSyncMessage {
+  type: "sync";
+  userId: string;
+}
 
 /** Input accepted by `addItem`. */
 export interface AddToCartInput {
@@ -113,17 +130,32 @@ export interface CartProviderProps {
   children: ReactNode;
 }
 
+/** Posts a cross tab sync notice for signed in account mutations. */
+function broadcastAccountSync(userId: string): void {
+  if (typeof BroadcastChannel === "undefined") {
+    return;
+  }
+  try {
+    const channel = new BroadcastChannel(CART_BROADCAST_CHANNEL);
+    const message: CartSyncMessage = { type: "sync", userId };
+    channel.postMessage(message);
+    channel.close();
+  } catch {
+    // Ignore environments where BroadcastChannel is blocked.
+  }
+}
+
 /**
- * Provides shopping cart state across the storefront shell.
+ * Provides hybrid shopping cart state across the storefront shell.
  *
- * Milestone 1 powers the full visitor cart flow (Zustand `persist` with
- * `skipHydration: true`, live `/api/cart/quote`, cross tab `storage` sync,
- * and shared `SessionProvider` awareness). Account mode and sign in merge
- * build on this provider in Milestones 3 and 4.
+ * Visitors keep their cart in Zustand + `localStorage` (`cp_cart`) validated
+ * via `POST /api/cart/quote`. Signed in customers use the server `/api/cart`
+ * API with `BroadcastChannel("cp_cart")` and `visibilitychange` sync.
  */
 export function CartProvider({ children }: CartProviderProps) {
-  const { user } = useSession();
-  const mode: CartMode = user ? "account" : "visitor";
+  const { user, loading: sessionLoading, refreshSession } = useSession();
+  const activeUserId = !sessionLoading && user !== null ? user.id : null;
+  const mode: CartMode = activeUserId !== null ? "account" : "visitor";
 
   const guestLines = useGuestCartStore((state) => state.lines);
 
@@ -133,6 +165,7 @@ export function CartProvider({ children }: CartProviderProps) {
     getServerHydrated,
   );
   const [resolvedLines, setResolvedLines] = useState<CartLineDto[]>([]);
+  const [accountLoaded, setAccountLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [revalidating, setRevalidating] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -156,6 +189,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const requestCounterRef = useRef(0);
   const hasResolvedLinesRef = useRef(false);
+  const previousUserIdRef = useRef<string | null>(null);
 
   const updateResolvedLines = useCallback((nextLines: CartLineDto[]) => {
     hasResolvedLinesRef.current = nextLines.length > 0;
@@ -163,8 +197,6 @@ export function CartProvider({ children }: CartProviderProps) {
   }, []);
 
   const announce = useCallback((message: string) => {
-    // Clearing before setting ensures repeated identical announcements still
-    // fire cleanly in assistive tech live regions.
     setAnnouncement("");
     queueMicrotask(() => {
       setAnnouncement(message);
@@ -172,7 +204,7 @@ export function CartProvider({ children }: CartProviderProps) {
   }, []);
 
   const recordLoweredFromLines = useCallback(
-    (nextLines: readonly CartLineDto[]) => {
+    (nextLines: readonly CartLineDto[], persistToGuestStore: boolean) => {
       const newlyLowered: Record<string, number> = {};
       for (const line of nextLines) {
         if (line.status === "LOWERED") {
@@ -180,7 +212,9 @@ export function CartProvider({ children }: CartProviderProps) {
         }
       }
       if (Object.keys(newlyLowered).length > 0) {
-        useGuestCartStore.getState().applyQuoteLowering(newlyLowered);
+        if (persistToGuestStore) {
+          useGuestCartStore.getState().applyQuoteLowering(newlyLowered);
+        }
         setLoweredNotices((prev) => ({ ...prev, ...newlyLowered }));
       }
     },
@@ -198,6 +232,17 @@ export function CartProvider({ children }: CartProviderProps) {
     });
     setAtLimitVariantId((prev) => (prev === variantId ? null : prev));
   }, []);
+
+  const handleUnauthorized = useCallback(
+    (error: unknown): boolean => {
+      if (error instanceof CartApiError && error.status === 401) {
+        void refreshSession?.();
+        return true;
+      }
+      return false;
+    },
+    [refreshSession],
+  );
 
   const quoteCurrentGuestCart = useCallback(async (): Promise<void> => {
     if (!useGuestCartStore.persist.hasHydrated()) {
@@ -227,7 +272,7 @@ export function CartProvider({ children }: CartProviderProps) {
       if (requestId !== requestCounterRef.current) {
         return;
       }
-      recordLoweredFromLines(response.data.lines);
+      recordLoweredFromLines(response.data.lines, true);
       updateResolvedLines(response.data.lines);
       setLoadError(false);
     } catch {
@@ -242,6 +287,42 @@ export function CartProvider({ children }: CartProviderProps) {
       }
     }
   }, [recordLoweredFromLines, updateResolvedLines]);
+
+  const loadAccountCart = useCallback(
+    async (showSkeleton: boolean): Promise<void> => {
+      const requestId = ++requestCounterRef.current;
+      setRevalidating(true);
+      setLoadError(false);
+      if (showSkeleton) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await fetchAccountCart();
+        if (requestId !== requestCounterRef.current) {
+          return;
+        }
+        recordLoweredFromLines(response.data.lines, false);
+        updateResolvedLines(response.data.lines);
+        setAccountLoaded(true);
+        setLoadError(false);
+      } catch (error) {
+        if (requestId !== requestCounterRef.current) {
+          return;
+        }
+        if (handleUnauthorized(error)) {
+          return;
+        }
+        setLoadError(true);
+      } finally {
+        if (requestId === requestCounterRef.current) {
+          setLoading(false);
+          setRevalidating(false);
+        }
+      }
+    },
+    [handleUnauthorized, recordLoweredFromLines, updateResolvedLines],
+  );
 
   // Hydrate Zustand persist store strictly after mount to avoid SSR mismatch (AC-9).
   useEffect(() => {
@@ -262,9 +343,102 @@ export function CartProvider({ children }: CartProviderProps) {
     };
   }, []);
 
+  // Coordinate session transitions between visitor and account mode (AC-10, AC-12).
+  useEffect(() => {
+    if (sessionLoading) {
+      return;
+    }
+
+    const prevUserId = previousUserIdRef.current;
+    previousUserIdRef.current = activeUserId;
+
+    if (activeUserId !== null) {
+      if (prevUserId !== activeUserId) {
+        let cancelled = false;
+        queueMicrotask(() => {
+          if (cancelled) {
+            return;
+          }
+          updateResolvedLines([]);
+          setAccountLoaded(false);
+          setLoweredNotices({});
+          setAtLimitVariantId(null);
+          void loadAccountCart(true);
+        });
+        return () => {
+          cancelled = true;
+        };
+      }
+      return;
+    }
+
+    // Signed out: drop account lines from memory immediately and show the
+    // empty browser cart (AC-12).
+    if (prevUserId !== null) {
+      requestCounterRef.current += 1;
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) {
+          return;
+        }
+        updateResolvedLines([]);
+        setAccountLoaded(false);
+        setLoweredNotices({});
+        setAtLimitVariantId(null);
+        setMergeAdjustments([]);
+        setLoadError(false);
+        setLoading(false);
+        setRevalidating(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    return;
+  }, [activeUserId, loadAccountCart, sessionLoading, updateResolvedLines]);
+
+  // Cross tab BroadcastChannel + tab focus sync for signed in accounts (AC-10).
+  useEffect(() => {
+    if (activeUserId === null) {
+      return;
+    }
+
+    const handleVisibility = (): void => {
+      if (document.visibilityState === "visible") {
+        void loadAccountCart(false);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        channel = new BroadcastChannel(CART_BROADCAST_CHANNEL);
+        channel.onmessage = (event: MessageEvent<unknown>) => {
+          const data = event.data as Partial<CartSyncMessage> | null;
+          if (data?.type === "sync" && data.userId === activeUserId) {
+            void loadAccountCart(false);
+          }
+        };
+      } catch {
+        channel = null;
+      }
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      channel?.close();
+    };
+  }, [activeUserId, loadAccountCart]);
+
   const refreshCart = useCallback(async (): Promise<void> => {
+    if (activeUserId !== null) {
+      await loadAccountCart(!accountLoaded && !hasResolvedLinesRef.current);
+      return;
+    }
     await quoteCurrentGuestCart();
-  }, [quoteCurrentGuestCart]);
+  }, [accountLoaded, activeUserId, loadAccountCart, quoteCurrentGuestCart]);
 
   const openDrawer = useCallback(
     (triggerEl?: HTMLElement | null) => {
@@ -289,6 +463,53 @@ export function CartProvider({ children }: CartProviderProps) {
 
       setAddingVariantId(input.variantId);
       try {
+        if (activeUserId !== null) {
+          const response = await addAccountCartItem({
+            productId: input.productId,
+            variantId: input.variantId,
+          });
+
+          recordLoweredFromLines(response.data.lines, false);
+          updateResolvedLines(response.data.lines);
+          setAccountLoaded(true);
+          setLoadError(false);
+
+          if (response.outcome === "UNAVAILABLE") {
+            toast.error(CART_ITEM_UNAVAILABLE_TOAST);
+            return;
+          }
+          if (response.outcome === "CART_FULL") {
+            toast.error(CART_FULL_TOAST);
+            return;
+          }
+
+          const targetLine = response.data.lines.find(
+            (line) => line.variantId === input.variantId,
+          );
+
+          if (response.outcome === "AT_LIMIT") {
+            setAtLimitVariantId(input.variantId);
+            if (input.triggerEl !== undefined) {
+              setDrawerTriggerEl(input.triggerEl);
+            }
+            setDrawerOpen(true);
+            announce(
+              `You already have the most we can sell of this item (${String(targetLine?.maxQuantity ?? 1)})`,
+            );
+            return;
+          }
+
+          clearLineNotices(input.variantId);
+          broadcastAccountSync(activeUserId);
+          if (input.triggerEl !== undefined) {
+            setDrawerTriggerEl(input.triggerEl);
+          }
+          setDrawerOpen(true);
+          announce(`Added ${targetLine?.title ?? input.title} to your cart`);
+          return;
+        }
+
+        // Visitor mode
         const store = useGuestCartStore.getState();
         store.expireIfNeeded();
         const currentLines = useGuestCartStore.getState().lines;
@@ -296,8 +517,6 @@ export function CartProvider({ children }: CartProviderProps) {
           (line) => line.variantId === input.variantId,
         );
 
-        // Full cart check: still validate target availability first to match
-        // server outcome evaluation order (UNAVAILABLE before CART_FULL).
         if (!existing && currentLines.length >= CART_MAX_LINES) {
           const check = await quoteCartLines([
             {
@@ -350,8 +569,7 @@ export function CartProvider({ children }: CartProviderProps) {
         }
 
         if (existing && existing.quantity >= targetQuoted.maxQuantity) {
-          // Shopper already holds the maximum sellable count for this variant.
-          recordLoweredFromLines(quotedLines);
+          recordLoweredFromLines(quotedLines, true);
           updateResolvedLines(quotedLines);
           setLoadError(false);
           setAtLimitVariantId(input.variantId);
@@ -365,8 +583,6 @@ export function CartProvider({ children }: CartProviderProps) {
           return;
         }
 
-        // Valid add succeeded: persist to guest store, apply passive lowering
-        // on any OTHER lines, open drawer, and announce.
         store.addOrIncrementLine(input.productId, input.variantId, nowIso);
 
         const otherLowered: Record<string, number> = {};
@@ -388,16 +604,20 @@ export function CartProvider({ children }: CartProviderProps) {
         }
         setDrawerOpen(true);
         announce(`Added ${targetQuoted.title ?? input.title} to your cart`);
-      } catch {
-        toast.error(CART_UPDATE_ERROR_TOAST);
+      } catch (error) {
+        if (!handleUnauthorized(error)) {
+          toast.error(CART_UPDATE_ERROR_TOAST);
+        }
       } finally {
         setAddingVariantId(null);
       }
     },
     [
+      activeUserId,
       addingVariantId,
       announce,
       clearLineNotices,
+      handleUnauthorized,
       recordLoweredFromLines,
       updateResolvedLines,
     ],
@@ -407,6 +627,44 @@ export function CartProvider({ children }: CartProviderProps) {
     async (variantId: string, quantity: number): Promise<void> => {
       setPendingVariantIds((prev) => new Set(prev).add(variantId));
       try {
+        const clampedRequest = Math.max(
+          1,
+          Math.min(CART_MAX_LINE_QUANTITY, Math.trunc(quantity)),
+        );
+
+        if (activeUserId !== null) {
+          const response = await updateAccountCartItem(
+            variantId,
+            clampedRequest,
+          );
+          const updatedLines = response.data.lines;
+          const targetLine = updatedLines.find(
+            (line) => line.variantId === variantId,
+          );
+
+          recordLoweredFromLines(updatedLines, false);
+          if (targetLine?.status === "LOWERED") {
+            setLoweredNotices((prev) => ({
+              ...prev,
+              [variantId]: targetLine.quantity,
+            }));
+            announce(
+              `Only ${String(targetLine.quantity)} left, quantity lowered`,
+            );
+          } else {
+            clearLineNotices(variantId);
+            announce(
+              `Quantity for ${targetLine?.title ?? "item"} updated to ${String(targetLine?.quantity ?? clampedRequest)}`,
+            );
+          }
+
+          updateResolvedLines(updatedLines);
+          setLoadError(false);
+          broadcastAccountSync(activeUserId);
+          return;
+        }
+
+        // Visitor mode
         const store = useGuestCartStore.getState();
         store.expireIfNeeded();
         const currentLines = useGuestCartStore.getState().lines;
@@ -417,10 +675,6 @@ export function CartProvider({ children }: CartProviderProps) {
           return;
         }
 
-        const clampedRequest = Math.max(
-          1,
-          Math.min(CART_MAX_LINE_QUANTITY, Math.trunc(quantity)),
-        );
         const candidateLines = currentLines.map((line) =>
           line.variantId === variantId
             ? { ...line, quantity: clampedRequest }
@@ -468,8 +722,19 @@ export function CartProvider({ children }: CartProviderProps) {
 
         updateResolvedLines(quotedLines);
         setLoadError(false);
-      } catch {
-        toast.error(CART_UPDATE_ERROR_TOAST);
+      } catch (error) {
+        if (
+          error instanceof CartApiError &&
+          error.status === 409 &&
+          error.code === "ITEM_UNAVAILABLE"
+        ) {
+          if (error.cartData) {
+            updateResolvedLines(error.cartData.lines);
+          }
+          toast.error(CART_ITEM_UNAVAILABLE_TOAST);
+        } else if (!handleUnauthorized(error)) {
+          toast.error(CART_UPDATE_ERROR_TOAST);
+        }
       } finally {
         setPendingVariantIds((prev) => {
           const next = new Set(prev);
@@ -478,16 +743,35 @@ export function CartProvider({ children }: CartProviderProps) {
         });
       }
     },
-    [announce, clearLineNotices, updateResolvedLines],
+    [
+      activeUserId,
+      announce,
+      clearLineNotices,
+      handleUnauthorized,
+      recordLoweredFromLines,
+      updateResolvedLines,
+    ],
   );
 
   const removeItem = useCallback(
-    (variantId: string): Promise<void> => {
+    async (variantId: string): Promise<void> => {
       setPendingVariantIds((prev) => new Set(prev).add(variantId));
       try {
         const existingTitle =
           resolvedLines.find((line) => line.variantId === variantId)?.title ??
           "item";
+
+        if (activeUserId !== null) {
+          const response = await removeAccountCartItem(variantId);
+          clearLineNotices(variantId);
+          recordLoweredFromLines(response.data.lines, false);
+          updateResolvedLines(response.data.lines);
+          setLoadError(false);
+          broadcastAccountSync(activeUserId);
+          announce(`Removed ${existingTitle} from cart`);
+          return;
+        }
+
         useGuestCartStore.getState().removeLine(variantId);
         clearLineNotices(variantId);
         const remaining = resolvedLines.filter(
@@ -495,6 +779,10 @@ export function CartProvider({ children }: CartProviderProps) {
         );
         updateResolvedLines(remaining);
         announce(`Removed ${existingTitle} from cart`);
+      } catch (error) {
+        if (!handleUnauthorized(error)) {
+          toast.error(CART_UPDATE_ERROR_TOAST);
+        }
       } finally {
         setPendingVariantIds((prev) => {
           const next = new Set(prev);
@@ -502,25 +790,48 @@ export function CartProvider({ children }: CartProviderProps) {
           return next;
         });
       }
-      return Promise.resolve();
     },
-    [announce, clearLineNotices, resolvedLines, updateResolvedLines],
+    [
+      activeUserId,
+      announce,
+      clearLineNotices,
+      handleUnauthorized,
+      recordLoweredFromLines,
+      resolvedLines,
+      updateResolvedLines,
+    ],
   );
 
-  const clearCart = useCallback((): Promise<boolean> => {
+  const clearCart = useCallback(async (): Promise<boolean> => {
     setClearing(true);
     try {
+      if (activeUserId !== null) {
+        await clearAccountCart();
+        updateResolvedLines([]);
+        setLoweredNotices({});
+        setAtLimitVariantId(null);
+        setLoadError(false);
+        broadcastAccountSync(activeUserId);
+        announce("Your cart is now empty");
+        return true;
+      }
+
       useGuestCartStore.getState().clearGuestCart();
       updateResolvedLines([]);
       setLoweredNotices({});
       setAtLimitVariantId(null);
       setLoadError(false);
       announce("Your cart is now empty");
-      return Promise.resolve(true);
+      return true;
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        toast.error(CART_UPDATE_ERROR_TOAST);
+      }
+      return false;
     } finally {
       setClearing(false);
     }
-  }, [announce, updateResolvedLines]);
+  }, [activeUserId, announce, handleUnauthorized, updateResolvedLines]);
 
   const dismissMergeBanner = useCallback(() => {
     setMergeAdjustments([]);
@@ -530,11 +841,12 @@ export function CartProvider({ children }: CartProviderProps) {
     if (!hydrated) {
       return 0;
     }
+    if (activeUserId !== null) {
+      return resolvedLines.reduce((sum, line) => sum + line.quantity, 0);
+    }
     return guestLines.reduce((sum, line) => sum + line.quantity, 0);
-  }, [guestLines, hydrated]);
+  }, [activeUserId, guestLines, hydrated, resolvedLines]);
 
-  // Enrich displayed lines with session-memory LOWERED state so subsequent
-  // reads keep `Only N left, quantity lowered` visible until edited/removed.
   const lines = useMemo(
     () =>
       resolvedLines.map((line) => {
