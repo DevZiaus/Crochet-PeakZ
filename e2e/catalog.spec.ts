@@ -50,7 +50,9 @@ test("browses the catalog, filters the shop, and opens a product", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "Shop" }),
   ).toBeVisible();
-  await expect(page.getByText("5 pieces")).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("5 pieces"),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: new RegExp(OTHER_PRODUCT_TITLE) }),
   ).toBeVisible();
@@ -71,7 +73,9 @@ test("browses the catalog, filters the shop, and opens a product", async ({
   }
 
   await expect(page).toHaveURL(/category=amigurumi/);
-  await expect(page.getByText("1 piece", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("1 piece", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: new RegExp(OTHER_PRODUCT_TITLE) }),
   ).toHaveCount(0);
@@ -88,10 +92,8 @@ test("browses the catalog, filters the shop, and opens a product", async ({
 
   await expect(page.getByText("Only 5 left")).toBeVisible();
 
-  await expect(
-    page.getByRole("button", { name: "Add to cart" }),
-  ).toBeDisabled();
-  await expect(page.getByText(/Cart is coming soon\./)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add to cart" })).toBeEnabled();
+  await expect(page.getByText(/Cart is coming soon\./)).toHaveCount(0);
 });
 
 test("sorts the shop by price and keeps the active filters and page", async ({
@@ -99,7 +101,9 @@ test("sorts the shop by price and keeps the active filters and page", async ({
 }) => {
   await page.goto("/shop?category=wearables&sort=price-asc");
 
-  await expect(page.getByText("1 piece", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("1 piece", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(`main a[href="${SLUGS.scarf}"]`)).toBeVisible();
 
   await page.getByRole("combobox", { name: "Sort by" }).click();
@@ -134,7 +138,9 @@ test("clamps a page past the last one back to the first page", async ({
   await page.goto("/shop?page=42");
 
   await expect(page).toHaveURL(/\/shop$/);
-  await expect(page.getByText("5 pieces")).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("5 pieces"),
+  ).toBeVisible();
 });
 
 test("filters by product type, swaps an inverted price range, and shows the empty state", async ({
@@ -142,16 +148,22 @@ test("filters by product type, swaps an inverted price range, and shows the empt
 }) => {
   await page.goto("/shop?type=DIGITAL");
 
-  await expect(page.getByText("1 piece", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("1 piece", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(`main a[href="${SLUGS.digital}"]`)).toBeVisible();
 
   await page.goto("/shop?type=DIGITAL&type=CUSTOM");
 
-  await expect(page.getByText("2 pieces")).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("2 pieces"),
+  ).toBeVisible();
 
   await page.goto("/shop?minPrice=3000&maxPrice=2000");
 
-  await expect(page.getByText("1 piece", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("1 piece", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(`main a[href="${SLUGS.scarf}"]`)).toBeVisible();
 
   await page.goto("/shop?category=amigurumi&type=DIGITAL");
@@ -169,7 +181,9 @@ test("drops invalid filter values instead of sending them", async ({
 }) => {
   await page.goto("/shop?category=not-a-collection&sort=bogus&page=abc");
 
-  await expect(page.getByText("5 pieces")).toBeVisible();
+  await expect(
+    page.locator("#main-content").getByText("5 pieces"),
+  ).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Sort by" })).toContainText(
     "Newest",
   );
@@ -315,7 +329,7 @@ test("shows no variant selector and the type specific stock copy", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: CUSTOM_TITLE }),
   ).toBeVisible();
-  await expect(page.getByText("Made to order")).toBeVisible();
+  await expect(page.getByText("Made to order", { exact: true })).toBeVisible();
   await expect(page.getByText("Handcrafted in 28 days")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Add to cart" }),

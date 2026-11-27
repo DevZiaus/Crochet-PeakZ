@@ -173,13 +173,13 @@ Persistent client side shopping cart (Zustand) with variant selection, quantity 
 **Done when:** a user can add/remove/update items; the cart shows correct totals in the active currency; out of stock items are rejected; cart state persists across page reloads.
 
 - [x] Design it (spec): [0008](../specs/0008-shopping-cart/index.md)
-- [ ] Build it: `/develop shopping cart`
-  - Spec [0008](../specs/0008-shopping-cart/index.md)
+- [x] Build it: `/develop shopping cart`
+  - Spec [0008](../specs/0008-shopping-cart/index.md) · code in `packages/shared/src/cart/`, `apps/api/src/domain/cart/`, `apps/api/src/application/cart/`, `apps/api/src/infrastructure/database/cart.repository.ts`, `apps/api/src/presentation/cart/`, `apps/api/prisma/migrations/20261127062057_shopping_cart/`, `apps/web/src/lib/api-proxy/`, `apps/web/src/app/api/cart/`, `apps/web/src/lib/cart/`, `apps/web/src/components/cart/`, `apps/web/src/components/ui/sheet.tsx`, `apps/web/src/app/(storefront)/cart/`, `deploy/Caddyfile`, `deploy/nginx.conf.example`, `e2e/cart.spec.ts`
   - [x] Thin visitor thread: shared cart contracts, quote API, shared web proxy, Zustand store, add to cart, header badge, minimal drawer (AC-1, AC-2, AC-3, AC-5, AC-6, AC-7, AC-8, AC-9, AC-11, AC-12, AC-13, AC-16)
   - [x] Full cart UI: Sheet primitive, drawer and `/cart` page, limits and notices, skeletons, retry error state, clear cart dialog, live regions (AC-4, AC-5, AC-6, AC-7, AC-14, AC-15, AC-17)
   - [x] Server cart for accounts: `Cart` and `CartItem` migration, row locked repository, account use cases and routes, PostgreSQL tests, `CartProvider` account mode and tab sync (AC-5, AC-7, AC-10, AC-13, AC-14, AC-16, AC-18)
   - [x] Sign in merge, sign out transition, and reverse proxy routing in Caddy, Nginx, and deployment docs (AC-11, AC-12, AC-16)
-  - [ ] Full test pass: component suites and Playwright cart end to end flow with axe checks in light and dark themes (AC-17, AC-18)
+  - [x] Full test pass: component suites and Playwright cart end to end flow with axe checks in light and dark themes (AC-17, AC-18)
 - [ ] Verify it: `/check verify shopping cart`
 - [ ] Test it: `/test shopping cart`
 - [ ] Review it (fresh model): `/check review shopping cart`

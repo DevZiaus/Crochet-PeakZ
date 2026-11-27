@@ -45,10 +45,17 @@ export type CartMode = "visitor" | "account";
 /** BroadcastChannel topic keeping account carts aligned across open tabs. */
 export const CART_BROADCAST_CHANNEL = "cp_cart";
 
+/** Unique identifier for this browser tab so BroadcastChannel ignores self echoes. */
+const TAB_INSTANCE_ID =
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : String(Math.random());
+
 /** Message broadcast across open tabs after an account cart mutation. */
 interface CartSyncMessage {
   type: "sync";
   userId: string;
+  senderId: string;
 }
 
 /** Input accepted by `addItem`. */
@@ -138,7 +145,11 @@ function broadcastAccountSync(userId: string): void {
   }
   try {
     const channel = new BroadcastChannel(CART_BROADCAST_CHANNEL);
-    const message: CartSyncMessage = { type: "sync", userId };
+    const message: CartSyncMessage = {
+      type: "sync",
+      userId,
+      senderId: TAB_INSTANCE_ID,
+    };
     channel.postMessage(message);
     channel.close();
   } catch {
@@ -491,7 +502,11 @@ export function CartProvider({ children }: CartProviderProps) {
         channel = new BroadcastChannel(CART_BROADCAST_CHANNEL);
         channel.onmessage = (event: MessageEvent<unknown>) => {
           const data = event.data as Partial<CartSyncMessage> | null;
-          if (data?.type === "sync" && data.userId === activeUserId) {
+          if (
+            data?.type === "sync" &&
+            data.userId === activeUserId &&
+            data.senderId !== TAB_INSTANCE_ID
+          ) {
             void loadAccountCart(false);
           }
         };
