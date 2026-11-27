@@ -21,9 +21,14 @@ import { BrandLogo } from "@/components/brand-logo";
 import { Container } from "@/components/container";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthMenu } from "@/components/auth/auth-menu";
+import { useOptionalCart } from "@/components/cart/cart-provider";
 import { useOptionalCurrency } from "@/components/currency/currency-provider";
 import { CurrencyRadio } from "@/components/currency/currency-radio";
 import { CurrencySwitcher } from "@/components/currency/currency-switcher";
+import {
+  formatCartBadgeCount,
+  getCartButtonAriaLabel,
+} from "@/lib/cart/labels";
 
 interface NavLink {
   /** The visible label. */
@@ -219,10 +224,13 @@ function MobileNavDrawer({
 function Header() {
   const pathname = usePathname();
   const activeCurrency = useOptionalCurrency();
+  const cart = useOptionalCart();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const cartButtonRef = useRef<HTMLButtonElement>(null);
   const homeLinkRef = useRef<HTMLAnchorElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [closeReason, setCloseReason] = useState<CloseReason>("interaction");
+  const cartBadge = cart ? formatCartBadgeCount(cart.itemCount) : null;
 
   const toggleMobile = useCallback(() => {
     setMobileOpen((prev) => !prev);
@@ -304,15 +312,29 @@ function Header() {
                 <ThemeToggle />
               </div>
 
-              {/* Cart */}
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Shopping cart"
-                className="relative min-h-[44px] min-w-[44px]"
-              >
-                <ShoppingBag className="size-5" />
-              </Button>
+              {/* Cart (storefront only, omitted outside CartProvider) */}
+              {cart !== null ? (
+                <Button
+                  ref={cartButtonRef}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    cart.openDrawer(cartButtonRef.current);
+                  }}
+                  aria-label={getCartButtonAriaLabel(cart.itemCount)}
+                  className="relative min-h-[44px] min-w-[44px]"
+                >
+                  <ShoppingBag className="size-5" aria-hidden="true" />
+                  {cartBadge !== null ? (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute top-1 right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-highlight px-1 text-xs font-semibold leading-none text-highlight-foreground"
+                    >
+                      {cartBadge}
+                    </span>
+                  ) : null}
+                </Button>
+              ) : null}
 
               {/* Auth */}
               <AuthMenu />

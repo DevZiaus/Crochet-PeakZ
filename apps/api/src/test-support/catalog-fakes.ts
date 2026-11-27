@@ -13,6 +13,11 @@ import type {
   CatalogProductRecord,
   CatalogVariantRecord,
 } from "../domain/catalog/types.js";
+import type {
+  CartCatalogLookup,
+  CartProductSnapshot,
+  CartVariantSnapshot,
+} from "../domain/cart/types.js";
 import type { CatalogRepository } from "../domain/ports/catalog-repository.js";
 import type { ImageUrlResolver } from "../domain/ports/image-url-resolver.js";
 
@@ -226,5 +231,50 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         coverImageAlt: primary?.altText ?? null,
       };
     });
+  }
+
+  /** @inheritdoc */
+  async findCartSnapshots(input: {
+    productIds: readonly string[];
+    variantIds: readonly string[];
+  }): Promise<CartCatalogLookup> {
+    await Promise.resolve();
+    const productSet = new Set(input.productIds);
+    const variantSet = new Set(input.variantIds);
+    const productsById = new Map<string, CartProductSnapshot>();
+    const variantsById = new Map<string, CartVariantSnapshot>();
+
+    for (const product of this.products) {
+      if (productSet.has(product.id)) {
+        productsById.set(product.id, {
+          id: product.id,
+          slug: product.slug,
+          title: product.title,
+          productType: product.productType,
+          priceBdt: product.priceBdt,
+          priceUsd: product.priceUsd,
+          isActive: product.isActive,
+          deletedAt: product.deletedAt,
+          images: [...product.images],
+        });
+      }
+
+      for (const variant of product.variants) {
+        if (variantSet.has(variant.id)) {
+          variantsById.set(variant.id, {
+            id: variant.id,
+            productId: product.id,
+            colorName: variant.colorName,
+            sizeLabel: variant.sizeLabel,
+            yarnType: variant.yarnType,
+            stockQuantity: variant.stockQuantity,
+            additionalPriceBdt: variant.additionalPriceBdt,
+            additionalPriceUsd: variant.additionalPriceUsd,
+          });
+        }
+      }
+    }
+
+    return { productsById, variantsById };
   }
 }

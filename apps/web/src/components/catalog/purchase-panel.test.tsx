@@ -37,7 +37,7 @@ const variants = [
 ];
 
 describe("PurchasePanel", () => {
-  it("shows the first in stock variant price, stock, and lead time", () => {
+  it("shows the first in stock variant price, stock, and lead time with an enabled Add to cart button", () => {
     render(
       <PurchasePanel
         product={makeProductDetail({ variants })}
@@ -48,8 +48,8 @@ describe("PurchasePanel", () => {
     expect(screen.getByText("৳1,900")).toBeInTheDocument();
     expect(screen.getByText("Only 3 left")).toBeInTheDocument();
     expect(screen.getByText("Ready to ship")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add to cart" })).toBeDisabled();
-    expect(screen.getByText(/Cart is coming soon/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add to cart" })).toBeEnabled();
+    expect(screen.queryByText(/Cart is coming soon/)).not.toBeInTheDocument();
   });
 
   it("updates the price and stock when another variant is chosen", async () => {
@@ -168,5 +168,52 @@ describe("PurchasePanel", () => {
 
     expect(screen.getByText("Sold out")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Honey Gold" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Out of stock" })).toBeDisabled();
+  });
+
+  it("disables Add to cart with specific type notes for DIGITAL, PRE_ORDER, and CUSTOM products", () => {
+    const { rerender } = render(
+      <PurchasePanel
+        product={makeProductDetail({
+          productType: "DIGITAL",
+          variants: [makeVariant({ id: "d1", stockQuantity: 99 })],
+        })}
+        currency="BDT"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Add to cart" })).toBeDisabled();
+    expect(
+      screen.getByText("Digital patterns are coming to the cart soon."),
+    ).toBeInTheDocument();
+
+    rerender(
+      <PurchasePanel
+        product={makeProductDetail({
+          productType: "PRE_ORDER",
+          variants: [makeVariant({ id: "p1", stockQuantity: 99 })],
+        })}
+        currency="BDT"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Add to cart" })).toBeDisabled();
+    expect(
+      screen.getByText("Pre orders are not open yet."),
+    ).toBeInTheDocument();
+
+    rerender(
+      <PurchasePanel
+        product={makeProductDetail({
+          productType: "CUSTOM",
+          variants: [makeVariant({ id: "c1", stockQuantity: 99 })],
+        })}
+        currency="BDT"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Add to cart" })).toBeDisabled();
+    expect(
+      screen.getByText(
+        "This piece is made to order through a custom request, coming soon.",
+      ),
+    ).toBeInTheDocument();
   });
 });

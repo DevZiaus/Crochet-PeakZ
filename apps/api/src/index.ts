@@ -23,6 +23,7 @@ import type { AuthDependencies } from "./application/dependencies.js";
 import type { CatalogDependencies } from "./application/catalog/dependencies.js";
 import type { ContactDependencies } from "./application/contact/dependencies.js";
 import { createAuthRouter } from "./presentation/auth/auth.routes.js";
+import { createCartRouter } from "./presentation/cart/cart.routes.js";
 import { createCatalogRouter } from "./presentation/catalog/catalog.routes.js";
 import { createContactRouter } from "./presentation/contact/contact.routes.js";
 import { PrismaCatalogRepository } from "./infrastructure/database/catalog.repository.js";
@@ -102,13 +103,31 @@ async function main(): Promise<void> {
   const authRouter = buildAuthRouter();
   const catalogRouter = buildCatalogRouter();
   const contactRouter = buildContactRouter();
+  const cartRouter = buildCartRouter();
   const app = createApp(
     env,
     database.checkHealth,
     authRouter,
     catalogRouter,
     contactRouter,
+    cartRouter,
   );
+
+  /**
+   * Builds the shopping cart router.
+   */
+  function buildCartRouter(): Router {
+    return createCartRouter({
+      quote: {
+        catalog: new PrismaCatalogRepository(database.client),
+        imageUrls: new CloudinaryImageUrlResolver(env.cloudinaryCloudName),
+        clock: systemClock,
+      },
+      proxySharedSecret: env.proxySharedSecret,
+      webAppUrl: env.webAppUrl,
+      trustedProxyHops,
+    });
+  }
 
   /**
    * Builds the contact form dependencies and Express router.

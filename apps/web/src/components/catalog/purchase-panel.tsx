@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import type {
   CurrencyCode,
   ProductDetailDto,
@@ -10,10 +11,13 @@ import {
   calculateVariantPrice,
   getLeadTimeLabel,
   getStockLabel,
+  isCartableProductType,
 } from "@crochet-peakz/shared";
 import { cn } from "@/lib/utils";
+import { useOptionalCart } from "@/components/cart/cart-provider";
 import { formatPrice } from "@/components/price-display";
 import { Button } from "@/components/ui/button";
+import { getDisabledCartTypeNote } from "@/lib/cart/labels";
 import {
   chooseOption,
   getInitialVariant,
@@ -31,10 +35,12 @@ export interface PurchasePanelProps {
 }
 
 /**
- * Variant selection, live price, stock and lead time labels, and the disabled
- * add to cart button. Lead time stays at product level.
+ * Variant selection, live price, stock and lead time labels, and the Add to
+ * cart button. Lead time stays at product level.
  */
 export function PurchasePanel({ product, currency }: PurchasePanelProps) {
+  const cart = useOptionalCart();
+  const addButtonRef = useRef<HTMLButtonElement>(null);
   const initial = getInitialVariant(product.variants);
   const [selectedId, setSelectedId] = useState<string | null>(
     initial?.id ?? null,
@@ -61,6 +67,21 @@ export function PurchasePanel({ product, currency }: PurchasePanelProps) {
   );
   const leadTimeLabel = getLeadTimeLabel(product.leadTimeDays);
 
+  const cartableType = isCartableProductType(product.productType);
+  const disabledTypeNote = getDisabledCartTypeNote(product.productType);
+  const variantInStock =
+    selectedVariant !== null && selectedVariant.stockQuantity > 0;
+  const isAdding =
+    cart !== null &&
+    selectedVariant !== null &&
+    cart.addingVariantId === selectedVariant.id;
+  const canAdd = cartableType && variantInStock && !isAdding;
+  const buttonLabel = isAdding
+    ? "Adding..."
+    : cartableType && !variantInStock
+      ? "Out of stock"
+      : "Add to cart";
+
   function handleChoose(dimension: VariantDimension, option: string | null) {
     if (selection === null) {
       return;
@@ -71,6 +92,18 @@ export function PurchasePanel({ product, currency }: PurchasePanelProps) {
     }
     setSelection(result.selection);
     setSelectedId(result.variant.id);
+  }
+
+  function handleAddToCart() {
+    if (!canAdd || cart === null) {
+      return;
+    }
+    void cart.addItem({
+      productId: product.id,
+      variantId: selectedVariant.id,
+      title: product.title,
+      triggerEl: addButtonRef.current,
+    });
   }
 
   return (
@@ -161,13 +194,24 @@ export function PurchasePanel({ product, currency }: PurchasePanelProps) {
       ))}
 
       <div className="space-y-3">
-        <Button type="button" disabled className="w-full">
-          Add to cart
+        <Button
+          ref={addButtonRef}
+          type="button"
+          disabled={!canAdd}
+          onClick={handleAddToCart}
+          className="w-full"
+        >
+          {isAdding ? (
+            <Loader2
+              className="size-4 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+          ) : null}
+          {buttonLabel}
         </Button>
-        <p className="text-sm text-muted-foreground">
-          Cart is coming soon. You can still explore the full collection or ask
-          for a custom piece.
-        </p>
+        {disabledTypeNote !== null ? (
+          <p className="text-sm text-muted-foreground">{disabledTypeNote}</p>
+        ) : null}
       </div>
     </div>
   );

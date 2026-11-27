@@ -23,6 +23,7 @@ export function createApp(
   authRouter?: Router,
   catalogRouter?: Router,
   contactRouter?: Router,
+  cartRouter?: Router,
 ): express.Application {
   const app = express();
 
@@ -38,12 +39,17 @@ export function createApp(
       credentials: true,
     }),
   );
+  app.use("/api/cart", express.json({ limit: "16kb" }));
   app.use(express.json({ limit: "1mb" }));
 
   app.use("/api", createHealthRouter({ checkDatabase }));
 
   if (authRouter) {
     app.use("/api/auth", authRouter);
+  }
+
+  if (cartRouter) {
+    app.use("/api/cart", cartRouter);
   }
 
   if (catalogRouter) {

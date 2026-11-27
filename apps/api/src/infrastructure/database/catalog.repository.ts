@@ -1,6 +1,11 @@
 import type { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import { clampPage } from "../../domain/catalog/rules.js";
 import type {
+  CartCatalogLookup,
+  CartProductSnapshot,
+  CartVariantSnapshot,
+} from "../../domain/cart/types.js";
+import type {
   CatalogCategoryRecord,
   CatalogCategoryStats,
   CatalogProductPage,
@@ -175,6 +180,99 @@ export class PrismaCatalogRepository implements CatalogRepository {
       coverImageUrl: row.coverImageUrl,
       coverImageAlt: row.coverImageAlt,
     }));
+  }
+
+  /** @inheritdoc */
+  async findCartSnapshots(input: {
+    productIds: readonly string[];
+    variantIds: readonly string[];
+  }): Promise<CartCatalogLookup> {
+    const uniqueProductIds = [...new Set(input.productIds)];
+    const uniqueVariantIds = [...new Set(input.variantIds)];
+
+    const [products, variants] = await Promise.all([
+      uniqueProductIds.length === 0
+        ? Promise.resolve([])
+        : this.prisma.product.findMany({
+            where: { id: { in: uniqueProductIds } },
+            select: {
+              id: true,
+              slug: true,
+              title: true,
+              productType: true,
+              priceBdt: true,
+              priceUsd: true,
+              isActive: true,
+              deletedAt: true,
+              images: {
+                orderBy: [
+                  { isPrimary: "desc" },
+                  { displayOrder: "asc" },
+                  { id: "asc" },
+                ],
+                select: {
+                  id: true,
+                  imageUrl: true,
+                  altText: true,
+                  isPrimary: true,
+                  displayOrder: true,
+                },
+              },
+            },
+          }),
+      uniqueVariantIds.length === 0
+        ? Promise.resolve([])
+        : this.prisma.productVariant.findMany({
+            where: { id: { in: uniqueVariantIds } },
+            select: {
+              id: true,
+              productId: true,
+              colorName: true,
+              sizeLabel: true,
+              yarnType: true,
+              stockQuantity: true,
+              additionalPriceBdt: true,
+              additionalPriceUsd: true,
+            },
+          }),
+    ]);
+
+    const productsById = new Map<string, CartProductSnapshot>();
+    for (const row of products) {
+      productsById.set(row.id, {
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        productType: row.productType,
+        priceBdt: row.priceBdt.toNumber(),
+        priceUsd: row.priceUsd.toNumber(),
+        isActive: row.isActive,
+        deletedAt: row.deletedAt,
+        images: row.images.map((image) => ({
+          id: image.id,
+          imageUrl: image.imageUrl,
+          altText: image.altText,
+          isPrimary: image.isPrimary,
+          displayOrder: image.displayOrder,
+        })),
+      });
+    }
+
+    const variantsById = new Map<string, CartVariantSnapshot>();
+    for (const row of variants) {
+      variantsById.set(row.id, {
+        id: row.id,
+        productId: row.productId,
+        colorName: row.colorName,
+        sizeLabel: row.sizeLabel,
+        yarnType: row.yarnType,
+        stockQuantity: row.stockQuantity,
+        additionalPriceBdt: row.additionalPriceBdt.toNumber(),
+        additionalPriceUsd: row.additionalPriceUsd.toNumber(),
+      });
+    }
+
+    return { productsById, variantsById };
   }
 }
 

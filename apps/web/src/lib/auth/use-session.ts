@@ -1,26 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import type { AuthUser } from "@crochet-peakz/shared";
+import {
+  SessionContext,
+  type SessionState,
+  type SignOutResult,
+} from "./session-context";
 
-/** State returned by {@link useSession}. */
-export interface SessionState {
-  /** Signed in user, or null when signed out. */
-  user: AuthUser | null;
-  /** True until the first `/me` answer arrives. */
-  loading: boolean;
-  /**
-   * Revokes the current session and clears the local user.
-   *
-   * Returns `success: true` when the server revoked the session and `success:
-   * false` when the request failed, so callers can keep the user in place and
-   * retry on failure.
-   */
-  signOut: () => Promise<SignOutResult>;
-}
-
-/** Whether the server revoked the session behind a sign out call. */
-type SignOutResult = { success: true } | { success: false };
+export type { SessionState, SignOutResult };
 
 /** Upper bound for one browser session or sign out request. */
 const AUTH_FETCH_TIMEOUT_MS = 10_000;
@@ -29,13 +17,15 @@ const AUTH_FETCH_TIMEOUT_MS = 10_000;
  * Reads the current session from the server.
  *
  * The web proxy refreshes an expired access token and replays the request, so
- * this helper simply calls `/me` and trusts the result. Browser code never
- * reads a token.
+ * this helper simply calls `/api/auth/me` and trusts the result. Browser code
+ * never reads a token.
  *
  * @param signal Optional abort signal for the initial effect.
  * @returns The signed in user, or null when the session is missing or expired.
  */
-async function readSession(signal?: AbortSignal): Promise<AuthUser | null> {
+export async function readClientSession(
+  signal?: AbortSignal,
+): Promise<AuthUser | null> {
   const controller = new AbortController();
   const onAbort = (): void => {
     controller.abort();
@@ -70,44 +60,59 @@ async function readSession(signal?: AbortSignal): Promise<AuthUser | null> {
 }
 
 /**
- * Reads the current session from `/api/auth/me`.
- *
- * The web proxy refreshes an expired access token and replays the request, so
- * a 15 minute access token does not sign anyone out while the refresh session
- * is alive.
+ * Calls `/api/auth/logout` and returns whether the server revoked the session.
  */
-export function useSession(): SessionState {
+export async function requestClientSignOut(): Promise<SignOutResult> {
+  try {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),
+    });
+
+    if (response.ok) {
+      return { success: true };
+    }
+
+    return { success: false };
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Standalone session state hook used by `SessionProvider` and by components
+ * mounted outside `SessionProvider` (such as `(auth)` layouts).
+ */
+export function useSessionController(enabled = true): SessionState {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
+
+  const refreshSession = useCallback(async (): Promise<AuthUser | null> => {
+    const nextUser = await readClientSession();
+    setUser(nextUser);
+    setLoading(false);
+    return nextUser;
+  }, []);
 
   const signOut = useCallback(async (): Promise<SignOutResult> => {
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        signal: AbortSignal.timeout(AUTH_FETCH_TIMEOUT_MS),
-      });
-
-      // Keep the local user when the server did not revoke the session, so the
-      // screen never claims the customer is signed out while the cookie lives.
-      if (response.ok) {
-        setUser(null);
-        return { success: true };
-      }
-
-      return { success: false };
-    } catch {
-      // The request never reached the server, so the session is still alive.
-      return { success: false };
+    const result = await requestClientSignOut();
+    if (result.success) {
+      setUser(null);
     }
+    return result;
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const controller = new AbortController();
     let active = true;
 
-    void readSession(controller.signal).then((nextUser) => {
+    void readClientSession(controller.signal).then((nextUser) => {
       if (!active) {
         return;
       }
@@ -119,7 +124,18 @@ export function useSession(): SessionState {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [enabled]);
 
-  return { user, loading, signOut };
+  return { user, loading, signOut, refreshSession };
+}
+
+/**
+ * Reads the current session from the shared `SessionProvider` when mounted
+ * inside the storefront shell, or falls back to a standalone `/api/auth/me`
+ * read when rendered outside `SessionProvider`.
+ */
+export function useSession(): SessionState {
+  const shared = useContext(SessionContext);
+  const standalone = useSessionController(shared === null);
+  return shared ?? standalone;
 }

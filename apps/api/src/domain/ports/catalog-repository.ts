@@ -1,3 +1,4 @@
+import type { CartCatalogLookup } from "../cart/types.js";
 import type {
   CatalogCategoryRecord,
   CatalogCategoryStats,
@@ -61,4 +62,20 @@ export interface CatalogRepository {
   getCategoryStatsForSubtrees(
     categorySubtrees: string[][],
   ): Promise<CatalogCategoryStats[]>;
+
+  /**
+   * Loads products (including inactive or soft deleted rows) and variants in
+   * one batch for cart line validation.
+   *
+   * Unlike storefront catalog reads, visibility is intentionally left to the
+   * cart domain rules so inactive or soft deleted items can still report their
+   * title while being flagged unavailable.
+   *
+   * @param input Product and variant ids referenced by cart lines.
+   * @returns Lookup maps indexed by product id and variant id.
+   */
+  findCartSnapshots(input: {
+    productIds: readonly string[];
+    variantIds: readonly string[];
+  }): Promise<CartCatalogLookup>;
 }

@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { Currency } from "@crochet-peakz/shared";
 import type { SetCurrencyResult } from "../lib/currency/actions";
 import { CurrencyProvider } from "./currency/currency-provider";
+import { CartProvider } from "./cart/cart-provider";
 import { Header, MobileNavDrawer, navLinks } from "./header";
 import { mockDesktopBreakpoint } from "../test/match-media";
 
@@ -138,14 +139,20 @@ describe("Header", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("gives every header action an accessible name and shows the currency switcher inside CurrencyProvider", () => {
+  it("gives every header action an accessible name and shows the currency switcher and cart button inside providers", () => {
     render(
       <CurrencyProvider currency={Currency.BDT}>
-        <Header />
+        <CartProvider>
+          <Header />
+        </CartProvider>
       </CurrencyProvider>,
     );
 
-    for (const name of ["Search products", "Shopping cart", "Open menu"]) {
+    for (const name of [
+      "Search products",
+      "Shopping cart, empty",
+      "Open menu",
+    ]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
 
@@ -160,11 +167,14 @@ describe("Header", () => {
     ).toBeEnabled();
   });
 
-  it("hides the currency control when rendered outside CurrencyProvider and omits the coming soon placeholder (AC-1)", () => {
+  it("hides the currency control and cart button outside their providers and omits the coming soon placeholder (AC-1, AC-3)", () => {
     const { unmount } = render(<Header />);
 
     expect(
       screen.queryByRole("button", { name: /Currency:/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Shopping cart/ }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
     expect(
@@ -174,13 +184,18 @@ describe("Header", () => {
 
     render(
       <CurrencyProvider currency={Currency.BDT}>
-        <Header />
+        <CartProvider>
+          <Header />
+        </CartProvider>
       </CurrencyProvider>,
     );
 
     expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Currency: ৳ BDT" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Shopping cart, empty" }),
     ).toBeEnabled();
   });
 

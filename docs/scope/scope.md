@@ -9,41 +9,41 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                            | Phase      | Status  |
-| --- | ---------------------------------- | ---------- | ------- |
-| 1   | Stack & architecture               | Foundation | done    |
-| 2   | Coding standards & tooling         | Foundation | done    |
-| 3   | Data model                         | Foundation | done    |
-| 4   | Design system & UI foundation      | Foundation | done    |
-| 5   | Customer auth                      | Slice 1    | done    |
-| 6   | Product catalog storefront         | Slice 1    | done    |
-| 7   | Currency switcher                  | Slice 1    | done    |
-| 8   | Shopping cart                      | Slice 1    | planned |
-| 9   | Checkout & Stripe payment          | Slice 1    | planned |
-| 10  | Order confirmation & tracking      | Slice 1    | planned |
-| 11  | PayPal integration                 | Slice 2    | planned |
-| 12  | SSLCommerz & COD                   | Slice 2    | planned |
-| 13  | Shipping engine                    | Slice 2    | planned |
-| 14  | Digital product catalog & delivery | Slice 3    | planned |
-| 15  | Custom commission request flow     | Slice 4    | planned |
-| 16  | Admin commission review & quoting  | Slice 4    | planned |
-| 17  | Admin dashboard & analytics        | Slice 5    | planned |
-| 18  | Product management (admin)         | Slice 5    | planned |
-| 19  | Order management (admin)           | Slice 5    | planned |
-| 20  | Payment gateway & store settings   | Slice 5    | planned |
-| 21  | Coupon & discount system           | Slice 5    | planned |
-| 22  | Customer dashboard & order history | Slice 6    | planned |
-| 23  | Address book management            | Slice 6    | planned |
-| 24  | Reviews & ratings                  | Slice 6    | planned |
-| 25  | Blog CMS                           | Slice 7    | planned |
-| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned |
-| 27  | Transactional email system         | Slice 7    | planned |
-| 28  | SEO                                | Slice 8    | planned |
-| 29  | Cookie consent & legal pages       | Slice 8    | planned |
-| 30  | Accessibility                      | Slice 8    | planned |
-| 31  | Error monitoring                   | Slice 8    | planned |
-| 32  | Internationalization               | Slice 8    | planned |
-| 33  | Rate limiting & abuse protection   | Slice 8    | planned |
+| #   | Feature                            | Phase      | Status      |
+| --- | ---------------------------------- | ---------- | ----------- |
+| 1   | Stack & architecture               | Foundation | done        |
+| 2   | Coding standards & tooling         | Foundation | done        |
+| 3   | Data model                         | Foundation | done        |
+| 4   | Design system & UI foundation      | Foundation | done        |
+| 5   | Customer auth                      | Slice 1    | done        |
+| 6   | Product catalog storefront         | Slice 1    | done        |
+| 7   | Currency switcher                  | Slice 1    | done        |
+| 8   | Shopping cart                      | Slice 1    | in-progress |
+| 9   | Checkout & Stripe payment          | Slice 1    | planned     |
+| 10  | Order confirmation & tracking      | Slice 1    | planned     |
+| 11  | PayPal integration                 | Slice 2    | planned     |
+| 12  | SSLCommerz & COD                   | Slice 2    | planned     |
+| 13  | Shipping engine                    | Slice 2    | planned     |
+| 14  | Digital product catalog & delivery | Slice 3    | planned     |
+| 15  | Custom commission request flow     | Slice 4    | planned     |
+| 16  | Admin commission review & quoting  | Slice 4    | planned     |
+| 17  | Admin dashboard & analytics        | Slice 5    | planned     |
+| 18  | Product management (admin)         | Slice 5    | planned     |
+| 19  | Order management (admin)           | Slice 5    | planned     |
+| 20  | Payment gateway & store settings   | Slice 5    | planned     |
+| 21  | Coupon & discount system           | Slice 5    | planned     |
+| 22  | Customer dashboard & order history | Slice 6    | planned     |
+| 23  | Address book management            | Slice 6    | planned     |
+| 24  | Reviews & ratings                  | Slice 6    | planned     |
+| 25  | Blog CMS                           | Slice 7    | planned     |
+| 26  | Meta Pixel & analytics tracking    | Slice 7    | planned     |
+| 27  | Transactional email system         | Slice 7    | planned     |
+| 28  | SEO                                | Slice 8    | planned     |
+| 29  | Cookie consent & legal pages       | Slice 8    | planned     |
+| 30  | Accessibility                      | Slice 8    | planned     |
+| 31  | Error monitoring                   | Slice 8    | planned     |
+| 32  | Internationalization               | Slice 8    | planned     |
+| 33  | Rate limiting & abuse protection   | Slice 8    | planned     |
 
 ## Foundations
 
@@ -166,13 +166,24 @@ Header dropdown and mobile drawer toggle between BDT (৳) and USD ($). Persiste
 - [x] Review it (fresh model): `/check review currency switcher`
 - [x] Document it: `/document currency switcher`
 
-### 8. Shopping cart · needs a decision
+### 8. Shopping cart · in-progress
 
 Persistent client side shopping cart (Zustand) with variant selection, quantity controls, currency aware subtotal, and cart drawer/page. Handles standard stock products with inventory validation.
 
 **Done when:** a user can add/remove/update items; the cart shows correct totals in the active currency; out of stock items are rejected; cart state persists across page reloads.
 
-- [ ] Design it (spec): `/architect shopping cart`
+- [x] Design it (spec): [0008](../specs/0008-shopping-cart/index.md)
+- [ ] Build it: `/develop shopping cart`
+  - Spec [0008](../specs/0008-shopping-cart/index.md)
+  - [x] Thin visitor thread: shared cart contracts, quote API, shared web proxy, Zustand store, add to cart, header badge, minimal drawer (AC-1, AC-2, AC-3, AC-5, AC-6, AC-7, AC-8, AC-9, AC-11, AC-12, AC-13, AC-16)
+  - [ ] Full cart UI: Sheet primitive, drawer and `/cart` page, limits and notices, skeletons, retry error state, clear cart dialog, live regions (AC-4, AC-5, AC-6, AC-7, AC-14, AC-15, AC-17)
+  - [ ] Server cart for accounts: `Cart` and `CartItem` migration, row locked repository, account use cases and routes, PostgreSQL tests, `CartProvider` account mode and tab sync (AC-5, AC-7, AC-10, AC-13, AC-14, AC-16, AC-18)
+  - [ ] Sign in merge, sign out transition, and reverse proxy routing in Caddy, Nginx, and deployment docs (AC-11, AC-12, AC-16)
+  - [ ] Full test pass: component suites and Playwright cart end to end flow with axe checks in light and dark themes (AC-17, AC-18)
+- [ ] Verify it: `/check verify shopping cart`
+- [ ] Test it: `/test shopping cart`
+- [ ] Review it (fresh model): `/check review shopping cart`
+- [ ] Document it: `/document shopping cart`
 
 ### 9. Checkout & Stripe payment · needs a decision · GA
 
